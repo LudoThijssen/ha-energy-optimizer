@@ -1,0 +1,384 @@
+# gui/app.py
+#
+# Configuration GUI — lightweight Flask web server.
+# Configuratie-GUI — lichtgewicht Flask webserver.
+#
+# Serves the configuration panels for the add-on.
+# Serveert de configuratiepanelen voor de add-on.
+
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+import json
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from database.connection import DatabaseConnection
+from config.config import AppConfig
+
+app = Flask(__name__, template_folder="templates", static_folder="static")
+
+OPTIONS_PATH = Path("/data/options.json")
+if not OPTIONS_PATH.exists():
+    OPTIONS_PATH = Path(__file__).parent.parent / "options.json"
+
+
+def _load_options() -> dict:
+    """Load current options / Laad huidige opties."""
+    if OPTIONS_PATH.exists():
+        with open(OPTIONS_PATH) as f:
+            return json.load(f)
+    return {}
+
+
+def _save_options(data: dict) -> None:
+    """Save options to disk / Sla opties op naar schijf."""
+    with open(OPTIONS_PATH, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def _get_db():
+    """Get database connection / Databaseverbinding ophalen."""
+    try:
+        config = AppConfig.load()
+        return DatabaseConnection(config.database)
+    except Exception:
+        return None
+
+
+# ── Routes ──────────────────────────────────────────────────────────────────
+
+@app.route("/")
+def index():
+    """Main configuration overview / Hoofd configuratieoverzicht."""
+    return render_template("index.html", options=_load_options())
+
+
+@app.route("/system", methods=["GET", "POST"])
+def system():
+    """System & location settings / Systeem- en locatie-instellingen."""
+    options = _load_options()
+    if request.method == "POST":
+        options["location"] = {
+            "latitude":  float(request.form["latitude"]),
+            "longitude": float(request.form["longitude"]),
+            "timezone":  request.form["timezone"],
+        }
+        options["language"] = request.form["language"]
+        options.setdefault("system", {}).update({
+            "has_grid_connection": "has_grid" in request.form,
+            "has_solar_panels":    "has_solar" in request.form,
+            "has_gas":             "has_gas" in request.form,
+            "has_battery":         "has_battery" in request.form,
+            "has_district_heating":"has_heating" in request.form,
+        })
+        _save_options(options)
+        return redirect(url_for("system", saved="1"))
+    return render_template("system.html", options=options, saved=request.args.get("saved"))
+
+
+@app.route("/database", methods=["GET", "POST"])
+def database():
+    """Database connection settings / Databaseverbindingsinstellingen."""
+    options = _load_options()
+    error = None
+    if request.method == "POST":
+        options["database"] = {
+            "host":     request.form["host"],
+            "port":     int(request.form["port"]),
+            "name":     request.form["name"],
+            "user":     request.form["user"],
+            "password": request.form["password"],
+        }
+        _save_options(options)
+        return redirect(url_for("database", saved="1"))
+    return render_template("database.html", options=options,
+                           saved=request.args.get("saved"), error=error)
+
+
+@app.route("/database/test", methods=["POST"])
+def test_database():
+    """Test database connection / Test databaseverbinding."""
+    data = request.json
+    try:
+        import mysql.connector
+        conn = mysql.connector.connect(
+            host=data["host"], port=int(data["port"]),
+            database=data["name"], user=data["user"],
+            password=data["password"], connection_timeout=5,
+        )
+        conn.close()
+        return jsonify({"ok": True, "message": "Connection successful / Verbinding geslaagd"})
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)})
+
+
+@app.route("/homeassistant", methods=["GET", "POST"])
+def homeassistant():
+    """Home Assistant connection settings / Home Assistant verbindingsinstellingen."""
+    options = _load_options()
+    if request.method == "POST":
+        options["homeassistant"] = {
+            "host":  request.form["host"],
+            "port":  int(request.form["port"]),
+            "token": request.form["token"],
+        }
+        _save_options(options)
+        return redirect(url_for("homeassistant", saved="1"))
+    return render_template("homeassistant.html", options=options,
+                           saved=request.args.get("saved"))
+
+
+@app.route("/homeassistant/test", methods=["POST"])
+def test_ha():
+    """Test Home Assistant connection / Test Home Assistant verbinding."""
+    data = request.json
+    import requests as req
+    try:
+        resp = req.get(
+            f"http://{data['host']}:{data['port']}/api/",
+            headers={"Authorization": f"Bearer {data['token']}"},
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            return jsonify({"ok": True, "message": "Connection successful / Verbinding geslaagd"})
+        return jsonify({"ok": False, "message": f"HTTP {resp.status_code}"})
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)})
+
+
+@app.route("/inverter", methods=["GET", "POST"])
+def inverter():
+    """Inverter & battery settings / Inverter- en batterij-instellingen."""
+    options = _load_options()
+    db = _get_db()
+    inverter_row = None
+    battery_row = None
+
+    if db:
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM inverter_info ORDER BY id DESC LIMIT 1")
+            inverter_row = cur.fetchone()
+            cur.execute("SELECT * FROM battery_info ORDER BY id DESC LIMIT 1")
+            battery_row = cur.fetchone()
+
+    if request.method == "POST":
+        if db:
+            driver_cfg = {
+                "host":     request.form.get("modbus_host", ""),
+                "port":     request.form.get("modbus_port", "502"),
+                "slave_id": request.form.get("modbus_slave_id", "1"),
+            }
+            with db.cursor() as cur:
+                if inverter_row:
+                    cur.execute("""
+                        UPDATE inverter_info SET
+                            brand=%(brand)s, model=%(model)s,
+                            driver=%(driver)s, driver_config=%(cfg)s,
+                            max_charge_kw=%(max_charge)s,
+                            max_discharge_kw=%(max_discharge)s
+                        WHERE id=%(id)s
+                    """, {
+                        "brand": request.form.get("brand"),
+                        "model": request.form.get("model"),
+                        "driver": request.form.get("driver"),
+                        "cfg": json.dumps(driver_cfg),
+                        "max_charge": request.form.get("max_charge_kw"),
+                        "max_discharge": request.form.get("max_discharge_kw"),
+                        "id": inverter_row["id"],
+                    })
+                else:
+                    cur.execute("""
+                        INSERT INTO inverter_info
+                            (brand, model, driver, driver_config, max_charge_kw, max_discharge_kw)
+                        VALUES (%(brand)s, %(model)s, %(driver)s, %(cfg)s, %(max_charge)s, %(max_discharge)s)
+                    """, {
+                        "brand": request.form.get("brand"),
+                        "model": request.form.get("model"),
+                        "driver": request.form.get("driver"),
+                        "cfg": json.dumps(driver_cfg),
+                        "max_charge": request.form.get("max_charge_kw"),
+                        "max_discharge": request.form.get("max_discharge_kw"),
+                    })
+        return redirect(url_for("inverter", saved="1"))
+
+    return render_template("inverter.html", options=options,
+                           inverter=inverter_row, battery=battery_row,
+                           saved=request.args.get("saved"))
+
+
+@app.route("/provider", methods=["GET", "POST"])
+def provider():
+    """Energy provider settings / Energieprovider-instellingen."""
+    db = _get_db()
+    provider_row = None
+
+    if db:
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM provider_config
+                WHERE energy_type='electricity' AND is_active=1
+                ORDER BY id DESC LIMIT 1
+            """)
+            provider_row = cur.fetchone()
+
+    if request.method == "POST" and db:
+        driver = request.form.get("provider_driver")
+        driver_cfg = {}
+        if driver in ("anwb", "energyzero"):
+            driver_cfg = {
+                "vat_pct":  float(request.form.get("vat_pct", 21.0)),
+                "incl_tax": "incl_tax" in request.form,
+            }
+        elif driver == "tibber":
+            driver_cfg = {"token": request.form.get("tibber_token", "")}
+        elif driver == "entsoe":
+            driver_cfg = {
+                "token":     request.form.get("entsoe_token", ""),
+                "area_code": request.form.get("area_code", "10YNL----------L"),
+                "vat_pct":   float(request.form.get("vat_pct", 21.0)),
+            }
+
+        with db.cursor() as cur:
+            cur.execute("UPDATE provider_config SET is_active=0")
+            if provider_row:
+                cur.execute("""
+                    UPDATE provider_config SET
+                        provider_driver=%(driver)s,
+                        driver_config=%(cfg)s,
+                        is_active=1
+                    WHERE id=%(id)s
+                """, {"driver": driver, "cfg": json.dumps(driver_cfg),
+                      "id": provider_row["id"]})
+            else:
+                cur.execute("""
+                    INSERT INTO provider_config
+                        (energy_type, provider_driver, driver_config, is_active)
+                    VALUES ('electricity', %(driver)s, %(cfg)s, 1)
+                """, {"driver": driver, "cfg": json.dumps(driver_cfg)})
+
+        return redirect(url_for("provider", saved="1"))
+
+    return render_template("provider.html", provider=provider_row,
+                           saved=request.args.get("saved"))
+
+
+@app.route("/entities", methods=["GET", "POST"])
+def entities():
+    """HA entity mapping / HA entiteit-koppeling."""
+    db = _get_db()
+    entity_rows = []
+
+    if db:
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM ha_entity_map ORDER BY internal_name")
+            entity_rows = cur.fetchall()
+
+    if request.method == "POST" and db:
+        internal_name = request.form.get("internal_name")
+        entity_id     = request.form.get("entity_id")
+        unit          = request.form.get("unit", "")
+        description   = request.form.get("description", "")
+        with db.cursor() as cur:
+            cur.execute("""
+                INSERT INTO ha_entity_map (internal_name, entity_id, unit, description)
+                VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
+                ON DUPLICATE KEY UPDATE
+                    entity_id=VALUES(entity_id),
+                    unit=VALUES(unit),
+                    description=VALUES(description)
+            """, {"n": internal_name, "e": entity_id, "u": unit, "d": description})
+        return redirect(url_for("entities", saved="1"))
+
+    return render_template("entities.html", entities=entity_rows,
+                           saved=request.args.get("saved"))
+
+
+@app.route("/entities/delete/<int:entity_id>", methods=["POST"])
+def delete_entity(entity_id: int):
+    """Delete an entity mapping / Verwijder een entiteit-koppeling."""
+    db = _get_db()
+    if db:
+        with db.cursor() as cur:
+            cur.execute("DELETE FROM ha_entity_map WHERE id=%(id)s", {"id": entity_id})
+    return redirect(url_for("entities"))
+
+
+@app.route("/schedule", methods=["GET", "POST"])
+def schedule():
+    """Collector & optimizer timing settings / Collector- en optimizer-tijdsinstellingen."""
+    options = _load_options()
+    if request.method == "POST":
+        options["collectors"] = {
+            "ha_interval_seconds":       int(request.form["ha_interval"]),
+            "weather_interval_seconds":  int(request.form["weather_interval"]),
+            "price_fetch_time_today":    request.form["price_time_today"],
+            "price_fetch_time_tomorrow": request.form["price_time_tomorrow"],
+            "price_fetch_max_retries":   int(request.form["price_retries"]),
+            "price_fetch_retry_minutes": int(request.form["price_retry_minutes"]),
+        }
+        options["optimizer"] = {
+            "run_time":              request.form["optimizer_time"],
+            "rerun_on_price_update": "rerun" in request.form,
+        }
+        options["reporting"] = {
+            "daily_report_time":  request.form["report_time"],
+            "notify_on_warning":  "notify_warning" in request.form,
+            "notify_on_error":    "notify_error" in request.form,
+        }
+        _save_options(options)
+        return redirect(url_for("schedule", saved="1"))
+    return render_template("schedule.html", options=options,
+                           saved=request.args.get("saved"))
+
+
+@app.route("/optimizer", methods=["GET", "POST"])
+def optimizer():
+    """Optimizer thresholds / Optimizer-drempelwaarden."""
+    db = _get_db()
+    config_row = None
+    battery_row = None
+
+    if db:
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
+            config_row = cur.fetchone()
+            cur.execute("SELECT * FROM battery_info ORDER BY id DESC LIMIT 1")
+            battery_row = cur.fetchone()
+
+    if request.method == "POST" and db:
+        with db.cursor() as cur:
+            if config_row:
+                cur.execute("""
+                    UPDATE system_config SET
+                        min_price_to_discharge=%(min_dis)s,
+                        max_price_to_charge=%(max_chg)s,
+                        battery_efficiency_pct=%(eff)s,
+                        price_incl_tax=%(incl)s
+                    WHERE id=%(id)s
+                """, {
+                    "min_dis": request.form.get("min_discharge_price"),
+                    "max_chg": request.form.get("max_charge_price"),
+                    "eff":     request.form.get("battery_efficiency"),
+                    "incl":    1 if "price_incl_tax" in request.form else 0,
+                    "id":      config_row["id"],
+                })
+            if battery_row:
+                cur.execute("""
+                    UPDATE battery_info SET
+                        min_soc_pct=%(min_soc)s,
+                        max_soc_pct=%(max_soc)s
+                    WHERE id=%(id)s
+                """, {
+                    "min_soc": request.form.get("min_soc"),
+                    "max_soc": request.form.get("max_soc"),
+                    "id":      battery_row["id"],
+                })
+        return redirect(url_for("optimizer", saved="1"))
+
+    return render_template("optimizer.html", config=config_row, battery=battery_row,
+                           saved=request.args.get("saved"))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8099, debug=False)

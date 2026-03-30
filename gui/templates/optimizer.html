@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Optimizer thresholds — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Optimizer thresholds / Optimizer-drempelwaarden</h1>
+<p class="subtitle">
+  Rules used to decide when to charge or discharge / Regels voor laad- en ontlaadkeuzes
+</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+{% endif %}
+
+<form method="POST">
+  <div class="card">
+    <h2>Price thresholds / Prijsdrempelwaarden</h2>
+    <div class="alert alert-info">
+      These values determine when it is financially worthwhile to charge or discharge the battery.<br>
+      Deze waarden bepalen wanneer het financieel zinvol is de batterij te laden of te ontladen.
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Minimum price to discharge / Minimale prijs voor ontladen (€/kWh)</label>
+        <input type="number" name="min_discharge_price" step="0.001" min="0"
+               value="{{ config.min_price_to_discharge if config else 0.22 }}">
+        <div class="hint">
+          Only discharge the battery when the electricity price is at or above this value.<br>
+          Ontlaad de batterij alleen als de stroomprijs gelijk is aan of hoger dan deze waarde.<br>
+          <em>Example / Voorbeeld: 0.220 = 22 ct/kWh</em>
+        </div>
+      </div>
+      <div class="field">
+        <label>Maximum price to charge from grid / Maximale prijs voor laden vanaf net (€/kWh)</label>
+        <input type="number" name="max_charge_price" step="0.001" min="0"
+               value="{{ config.max_price_to_charge if config else 0.10 }}">
+        <div class="hint">
+          Only charge from the grid when the electricity price is at or below this value.<br>
+          Laad alleen vanaf het net als de stroomprijs gelijk is aan of lager dan deze waarde.<br>
+          <em>Example / Voorbeeld: 0.100 = 10 ct/kWh</em>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="check-label">
+        <input type="checkbox" name="price_incl_tax"
+               {% if config and config.price_incl_tax %}checked{% endif %}>
+        Prices include VAT / Prijzen zijn inclusief belasting
+      </label>
+      <div class="hint" style="margin-top:4px">
+        Must match the setting of your energy provider.<br>
+        Moet overeenkomen met de instelling van uw energieprovider.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Battery efficiency / Batterijrendement</h2>
+    <div class="field">
+      <label>Round-trip efficiency / Omzettingsrendement (%)</label>
+      <input type="number" name="battery_efficiency" step="0.5" min="50" max="100"
+             value="{{ config.battery_efficiency_pct if config else 75.0 }}">
+      <div class="hint">
+        Energy retained after a full charge and discharge cycle.<br>
+        Energie die overblijft na een volledige laad- en ontlaadcyclus.<br>
+        <em>75 = 25% loss (100 kWh in &rarr; 75 kWh out / 100 kWh in &rarr; 75 kWh uit)</em>
+      </div>
+    </div>
+    <div class="field">
+      <label>Hard minimum discharge price excl. VAT / Harde minimale ontlaadprijs excl. BTW (&euro;/kWh)</label>
+      <input type="number" name="hard_min_discharge_price" step="0.001" min="0"
+             value="{{ config.hard_min_discharge_price_excl if config else 0.05 }}">
+      <div class="hint">
+        Battery never discharges when price is below this, regardless of other settings.<br>
+        Batterij ontlaadt nooit als prijs hieronder ligt, ongeacht overige instellingen.<br>
+        <em>Default / Standaard: 0.050 = 5 ct/kWh excl. BTW</em>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Battery depreciation / Batterijafschrijving</h2>
+    <div class="alert alert-info">
+      Optional. Adds depreciation cost per kWh to optimizer calculations.<br>
+      Optioneel. Voegt afschrijvingskosten per kWh toe aan optimizer-berekeningen.<br>
+      Formula: cost_per_kWh = purchase_price / (expected_cycles x usable_capacity_kWh)
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Purchase price / Aanschafprijs (&euro;)</label>
+        <input type="number" name="battery_cost_eur" step="100" min="0"
+               value="{{ battery.cost_eur if battery and battery.cost_eur else '' }}"
+               placeholder="e.g. 3000">
+      </div>
+      <div class="field">
+        <label>Expected charge cycles / Verwachte laadcycli</label>
+        <input type="number" name="expected_cycles" step="100" min="0"
+               value="{{ battery.expected_cycles if battery and battery.expected_cycles else '' }}"
+               placeholder="e.g. 3000">
+        <div class="hint">Typically 3000-6000 for lithium / Typisch 3000-6000 voor lithium</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>State of charge limits / Laadtoestand-grenzen</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Minimum SoC / Minimale laadtoestand (%)</label>
+        <input type="number" name="min_soc" step="1" min="0" max="40"
+               value="{{ battery.min_soc_pct if battery else 10 }}">
+        <div class="hint">
+          The optimizer will never plan a discharge below this level.<br>
+          De optimizer plant nooit een ontlading onder dit niveau.
+        </div>
+      </div>
+      <div class="field">
+        <label>Maximum SoC / Maximale laadtoestand (%)</label>
+        <input type="number" name="max_soc" step="1" min="60" max="100"
+               value="{{ battery.max_soc_pct if battery else 95 }}">
+        <div class="hint">
+          The optimizer will never plan a charge above this level.<br>
+          De optimizer plant nooit een lading boven dit niveau.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>How the optimizer decides / Hoe de optimizer beslist</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Situation / Situatie</th>
+          <th>Action / Actie</th>
+          <th>Reason / Reden</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Solar surplus + battery not full<br><span style="color:#6b7280;font-size:12px">Zonne-overschot + batterij niet vol</span></td>
+          <td><span style="color:#16a34a;font-weight:500">Charge / Opladen</span></td>
+          <td>Free solar energy / Gratis zonne-energie</td>
+        </tr>
+        <tr>
+          <td>Price ≥ min. discharge threshold<br><span style="color:#6b7280;font-size:12px">Prijs ≥ minimale ontlaadprijs</span></td>
+          <td><span style="color:#b45309;font-weight:500">Discharge / Ontladen</span></td>
+          <td>High price — sell stored energy / Hoge prijs — opgeslagen energie verkopen</td>
+        </tr>
+        <tr>
+          <td>Price ≤ max. charge threshold<br><span style="color:#6b7280;font-size:12px">Prijs ≤ maximale laadprijs</span></td>
+          <td><span style="color:#1d4ed8;font-weight:500">Charge from grid / Opladen vanaf net</span></td>
+          <td>Low price — buy cheap energy / Lage prijs — goedkope energie inkopen</td>
+        </tr>
+        <tr>
+          <td>No clear advantage<br><span style="color:#6b7280;font-size:12px">Geen duidelijk voordeel</span></td>
+          <td><span style="color:#6b7280;font-weight:500">Idle / Inactief</span></td>
+          <td>Battery rests / Batterij rust</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+  </div>
+</form>
+{% endblock %}

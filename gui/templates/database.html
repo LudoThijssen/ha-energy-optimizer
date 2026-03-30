@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Database — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Database</h1>
+<p class="subtitle">MySQL connection settings / MySQL-verbindingsinstellingen</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+{% endif %}
+
+<form method="POST" id="db-form">
+  <div class="card">
+    <h2>Connection / Verbinding</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Host</label>
+        <input type="text" name="host" id="db-host" placeholder="192.168.1.100 or nas.local"
+               value="{{ options.get('database', {}).get('host', '') }}" required>
+        <div class="hint">IP address or hostname of your MySQL server / IP-adres of hostnaam van uw MySQL-server</div>
+      </div>
+      <div class="field" style="max-width:120px">
+        <label>Port / Poort</label>
+        <input type="number" name="port" id="db-port"
+               value="{{ options.get('database', {}).get('port', 3306) }}" required>
+      </div>
+    </div>
+    <div class="field">
+      <label>Database name / Databasenaam</label>
+      <input type="text" name="name" id="db-name"
+             value="{{ options.get('database', {}).get('name', 'energy') }}" required>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Username / Gebruikersnaam</label>
+        <input type="text" name="user" id="db-user"
+               value="{{ options.get('database', {}).get('user', 'energy') }}" required>
+      </div>
+      <div class="field">
+        <label>Password / Wachtwoord</label>
+        <input type="password" name="password" id="db-pass"
+               value="{{ options.get('database', {}).get('password', '') }}">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+      <button type="button" class="btn btn-secondary" onclick="testConnection()">
+        Test connection / Test verbinding
+      </button>
+      <span id="test-result"></span>
+    </div>
+  </div>
+</form>
+
+<script>
+async function testConnection() {
+  const result = document.getElementById("test-result");
+  result.textContent = "Testing... / Testen...";
+  result.style.color = "#6b7280";
+
+  const payload = {
+    host:     document.getElementById("db-host").value,
+    port:     document.getElementById("db-port").value,
+    name:     document.getElementById("db-name").value,
+    user:     document.getElementById("db-user").value,
+    password: document.getElementById("db-pass").value,
+  };
+
+  try {
+    const resp = await fetch("/database/test", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    result.textContent = data.message;
+    result.style.color = data.ok ? "#16a34a" : "#dc2626";
+  } catch (e) {
+    result.textContent = "Request failed / Verzoek mislukt";
+    result.style.color = "#dc2626";
+  }
+}
+</script>
+{% endblock %}

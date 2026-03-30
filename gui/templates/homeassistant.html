@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Home Assistant — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Home Assistant</h1>
+<p class="subtitle">Connection settings / Verbindingsinstellingen</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+{% endif %}
+
+<form method="POST" id="ha-form">
+  <div class="card">
+    <h2>Connection / Verbinding</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Host</label>
+        <input type="text" name="host" id="ha-host" placeholder="homeassistant.local"
+               value="{{ options.get('homeassistant', {}).get('host', '') }}" required>
+        <div class="hint">
+          IP address or hostname / IP-adres of hostnaam.<br>
+          Use <code>homeassistant.local</code> or the IP of your HA instance.
+        </div>
+      </div>
+      <div class="field" style="max-width:130px">
+        <label>Port / Poort</label>
+        <input type="number" name="port" id="ha-port"
+               value="{{ options.get('homeassistant', {}).get('port', 8123) }}" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Long-lived access token / Langdurig toegangstoken</label>
+      <input type="password" name="token" id="ha-token"
+             value="{{ options.get('homeassistant', {}).get('token', '') }}" required>
+      <div class="hint">
+        Create a token in Home Assistant under:<br>
+        Maak een token aan in Home Assistant via:<br>
+        <strong>Profile → Security → Long-lived access tokens → Create token</strong>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+      <button type="button" class="btn btn-secondary" onclick="testConnection()">
+        Test connection / Test verbinding
+      </button>
+      <span id="test-result"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>How to create a token / Token aanmaken</h2>
+    <ol style="font-size:13.5px; color:#374151; line-height:2; padding-left:20px">
+      <li>Open Home Assistant in your browser / Open Home Assistant in uw browser</li>
+      <li>Click your profile icon (bottom left) / Klik op uw profielicoon (linksonder)</li>
+      <li>Scroll down to <strong>Security</strong></li>
+      <li>Click <strong>Create token</strong> under Long-lived access tokens</li>
+      <li>Give it a name like <em>HA Energy Optimizer</em></li>
+      <li>Copy the token and paste it above / Kopieer het token en plak het hierboven</li>
+    </ol>
+  </div>
+</form>
+
+<script>
+async function testConnection() {
+  const result = document.getElementById("test-result");
+  result.textContent = "Testing... / Testen...";
+  result.style.color = "#6b7280";
+
+  const payload = {
+    host:  document.getElementById("ha-host").value,
+    port:  document.getElementById("ha-port").value,
+    token: document.getElementById("ha-token").value,
+  };
+
+  try {
+    const resp = await fetch("/homeassistant/test", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    result.textContent = data.message;
+    result.style.color = data.ok ? "#16a34a" : "#dc2626";
+  } catch (e) {
+    result.textContent = "Request failed / Verzoek mislukt";
+    result.style.color = "#dc2626";
+  }
+}
+</script>
+{% endblock %}

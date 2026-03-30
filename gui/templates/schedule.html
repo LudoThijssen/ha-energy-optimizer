@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Timing — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Timing / Tijden</h1>
+<p class="subtitle">
+  Schedule intervals and daily task times / Intervalinstellingen en dagelijkse tijden
+</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+{% endif %}
+
+<form method="POST">
+  <div class="card">
+    <h2>Data collection intervals / Dataverzamelingsintervallen</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label>HA sensor interval (seconds / seconden)</label>
+        <input type="number" name="ha_interval" min="60" max="3600"
+               value="{{ options.get('collectors', {}).get('ha_interval_seconds', 300) }}" required>
+        <div class="hint">
+          How often to read HA sensors. Default 300 = every 5 min.<br>
+          Hoe vaak HA-sensoren worden uitgelezen. Standaard 300 = elke 5 min.
+        </div>
+      </div>
+      <div class="field">
+        <label>Weather interval (seconds / seconden)</label>
+        <input type="number" name="weather_interval" min="1800" max="21600"
+               value="{{ options.get('collectors', {}).get('weather_interval_seconds', 3600) }}" required>
+        <div class="hint">
+          How often to refresh the weather forecast. Default 3600 = hourly.<br>
+          Hoe vaak de weersvoorspelling wordt vernieuwd. Standaard 3600 = per uur.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Price fetch times / Ophaal-tijden energieprijzen</h2>
+    <div class="alert alert-info">
+      Day-ahead prices are published by providers at different times.<br>
+      ANWB / EnergyZero publishes tomorrow's prices around 14:00.<br><br>
+      Day-ahead prijzen worden door providers op verschillende tijden gepubliceerd.<br>
+      ANWB / EnergyZero publiceert de prijzen van morgen rond 14:00.
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Fetch today's prices at / Huidige dag ophalen om</label>
+        <input type="time" name="price_time_today"
+               value="{{ options.get('collectors', {}).get('price_fetch_time_today', '13:00') }}" required>
+      </div>
+      <div class="field">
+        <label>Fetch tomorrow's prices at / Volgende dag ophalen om</label>
+        <input type="time" name="price_time_tomorrow"
+               value="{{ options.get('collectors', {}).get('price_fetch_time_tomorrow', '14:15') }}" required>
+        <div class="hint">
+          Set later than your provider's publication time.<br>
+          Stel in na het publicatietijdstip van uw provider.
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Max retries / Max. pogingen</label>
+        <input type="number" name="price_retries" min="1" max="10"
+               value="{{ options.get('collectors', {}).get('price_fetch_max_retries', 3) }}" required>
+        <div class="hint">Number of retry attempts if prices are unavailable.</div>
+      </div>
+      <div class="field">
+        <label>Retry interval (minutes / minuten)</label>
+        <input type="number" name="price_retry_minutes" min="5" max="120"
+               value="{{ options.get('collectors', {}).get('price_fetch_retry_minutes', 30) }}" required>
+        <div class="hint">
+          Wait time between retries.<br>
+          Wachttijd tussen nieuwe pogingen.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Optimizer & reporting</h2>
+    <div class="alert alert-info">
+      The optimizer must run after tomorrow's prices have been fetched.<br>
+      De optimizer moet draaien nadat de prijzen van morgen zijn opgehaald.
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Optimizer run time / Optimizer-starttijd</label>
+        <input type="time" name="optimizer_time"
+               value="{{ options.get('optimizer', {}).get('run_time', '14:30') }}" required>
+        <div class="hint">Must be after "Fetch tomorrow's prices at". / Moet na de prijs-ophaaltijd liggen.</div>
+      </div>
+      <div class="field">
+        <label>Daily report time / Dagrapport-tijd</label>
+        <input type="time" name="report_time"
+               value="{{ options.get('reporting', {}).get('daily_report_time', '07:00') }}" required>
+      </div>
+    </div>
+
+    <label class="check-label">
+      <input type="checkbox" name="rerun"
+             {% if options.get('optimizer', {}).get('rerun_on_price_update', True) %}checked{% endif %}>
+      Re-run optimizer when new prices arrive / Optimizer opnieuw uitvoeren bij nieuwe prijzen
+    </label>
+    <label class="check-label">
+      <input type="checkbox" name="notify_warning"
+             {% if options.get('reporting', {}).get('notify_on_warning', True) %}checked{% endif %}>
+      Send HA notification on warnings / HA-melding bij waarschuwingen
+    </label>
+    <label class="check-label">
+      <input type="checkbox" name="notify_error"
+             {% if options.get('reporting', {}).get('notify_on_error', True) %}checked{% endif %}>
+      Send HA notification on errors / HA-melding bij fouten
+    </label>
+  </div>
+
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+  </div>
+</form>
+{% endblock %}

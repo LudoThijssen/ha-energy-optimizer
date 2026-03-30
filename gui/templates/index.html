@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Overview — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>HA Energy Optimizer</h1>
+<p class="subtitle">Configuration overview / Configuratie-overzicht</p>
+
+<div class="card">
+  <h2>Quick setup / Snelle installatie</h2>
+  <p style="font-size:13.5px; color:#374151; line-height:1.7; margin-bottom:16px;">
+    Complete the steps below in order to get the add-on working.<br>
+    Voltooi de onderstaande stappen om de add-on aan de praat te krijgen.
+  </p>
+
+  {% set steps = [
+    ("system",       "1. System & location",   "Systeem & locatie",         options.get("location")),
+    ("database",     "2. Database",             "Database",                  options.get("database")),
+    ("homeassistant","3. Home Assistant",        "Home Assistant",            options.get("homeassistant")),
+    ("inverter",     "4. Inverter & battery",   "Inverter & batterij",       None),
+    ("provider",     "5. Energy provider",      "Energieprovider",           None),
+    ("entities",     "6. HA entity mapping",    "HA entiteit-koppeling",     None),
+    ("schedule",     "7. Timing",               "Tijden",                    options.get("collectors")),
+    ("optimizer",    "8. Optimizer thresholds", "Optimizer-drempelwaarden",  None),
+  ] %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Step / Stap</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for endpoint, label_en, label_nl, check in steps %}
+      <tr>
+        <td>
+          <strong>{{ label_en }}</strong><br>
+          <span style="color:#6b7280; font-size:12px;">{{ label_nl }}</span>
+        </td>
+        <td>
+          {% if check %}
+            <span style="color:#16a34a; font-weight:500;">&#10003; Configured / Ingesteld</span>
+          {% else %}
+            <span style="color:#dc2626;">&#8212; Not configured / Niet ingesteld</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="/{{ endpoint }}" class="btn btn-secondary btn-sm">Edit / Bewerk</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>About / Over</h2>
+  <p style="font-size:13px; color:#6b7280; line-height:1.8;">
+    HA Energy Optimizer optimizes your home battery charge and discharge schedule based on dynamic energy prices, solar forecasts, and household consumption.<br><br>
+    HA Energy Optimizer optimaliseert het laad- en ontlaadschema van uw thuisbatterij op basis van dynamische energieprijzen, zonverwachtingen en huishoudelijk verbruik.
+  </p>
+</div>
+
+{% endblock %}

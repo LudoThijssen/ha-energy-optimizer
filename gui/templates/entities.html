@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}HA Entities — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>HA entity mapping / HA entiteit-koppeling</h1>
+<p class="subtitle">
+  Link Home Assistant sensors to internal names / Koppel Home Assistant-sensoren aan interne namen
+</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Entity saved / Entiteit opgeslagen</div>
+{% endif %}
+
+{% set required_entities = [
+  ("battery_soc",           "Battery state of charge (%)",   "Laadtoestand batterij (%)",     "%"),
+  ("battery_power",         "Battery power (kW, + = charge)","Batterijvermogen (kW, + = laden)","kW"),
+  ("battery_temperature",   "Battery temperature (°C)",      "Temperatuur batterij (°C)",      "°C"),
+  ("solar_power",           "Solar production (kW)",         "Zonproductie (kW)",              "kW"),
+  ("grid_import_power",     "Grid import power (kW)",        "Netafname vermogen (kW)",        "kW"),
+  ("grid_export_power",     "Grid export power (kW)",        "Teruglevering vermogen (kW)",    "kW"),
+  ("total_consumption_power","Total home consumption (kW)",  "Totaal huisverbruik (kW)",       "kW"),
+  ("gas_consumption",       "Gas consumption (m³/h)",        "Gasverbruik (m³/u)",             "m³/h"),
+] %}
+
+<div class="card">
+  <h2>Required sensors / Benodigde sensoren</h2>
+  <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7">
+    Map each internal name to the correct Home Assistant entity ID.<br>
+    Koppel elke interne naam aan het juiste Home Assistant entiteit-ID.<br>
+    You can leave sensors empty if the component is not installed.<br>
+    Laat sensoren leeg als het component niet aanwezig is.
+  </p>
+
+  {% set mapped = {} %}
+  {% for e in entities %}
+    {% set _ = mapped.update({e.internal_name: e}) %}
+  {% endfor %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Internal name / Interne naam</th>
+        <th>Description</th>
+        <th>Entity ID</th>
+        <th>Unit</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for internal, label_en, label_nl, unit in required_entities %}
+      {% set existing = mapped.get(internal) %}
+      <tr>
+        <td><code style="font-size:12px; background:#f1f5f9; padding:2px 6px; border-radius:4px">{{ internal }}</code></td>
+        <td>
+          {{ label_en }}<br>
+          <span style="color:#6b7280; font-size:12px">{{ label_nl }}</span>
+        </td>
+        <td>
+          <form method="POST" style="display:flex; gap:6px; align-items:center">
+            <input type="hidden" name="internal_name" value="{{ internal }}">
+            <input type="hidden" name="unit" value="{{ unit }}">
+            <input type="hidden" name="description" value="{{ label_en }}">
+            <input type="text" name="entity_id" placeholder="sensor.example"
+                   value="{{ existing.entity_id if existing else '' }}"
+                   style="min-width:220px">
+            <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+          </form>
+        </td>
+        <td style="color:#6b7280; font-size:12px">{{ unit }}</td>
+        <td>
+          {% if existing %}
+          <form method="POST" action="/entities/delete/{{ existing.id }}">
+            <button type="submit" class="btn btn-danger btn-sm" title="Remove / Verwijder">&#215;</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Add custom entity / Aangepaste entiteit toevoegen</h2>
+  <form method="POST">
+    <div class="field-row">
+      <div class="field">
+        <label>Internal name / Interne naam</label>
+        <input type="text" name="internal_name" placeholder="my_custom_sensor">
+      </div>
+      <div class="field">
+        <label>Entity ID</label>
+        <input type="text" name="entity_id" placeholder="sensor.my_custom_sensor">
+      </div>
+      <div class="field" style="max-width:100px">
+        <label>Unit</label>
+        <input type="text" name="unit" placeholder="kW">
+      </div>
+    </div>
+    <div class="field">
+      <label>Description / Omschrijving</label>
+      <input type="text" name="description" placeholder="What does this sensor measure?">
+    </div>
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Add / Toevoegen</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Energy provider — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Energy provider / Energieprovider</h1>
+<p class="subtitle">Dynamic electricity price source / Bron voor dynamische stroomprijzen</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+{% endif %}
+
+<form method="POST" id="provider-form">
+  <div class="card">
+    <h2>Provider</h2>
+
+    <div class="field">
+      <label>Provider</label>
+      <select name="provider_driver" id="provider-select" onchange="showProviderFields()">
+        {% set current = provider.provider_driver if provider else '' %}
+        <option value="anwb"       {% if current == 'anwb' %}selected{% endif %}>ANWB Energie (via EnergyZero)</option>
+        <option value="energyzero" {% if current == 'energyzero' %}selected{% endif %}>EnergyZero</option>
+        <option value="tibber"     {% if current == 'tibber' %}selected{% endif %}>Tibber</option>
+        <option value="entsoe"     {% if current == 'entsoe' %}selected{% endif %}>ENTSO-E (European day-ahead)</option>
+        <option value="frank"      {% if current == 'frank' %}selected{% endif %}>Frank Energie (not yet available / nog niet beschikbaar)</option>
+      </select>
+    </div>
+
+    <!-- ANWB / EnergyZero fields -->
+    <div id="fields-anwb" class="provider-fields">
+      <div class="field-row">
+        <div class="field">
+          <label>VAT percentage / BTW-percentage</label>
+          <input type="number" name="vat_pct" step="0.1" min="0" max="30"
+                 value="{{ (provider.driver_config or {}).get('vat_pct', 21.0) if provider else 21.0 }}">
+          <div class="hint">Applied to market price / Op marktprijs toegepast</div>
+        </div>
+        <div class="field" style="max-width:200px; padding-top:28px">
+          <label class="check-label">
+            <input type="checkbox" name="incl_tax"
+                   {% if provider and (provider.driver_config or {}).get('incl_tax') %}checked{% endif %}>
+            API delivers incl. VAT / API levert incl. BTW
+          </label>
+        </div>
+      </div>
+      <div class="alert alert-info" style="margin-top:8px">
+        ANWB Energie uses the EnergyZero platform. Prices for tomorrow are published around 14:00.<br>
+        ANWB Energie maakt gebruik van het EnergyZero platform. Prijzen van morgen worden rond 14:00 gepubliceerd.
+      </div>
+    </div>
+
+    <!-- Tibber fields -->
+    <div id="fields-tibber" class="provider-fields" style="display:none">
+      <div class="field">
+        <label>Tibber API token</label>
+        <input type="password" name="tibber_token"
+               value="{{ (provider.driver_config or {}).get('token', '') if provider else '' }}">
+        <div class="hint">
+          Get your token at <a href="https://developer.tibber.com" target="_blank">developer.tibber.com</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTSO-E fields -->
+    <div id="fields-entsoe" class="provider-fields" style="display:none">
+      <div class="field">
+        <label>ENTSO-E API token</label>
+        <input type="password" name="entsoe_token"
+               value="{{ (provider.driver_config or {}).get('token', '') if provider else '' }}">
+        <div class="hint">
+          Register at <a href="https://transparency.entsoe.eu" target="_blank">transparency.entsoe.eu</a>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Bidding zone area code</label>
+          <select name="area_code">
+            {% set current_area = (provider.driver_config or {}).get('area_code', '10YNL----------L') if provider else '10YNL----------L' %}
+            <option value="10YNL----------L" {% if current_area == '10YNL----------L' %}selected{% endif %}>Netherlands / Nederland</option>
+            <option value="10YBE----------2" {% if current_area == '10YBE----------2' %}selected{% endif %}>Belgium / België</option>
+            <option value="10Y1001A1001A83F" {% if current_area == '10Y1001A1001A83F' %}selected{% endif %}>Germany / Duitsland</option>
+            <option value="10YFR-RTE------C" {% if current_area == '10YFR-RTE------C' %}selected{% endif %}>France / Frankrijk</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>VAT percentage / BTW-percentage</label>
+          <input type="number" name="vat_pct" step="0.1" min="0" max="30"
+                 value="{{ (provider.driver_config or {}).get('vat_pct', 21.0) if provider else 21.0 }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+    </div>
+  </div>
+</form>
+
+<script>
+function showProviderFields() {
+  document.querySelectorAll(".provider-fields").forEach(el => el.style.display = "none");
+  const v = document.getElementById("provider-select").value;
+  const map = { anwb: "fields-anwb", energyzero: "fields-anwb", tibber: "fields-tibber", entsoe: "fields-entsoe" };
+  const target = document.getElementById(map[v]);
+  if (target) target.style.display = "block";
+}
+document.addEventListener("DOMContentLoaded", showProviderFields);
+</script>
+{% endblock %}

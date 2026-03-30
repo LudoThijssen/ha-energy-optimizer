@@ -1,0 +1,82 @@
+{
+  "battery.action.charge": {
+    "context": "Action for a home battery storage system. The battery is being charged with electricity. NOT a financial charge or fee.",
+    "example_nl": "Opladen"
+  },
+  "battery.action.charge_from_grid": {
+    "context": "The home battery is being forcibly charged using electricity from the power grid, typically during cheap price hours. NOT a fee.",
+    "example_nl": "Opladen vanaf net"
+  },
+  "battery.action.discharge": {
+    "context": "The home battery is releasing stored electricity to power the house. NOT a financial discharge.",
+    "example_nl": "Ontladen"
+  },
+  "battery.action.discharge_to_grid": {
+    "context": "The home battery is sending electricity back to the power grid.",
+    "example_nl": "Terugleveren aan net"
+  },
+  "battery.action.idle": {
+    "context": "The battery is doing nothing — neither charging nor discharging.",
+    "example_nl": "Inactief"
+  },
+  "battery.action.self_consume": {
+    "context": "Solar electricity is being used directly by the household without going through the battery or grid.",
+    "example_nl": "Eigen verbruik"
+  },
+  "battery.status.soc": {
+    "context": "State of Charge — the percentage of energy currently stored in the battery (0-100%).",
+    "example_nl": "Laadtoestand"
+  },
+  "battery.info.efficiency": {
+    "context": "The percentage of energy retained during a full charge and discharge cycle. Energy is lost as heat. NOT a financial efficiency.",
+    "example_nl": "Laad-/ontlaadrendement"
+  },
+  "price.incl_tax": {
+    "context": "Electricity or gas price including government taxes (VAT/BTW). NOT related to battery charging.",
+    "example_nl": "Inclusief belasting"
+  },
+  "price.excl_tax": {
+    "context": "Electricity or gas price excluding government taxes. NOT related to battery.",
+    "example_nl": "Exclusief belasting"
+  },
+  "optimizer.reason.cheap_price": {
+    "context": "The optimizer chose to charge the battery because the electricity price is low right now.",
+    "example_nl": "Lage stroomprijs — opladen"
+  },
+  "optimizer.reason.high_price": {
+    "context": "The optimizer chose to discharge the battery because the electricity price is high right now.",
+    "example_nl": "Hoge stroomprijs — ontladen"
+  },
+  "optimizer.reason.solar_surplus": {
+    "context": "The solar panels are producing more electricity than the house is consuming, so the surplus is stored in the battery.",
+    "example_nl": "Zonne-overschot — opslaan"
+  },
+  "optimizer.reason.min_soc": {
+    "context": "The battery has reached its minimum allowed state of charge and cannot discharge further.",
+    "example_nl": "Minimum laadtoestand bereikt"
+  },
+  "consumption.grid_import": {
+    "context": "Electricity drawn from the public power grid into the home.",
+    "example_nl": "Afname van net"
+  },
+  "consumption.grid_export": {
+    "context": "Electricity sent back from the home to the public power grid (also called feed-in or back-feeding).",
+    "example_nl": "Teruglevering aan net"
+  },
+  "report.daily.charged_from_grid": {
+    "context": "Amount of electricity (kWh) that was used to charge the home battery from the power grid today. NOT a financial charge.",
+    "example_nl": "Opgeladen vanaf net"
+  },
+  "weather.irradiance": {
+    "context": "Solar irradiance — the amount of solar energy hitting a surface, measured in Watts per square metre (W/m²). Used to estimate solar panel output.",
+    "example_nl": "Zonnestraling"
+  },
+  "system.min_discharge_price": {
+    "context": "The minimum electricity price (€/kWh) at which the optimizer will allow the battery to discharge. Below this price it is not worth discharging.",
+    "example_nl": "Minimale prijs voor ontladen"
+  },
+  "system.max_charge_price": {
+    "context": "The maximum electricity price (€/kWh) at which the optimizer will allow charging the battery from the grid. Above this price it is too expensive to charge.",
+    "example_nl": "Maximale prijs voor opladen"
+  }
+}

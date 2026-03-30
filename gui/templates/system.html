@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}System — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>System & location / Systeem & locatie</h1>
+<p class="subtitle">Basic installation settings / Basis installatiegegevens</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+{% endif %}
+
+<form method="POST">
+  <div class="card">
+    <h2>Location / Locatie</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Latitude / Breedtegraad</label>
+        <input type="number" name="latitude" step="0.0001"
+               value="{{ options.get('location', {}).get('latitude', '') }}" required>
+        <div class="hint">e.g. 52.1551 (Netherlands / Nederland)</div>
+      </div>
+      <div class="field">
+        <label>Longitude / Lengtegraad</label>
+        <input type="number" name="longitude" step="0.0001"
+               value="{{ options.get('location', {}).get('longitude', '') }}" required>
+        <div class="hint">e.g. 5.3872</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Timezone / Tijdzone</label>
+      <select name="timezone">
+        {% for tz in ["Europe/Amsterdam","Europe/Brussels","Europe/Berlin","Europe/Paris","Europe/London","Europe/Madrid"] %}
+        <option value="{{ tz }}" {% if options.get('location', {}).get('timezone') == tz %}selected{% endif %}>{{ tz }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Installed components / Geïnstalleerde componenten</h2>
+    <label class="check-label">
+      <input type="checkbox" name="has_grid" {% if options.get('system', {}).get('has_grid_connection', True) %}checked{% endif %}>
+      Grid connection / Netaansluiting
+    </label>
+    <label class="check-label">
+      <input type="checkbox" name="has_solar" {% if options.get('system', {}).get('has_solar_panels') %}checked{% endif %}>
+      Solar panels / Zonnepanelen
+    </label>
+    <label class="check-label">
+      <input type="checkbox" name="has_battery" {% if options.get('system', {}).get('has_battery') %}checked{% endif %}>
+      Home battery / Thuisbatterij
+    </label>
+    <label class="check-label">
+      <input type="checkbox" name="has_gas" {% if options.get('system', {}).get('has_gas') %}checked{% endif %}>
+      Gas connection / Gasaansluiting
+    </label>
+    <label class="check-label">
+      <input type="checkbox" name="has_heating" {% if options.get('system', {}).get('has_district_heating') %}checked{% endif %}>
+      District heating / Stadsverwarming
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>Language / Taal</h2>
+    <div class="field">
+      <label>Interface language / Interfacetaal</label>
+      <select name="language">
+        {% for code, label in [("en","English"),("nl","Nederlands"),("de","Deutsch"),("fr","Français"),("es","Español")] %}
+        <option value="{{ code }}" {% if options.get('language') == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <div class="hint">
+        Other languages are generated automatically using AI on first use.<br>
+        Andere talen worden automatisch gegenereerd via AI bij eerste gebruik.
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+  </div>
+</form>
+{% endblock %}

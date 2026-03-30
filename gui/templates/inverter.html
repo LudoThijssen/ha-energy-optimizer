@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Inverter & Battery — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Inverter & Battery / Inverter & Batterij</h1>
+<p class="subtitle">Hardware configuration / Hardwareconfiguratie</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+{% endif %}
+
+<form method="POST" id="inverter-form">
+  <div class="card">
+    <h2>Inverter</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Brand / Merk</label>
+        <input type="text" name="brand" placeholder="e.g. Victron, Sungrow, Huawei"
+               value="{{ inverter.brand if inverter else '' }}">
+      </div>
+      <div class="field">
+        <label>Model</label>
+        <input type="text" name="model" placeholder="e.g. MultiPlus-II 48/3000"
+               value="{{ inverter.model if inverter else '' }}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Communication driver / Communicatieprotocol</label>
+      <select name="driver" id="driver-select" onchange="showDriverFields()">
+        {% set current_driver = inverter.driver if inverter else 'modbus' %}
+        <option value="modbus"    {% if current_driver == 'modbus' %}selected{% endif %}>Modbus TCP/RTU (local / lokaal)</option>
+        <option value="solaredge" {% if current_driver == 'solaredge' %}selected{% endif %}>SolarEdge cloud API (not yet available / nog niet beschikbaar)</option>
+        <option value="growatt"   {% if current_driver == 'growatt' %}selected{% endif %}>Growatt cloud API (not yet available / nog niet beschikbaar)</option>
+        <option value="mqtt"      {% if current_driver == 'mqtt' %}selected{% endif %}>MQTT (not yet available / nog niet beschikbaar)</option>
+      </select>
+    </div>
+
+    <!-- Modbus fields / Modbus-velden -->
+    <div id="fields-modbus" class="driver-fields">
+      <div class="alert alert-info" style="margin-bottom:16px">
+        Modbus TCP communicates directly with your inverter over the local network.<br>
+        Modbus TCP communiceert rechtstreeks met uw inverter via het lokale netwerk.<br>
+        <br>
+        <strong>Important / Belangrijk:</strong> Register addresses in <code>inverter/modbus.py</code>
+        must match your inverter's Modbus register map.<br>
+        Registernummers in <code>inverter/modbus.py</code> moeten overeenkomen met de Modbus-registerkaart van uw inverter.
+      </div>
+
+      {% set drv_cfg = inverter.driver_config if inverter else {} %}
+      <div class="field-row">
+        <div class="field">
+          <label>Inverter IP address / IP-adres inverter</label>
+          <input type="text" name="modbus_host" placeholder="192.168.1.150"
+                 value="{{ drv_cfg.get('host', '') if drv_cfg else '' }}">
+        </div>
+        <div class="field" style="max-width:130px">
+          <label>Modbus port / Poort</label>
+          <input type="number" name="modbus_port"
+                 value="{{ drv_cfg.get('port', 502) if drv_cfg else 502 }}">
+          <div class="hint">Default: 502</div>
+        </div>
+        <div class="field" style="max-width:130px">
+          <label>Slave ID</label>
+          <input type="number" name="modbus_slave_id"
+                 value="{{ drv_cfg.get('slave_id', 1) if drv_cfg else 1 }}">
+          <div class="hint">Default: 1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Power limits / Vermogensgrenzen</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Max. charge power / Max. laadvermogen (kW)</label>
+        <input type="number" name="max_charge_kw" step="0.1" min="0.1"
+               value="{{ inverter.max_charge_kw if inverter else 3.6 }}">
+        <div class="hint">Maximum power used to charge the battery / Maximaal vermogen voor opladen</div>
+      </div>
+      <div class="field">
+        <label>Max. discharge power / Max. ontlaadvermogen (kW)</label>
+        <input type="number" name="max_discharge_kw" step="0.1" min="0.1"
+               value="{{ inverter.max_discharge_kw if inverter else 3.6 }}">
+        <div class="hint">Maximum power used to discharge the battery / Maximaal vermogen voor ontladen</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Battery / Batterij</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Minimum state of charge / Minimale laadtoestand (%)</label>
+        <input type="number" name="min_soc" step="1" min="0" max="50"
+               value="{{ battery.min_soc_pct if battery else 10 }}">
+        <div class="hint">
+          Battery will never discharge below this level.<br>
+          Batterij ontlaadt nooit onder dit niveau.
+        </div>
+      </div>
+      <div class="field">
+        <label>Maximum state of charge / Maximale laadtoestand (%)</label>
+        <input type="number" name="max_soc" step="1" min="50" max="100"
+               value="{{ battery.max_soc_pct if battery else 95 }}">
+        <div class="hint">
+          Battery will never charge above this level.<br>
+          Batterij laadt nooit boven dit niveau.
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Total capacity / Totale capaciteit (kWh)</label>
+        <input type="number" name="capacity_kwh" step="0.1"
+               value="{{ battery.capacity_kwh if battery else '' }}">
+      </div>
+      <div class="field">
+        <label>Usable capacity / Bruikbare capaciteit (kWh)</label>
+        <input type="number" name="usable_capacity_kwh" step="0.1"
+               value="{{ battery.usable_capacity_kwh if battery else '' }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+  </div>
+</form>
+
+<script>
+function showDriverFields() {
+  document.querySelectorAll(".driver-fields").forEach(el => el.style.display = "none");
+  const v = document.getElementById("driver-select").value;
+  const el = document.getElementById("fields-" + v);
+  if (el) el.style.display = "block";
+}
+document.addEventListener("DOMContentLoaded", showDriverFields);
+</script>
+{% endblock %}
