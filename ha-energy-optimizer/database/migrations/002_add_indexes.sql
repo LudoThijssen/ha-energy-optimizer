@@ -1,9 +1,22 @@
-CREATE INDEX IF NOT EXISTS idx_energy_prices_hour     ON energy_prices    (price_hour);
-CREATE INDEX IF NOT EXISTS idx_energy_prices_type     ON energy_prices    (energy_type, price_hour);
-CREATE INDEX IF NOT EXISTS idx_solar_measured         ON solar_production (measured_at);
-CREATE INDEX IF NOT EXISTS idx_consumption_measured   ON home_consumption (measured_at);
-CREATE INDEX IF NOT EXISTS idx_battery_measured       ON battery_status   (measured_at);
-CREATE INDEX IF NOT EXISTS idx_weather_forecast       ON weather_forecast (forecast_for);
-CREATE INDEX IF NOT EXISTS idx_optimizer_schedule     ON optimizer_schedule (schedule_for);
-CREATE INDEX IF NOT EXISTS idx_report_type            ON report_log       (report_type);
-CREATE INDEX IF NOT EXISTS idx_report_notified        ON report_log       (notified, created_at);
+ALTER TABLE energy_prices
+    ADD INDEX idx_energy_prices_hour (price_hour),
+    ADD INDEX idx_energy_prices_type (energy_type, price_hour);
+
+ALTER TABLE solar_production
+    ADD INDEX idx_solar_measured (measured_at);
+
+ALTER TABLE home_consumption
+    ADD INDEX idx_consumption_measured (measured_at);
+
+ALTER TABLE battery_status
+    ADD INDEX idx_battery_measured (measured_at);
+
+ALTER TABLE weather_forecast
+    ADD INDEX idx_weather_forecast (forecast_for);
+
+ALTER TABLE optimizer_schedule
+    ADD INDEX idx_optimizer_schedule (schedule_for);
+
+ALTER TABLE report_log
+    ADD INDEX idx_report_type (report_type),
+    ADD INDEX idx_report_notified (notified, created_at)

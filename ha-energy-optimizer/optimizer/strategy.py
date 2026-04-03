@@ -674,7 +674,14 @@ def build_strategy_from_db(db) -> tuple["Strategy", "DayPriceStats | None", "Sol
     vat_pct        = Decimal("21.0")
     price_incl_tax = bool(cfg.get("price_incl_tax", True))
     if prov and prov.get("driver_config"):
-        vat_pct = Decimal(str(prov["driver_config"].get("vat_pct", 21.0)))
+        import json as _json
+        drv_cfg = prov["driver_config"]
+        if isinstance(drv_cfg, str):
+            try:
+                drv_cfg = _json.loads(drv_cfg)
+            except Exception:
+                drv_cfg = {}
+        vat_pct = Decimal(str(drv_cfg.get("vat_pct", 21.0)))
 
     # Depreciation per kWh / Afschrijving per kWh
     dep_per_kwh = Decimal("0")
