@@ -6,5 +6,6 @@ squash: false
 labels:
   org.opencontainers.image.title: "HA Energy Optimizer"
   org.opencontainers.image.description: "Smart home battery optimization with dynamic energy pricing"
-  org.opencontainers.image.source: "https://github.com/YOUR_USERNAME/ha-energy-optimizer"
+  org.opencontainers.image.source: "https://github.com/LudoThijssen/ha-energy-optimizer"
+  org.opencontainers.image.version: "0.1.0-alpha"
   org.opencontainers.image.licenses: "MIT"

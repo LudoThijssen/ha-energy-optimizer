@@ -1,10 +1,10 @@
 name: "HA Energy Optimizer"
 description: >-
-  Smart home battery optimization using dynamic energy prices,
+  [ALPHA v0.1.0] Smart home battery optimization using dynamic energy prices,
   solar forecasts and household consumption patterns.
-  Slimme thuisbatterij-optimalisatie met dynamische energieprijzen,
+  [ALFA v0.1.0] Slimme thuisbatterij-optimalisatie met dynamische energieprijzen,
   zonverwachtingen en verbruikspatronen.
-version: "1.0.0"
+version: "0.1.0-alpha"
 slug: "ha_energy_optimizer"
 url: "https://github.com/LudoThijssen/ha-energy-optimizer"
 arch:
