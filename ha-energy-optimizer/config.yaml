@@ -31,7 +31,7 @@ options:
     user: "energy"
     password: ""
   homeassistant:
-    host: "homeassistant.local"
+    host: "localhost"
     port: 8123
     token: ""
   collectors:
@@ -88,3 +88,7 @@ schema:
 map:
   - data
 log_level: info
+
+# Documentation tab — shown in the HA add-on panel
+# Documentatietabblad — zichtbaar in het HA add-on paneel
+documentation: "https://github.com/LudoThijssen/ha-energy-optimizer/blob/main/README.md"
