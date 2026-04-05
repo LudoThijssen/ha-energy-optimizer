@@ -76,13 +76,9 @@ class BatteryRepository:
 
     def get_latest(self) -> BatteryStatus | None:
         with self._db.cursor() as cur:
-            cur.execute("""
-                SELECT id, measured_at, soc_pct, power_kw, voltage_v,
-                       temperature_c, energy_charged_kwh,
-                       energy_discharged_kwh, cycle_count
-                FROM battery_status
-                ORDER BY measured_at DESC LIMIT 1
-            """)
+            cur.execute(
+                "SELECT * FROM battery_status ORDER BY measured_at DESC LIMIT 1"
+            )
             row = cur.fetchone()
             return BatteryStatus(**row) if row else None
 
@@ -186,11 +182,7 @@ class WeatherRepository:
     def get_forecast(self, from_dt: datetime, hours: int = 24) -> list[WeatherForecast]:
         with self._db.cursor() as cur:
             cur.execute("""
-                SELECT id, forecast_for, sun_rise, sun_set,
-                       sunshine_pct, cloud_cover_pct, rain_mm,
-                       wind_speed_ms, wind_direction_deg, temperature_c,
-                       solar_irradiance_wm2, source
-                FROM weather_forecast
+                SELECT * FROM weather_forecast
                 WHERE forecast_for >= %(from_dt)s
                 ORDER BY forecast_for
                 LIMIT %(hours)s
@@ -232,11 +224,7 @@ class OptimizerRepository:
     def get_current_slot(self) -> OptimizerSlot | None:
         with self._db.cursor() as cur:
             cur.execute("""
-                SELECT id, schedule_for, action, target_power_kw,
-                       target_soc_pct, expected_price, expected_solar_kw,
-                       expected_consumption_kw, expected_saving,
-                       reason, executed, executed_at
-                FROM optimizer_schedule
+                SELECT * FROM optimizer_schedule
                 WHERE schedule_for <= NOW() AND executed = 0
                 ORDER BY schedule_for DESC LIMIT 1
             """)
@@ -268,13 +256,9 @@ class ReportRepository:
 
     def get_unnotified(self) -> list[ReportEntry]:
         with self._db.cursor() as cur:
-            cur.execute("""
-                SELECT id, report_type, category, message,
-                       notified, notified_at
-                FROM report_log
-                WHERE notified = 0
-                ORDER BY created_at
-            """)
+            cur.execute(
+                "SELECT * FROM report_log WHERE notified=0 ORDER BY created_at"
+            )
             return [ReportEntry(**row) for row in cur.fetchall()]
 
     def mark_notified(self, ids: list[int]) -> None:

@@ -2,11 +2,10 @@ name: "HA Energy Optimizer"
 description: >-
   [ALPHA v0.1.0] Smart home battery optimization using dynamic energy prices,
   solar forecasts and household consumption patterns.
-  [ALFA v0.1.0] Slimme thuisbatterij-optimalisatie met dynamische energieprijzen,
-  zonverwachtingen en verbruikspatronen.
 version: "0.1.0-alpha"
 slug: "ha_energy_optimizer"
 url: "https://github.com/LudoThijssen/ha-energy-optimizer"
+documentation: "https://github.com/LudoThijssen/ha-energy-optimizer/blob/main/README.md"
 arch:
   - aarch64
   - amd64
@@ -18,7 +17,7 @@ panel_title: "Energy Optimizer"
 ports:
   8099/tcp: 8099
 ports_description:
-  8099/tcp: "Configuration GUI / Configuratie-interface"
+  8099/tcp: "Configuration GUI"
 homeassistant_api: true
 hassio_api: true
 auth_api: true
@@ -88,7 +87,3 @@ schema:
 map:
   - data
 log_level: info
-
-# Documentation tab — shown in the HA add-on panel
-# Documentatietabblad — zichtbaar in het HA add-on paneel
-documentation: "https://github.com/LudoThijssen/ha-energy-optimizer/blob/main/README.md"

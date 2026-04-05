@@ -1,29 +1,10 @@
 #!/command/with-contenv bashio
 # shellcheck shell=bash
-# Service run script for s6-overlay.
-# Service run-script voor s6-overlay.
 set -e
-
-bashio::log.info "Starting HA Energy Optimizer / HA Energy Optimizer wordt gestart..."
-
-# Write HA options to /data/options.json
-# Schrijf HA-opties naar /data/options.json
+bashio::log.info "Starting HA Energy Optimizer..."
 bashio::config > /data/options.json
-
-# Validate required settings / Valideer vereiste instellingen
-if ! bashio::config.has_value "database.host"; then
-    bashio::log.fatal "Database host is not configured / Database host is niet ingesteld"
-    exit 1
-fi
-
-if ! bashio::config.has_value "homeassistant.token"; then
-    bashio::log.fatal "HA token is not configured / HA token is niet ingesteld"
-    exit 1
-fi
-
-bashio::log.info "Configuration OK / Configuratie OK"
-
-# Start the optimizer (foreground — s6 manages the process)
-# Start de optimizer (voorgrond — s6 beheert het proces)
+bashio::config.has_value "database.host" || { bashio::log.fatal "Database host not configured"; exit 1; }
+bashio::config.has_value "homeassistant.token" || { bashio::log.fatal "HA token not configured"; exit 1; }
+bashio::log.info "Configuration OK"
 cd /app
 exec python3 main.py

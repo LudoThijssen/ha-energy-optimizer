@@ -72,24 +72,12 @@ class Reporter:
             logger.error(f"Kon rapport niet opslaan: {e}")
 
     def _notify(self, message: str, title: str = "HA Energy Optimizer") -> None:
-        """
-        Send notification to Home Assistant.
-        Verstuur melding naar Home Assistant.
-        Fails silently when HA is unreachable (e.g. during local testing).
-        Faalt stil als HA niet bereikbaar is (bijv. tijdens lokaal testen).
-        """
         try:
-            resp = requests.post(
+            requests.post(
                 f"{self._ha_url}/api/services/notify/notify",
                 json={"title": title, "message": message},
                 headers=self._headers,
                 timeout=5,
             )
-            if resp.status_code not in (200, 201):
-                logger.debug(f"HA notification returned {resp.status_code}")
-        except requests.exceptions.ConnectionError:
-            logger.debug("HA not reachable — notification skipped (local test?)")
-        except requests.exceptions.Timeout:
-            logger.debug("HA notification timeout — skipped")
         except Exception as e:
-            logger.warning(f"HA notification failed / HA-notificatie mislukt: {e}")
+            logger.warning(f"HA-notificatie mislukt: {e}")
