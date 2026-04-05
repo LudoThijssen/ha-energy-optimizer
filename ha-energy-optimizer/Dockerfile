@@ -3,7 +3,6 @@ FROM ${BUILD_FROM}
 
 WORKDIR /app
 
-# Install system dependencies / Installeer systeemafhankelijkheden
 RUN apk add --no-cache \
     gcc \
     musl-dev \
@@ -13,11 +12,9 @@ RUN apk add --no-cache \
     mariadb-connector-c-dev \
     python3-dev
 
-# Install Python dependencies / Installeer Python-afhankelijkheden
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all addon files / Kopieer alle add-on bestanden
 COPY collectors/   /app/collectors/
 COPY config/       /app/config/
 COPY database/     /app/database/
@@ -31,9 +28,23 @@ COPY translations/ /app/translations/
 COPY main.py       /app/main.py
 COPY uninstall.py  /app/uninstall.py
 
-# Copy run script to app root / Kopieer run-script naar app-root
-COPY run /app/run
-RUN chmod a+x /app/run
+# Create run script directly in Docker — avoids Windows CRLF line ending issues
+# Maak run-script direct aan in Docker — voorkomt Windows CRLF regeleindeprobleem
+RUN printf '#!/usr/bin/bashio\n\
+set -e\n\
+bashio::log.info "Starting HA Energy Optimizer..."\n\
+bashio::config > /data/options.json\n\
+bashio::log.info "Configuration written"\n\
+cd /app\n\
+python3 -m flask --app gui/app.py run --host 0.0.0.0 --port 8099 --no-debugger &\n\
+bashio::log.info "GUI started on port 8099"\n\
+bashio::log.info "Starting optimizer engine..."\n\
+exec python3 main.py\n\
+' > /app/run && chmod a+x /app/run
+
+# Remove any CRLF from run script just in case
+# Verwijder eventuele CRLF uit het run-script voor de zekerheid
+RUN sed -i 's/\r//' /app/run
 
 LABEL \
     io.hass.name="HA Energy Optimizer" \
