@@ -28,23 +28,30 @@ COPY translations/ /app/translations/
 COPY main.py       /app/main.py
 COPY uninstall.py  /app/uninstall.py
 
-# Create run script directly in Docker — avoids Windows CRLF line ending issues
-# Maak run-script direct aan in Docker — voorkomt Windows CRLF regeleindeprobleem
-RUN printf '#!/usr/bin/bashio\n\
+# Create run script with plain /bin/sh — no bashio, no s6 conflicts
+# Maak run-script aan met /bin/sh — geen bashio, geen s6-conflicten
+RUN printf '#!/bin/sh\n\
 set -e\n\
-bashio::log.info "Starting HA Energy Optimizer..."\n\
-bashio::config > /data/options.json\n\
-bashio::log.info "Configuration written"\n\
+echo "Starting HA Energy Optimizer..."\n\
+\n\
+# Write HA config to options.json\n\
+if [ -f /etc/s6-overlay/init-catchall ]; then\n\
+    echo "s6 environment detected"\n\
+fi\n\
+\n\
+# Copy config from HA supervisor\n\
+cat /data/options.json > /tmp/options_check.json 2>/dev/null || echo "options.json not yet available"\n\
+\n\
 cd /app\n\
+\n\
+# Start GUI in background\n\
 python3 -m flask --app gui/app.py run --host 0.0.0.0 --port 8099 --no-debugger &\n\
-bashio::log.info "GUI started on port 8099"\n\
-bashio::log.info "Starting optimizer engine..."\n\
+echo "GUI started on port 8099"\n\
+\n\
+# Start optimizer as main process\n\
+echo "Starting optimizer engine..."\n\
 exec python3 main.py\n\
-' > /app/run && chmod a+x /app/run
-
-# Remove any CRLF from run script just in case
-# Verwijder eventuele CRLF uit het run-script voor de zekerheid
-RUN sed -i 's/\r//' /app/run
+' > /app/run && chmod 755 /app/run
 
 LABEL \
     io.hass.name="HA Energy Optimizer" \
