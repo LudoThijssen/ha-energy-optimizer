@@ -1,8 +1,6 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# Install Python and build dependencies
-# Installeer Python en bouwafhankelijkheden
 RUN apk add --no-cache \
     python3 \
     python3-dev \
@@ -17,8 +15,8 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt \
-    || pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    || pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 COPY collectors/   /app/collectors/
 COPY config/       /app/config/
@@ -33,14 +31,9 @@ COPY translations/ /app/translations/
 COPY main.py       /app/main.py
 COPY uninstall.py  /app/uninstall.py
 
-RUN echo '#!/bin/sh' > /app/run \
-    && echo 'set -e' >> /app/run \
-    && echo 'cd /app' >> /app/run \
-    && echo 'python3 -m flask --app gui/app.py run --host 0.0.0.0 --port 8099 --no-debugger &' >> /app/run \
-    && echo 'exec python3 main.py' >> /app/run \
-    && chmod 755 /app/run
-
-CMD ["/app/run"]
+# Copy s6 service definition / Kopieer s6-servicedefinitie
+COPY rootfs/ /
+RUN chmod a+x /etc/services.d/energy-optimizer/run
 
 LABEL \
     io.hass.name="HA Energy Optimizer" \

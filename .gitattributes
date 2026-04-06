@@ -1,3 +1,3 @@
 # Force Unix line endings for shell scripts
 ha-energy-optimizer/run text eol=lf
-ha-energy-optimizer/rootfs/**/run text eol=lf
+ha-energy-optimizer/rootfs/**/run text eol=lfha-energy-optimizer/rootfs/**/run text eol=lf
