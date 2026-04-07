@@ -1,90 +1,13 @@
 name: "HA Energy Optimizer"
-description: >-
-  [ALPHA v0.1.0] Smart home battery optimization using dynamic energy prices,
-  solar forecasts and household consumption patterns.
-version: "0.1.0-alpha"
+description: "Test"
+version: "0.1.1"
 slug: "ha_energy_optimizer"
 url: "https://github.com/LudoThijssen/ha-energy-optimizer"
-documentation: "https://github.com/LudoThijssen/ha-energy-optimizer/blob/main/README.md"
 arch:
   - aarch64
   - amd64
   - armv7
 init: false
-ingress: true
-ingress_port: 8099
-panel_icon: mdi:battery-charging
-panel_title: "Energy Optimizer"
-ports:
-  8099/tcp: 8099
-ports_description:
-  8099/tcp: "Configuration GUI"
-homeassistant_api: true
-hassio_api: true
-auth_api: true
-host_network: false
-options:
-  database:
-    host: "192.168.1.100"
-    port: 3306
-    name: "energy"
-    user: "energy"
-    password: ""
-  homeassistant:
-    host: "localhost"
-    port: 8123
-    token: ""
-  collectors:
-    ha_interval_seconds: 300
-    weather_interval_seconds: 3600
-    price_fetch_time_today: "13:00"
-    price_fetch_time_tomorrow: "14:15"
-    price_fetch_max_retries: 3
-    price_fetch_retry_minutes: 30
-  optimizer:
-    run_time: "14:30"
-    evening_planning_time: "21:00"
-    rerun_on_price_update: true
-  reporting:
-    daily_report_time: "07:00"
-    notify_on_warning: true
-    notify_on_error: true
-  location:
-    latitude: 52.1551
-    longitude: 5.3872
-    timezone: "Europe/Amsterdam"
-  language: "nl"
-schema:
-  database:
-    host: str
-    port: int(1,65535)
-    name: str
-    user: str
-    password: password
-  homeassistant:
-    host: str
-    port: int(1,65535)
-    token: password
-  collectors:
-    ha_interval_seconds: int(60,3600)
-    weather_interval_seconds: int(1800,21600)
-    price_fetch_time_today: match(^([01]\d|2[0-3]):[0-5]\d$)
-    price_fetch_time_tomorrow: match(^([01]\d|2[0-3]):[0-5]\d$)
-    price_fetch_max_retries: int(1,10)
-    price_fetch_retry_minutes: int(5,120)
-  optimizer:
-    run_time: match(^([01]\d|2[0-3]):[0-5]\d$)
-    evening_planning_time: match(^([01]\d|2[0-3]):[0-5]\d$)
-    rerun_on_price_update: bool
-  reporting:
-    daily_report_time: match(^([01]\d|2[0-3]):[0-5]\d$)
-    notify_on_warning: bool
-    notify_on_error: bool
-  location:
-    latitude: float
-    longitude: float
-    timezone: str
-  language: list(nl|en|de|fr|es)?
 map:
   - data
 log_level: info
