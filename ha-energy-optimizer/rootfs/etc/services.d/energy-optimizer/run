@@ -1,14 +1,22 @@
 #!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
 set -e
 
 bashio::log.info "Starting HA Energy Optimizer v0.2.0..."
 
-# Write HA config to options.json
-bashio::config > /data/options.json
-bashio::log.info "Configuration written"
+# Write HA config to options.json if config is available
+# Schrijf HA-config naar options.json als configuratie beschikbaar is
+if bashio::config.exists; then
+    bashio::config > /data/options.json
+    bashio::log.info "Configuration written to /data/options.json"
+else
+    bashio::log.warning "No configuration found yet — using defaults"
+    echo '{}' > /data/options.json
+fi
 
 # Start GUI in background
-bashio::log.info "Starting GUI on port 8099..."
+# Start GUI op de achtergrond
+bashio::log.info "Starting configuration GUI on port 8099..."
 cd /app
 python3 -m flask --app gui/app.py run \
     --host 0.0.0.0 \
@@ -16,5 +24,6 @@ python3 -m flask --app gui/app.py run \
     --no-debugger &
 
 # Start optimizer as main process
+# Start optimizer als hoofdproces
 bashio::log.info "Starting optimizer engine..."
 exec python3 main.py
