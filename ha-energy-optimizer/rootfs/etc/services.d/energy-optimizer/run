@@ -1,0 +1,20 @@
+#!/usr/bin/with-contenv bashio
+set -e
+
+bashio::log.info "Starting HA Energy Optimizer v0.2.0..."
+
+# Write HA config to options.json
+bashio::config > /data/options.json
+bashio::log.info "Configuration written"
+
+# Start GUI in background
+bashio::log.info "Starting GUI on port 8099..."
+cd /app
+python3 -m flask --app gui/app.py run \
+    --host 0.0.0.0 \
+    --port 8099 \
+    --no-debugger &
+
+# Start optimizer as main process
+bashio::log.info "Starting optimizer engine..."
+exec python3 main.py
