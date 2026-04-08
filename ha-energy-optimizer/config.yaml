@@ -1,6 +1,6 @@
 name: "HA Energy Optimizer"
 description: "Test"
-version: "0.2.0"
+version: "0.2.1"
 slug: "ha_energy_optimizer"
 url: "https://github.com/LudoThijssen/ha-energy-optimizer"
 arch:
