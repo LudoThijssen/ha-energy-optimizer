@@ -1,6 +1,6 @@
 # HA Energy Optimizer
 
-> ⚠️ **Alpha version / Alfa versie — v0.2.1-alpha**
+> ⚠️ **Alpha version / Alfa versie — v0.2.0-alpha**
 >
 > Not yet ready for production use. / Nog niet klaar voor productiegebruik.
 
