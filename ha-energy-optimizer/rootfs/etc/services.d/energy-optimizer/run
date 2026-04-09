@@ -1,21 +1,25 @@
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
-set -e
 
 bashio::log.info "Starting HA Energy Optimizer v0.2.0..."
 
-# Write HA config to options.json if config is available
-# Schrijf HA-config naar options.json als configuratie beschikbaar is
-if bashio::config.exists; then
-    bashio::config > /data/options.json
-    bashio::log.info "Configuration written to /data/options.json"
+# Get configuration from supervisor API directly
+# Haal configuratie op via supervisor API
+OPTIONS_FILE="/data/options.json"
+
+if [ -f "${OPTIONS_FILE}" ] && [ -s "${OPTIONS_FILE}" ]; then
+    bashio::log.info "Using existing options.json"
 else
-    bashio::log.warning "No configuration found yet — using defaults"
-    echo '{}' > /data/options.json
+    bashio::log.info "Fetching configuration from supervisor..."
+    curl -s \
+        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+        http://supervisor/addons/self/options/config \
+        > "${OPTIONS_FILE}" || echo '{}' > "${OPTIONS_FILE}"
 fi
 
-# Start GUI in background
-# Start GUI op de achtergrond
+bashio::log.info "Configuration ready"
+
+# Start GUI in background / Start GUI op de achtergrond
 bashio::log.info "Starting configuration GUI on port 8099..."
 cd /app
 python3 -m flask --app gui/app.py run \
@@ -23,7 +27,6 @@ python3 -m flask --app gui/app.py run \
     --port 8099 \
     --no-debugger &
 
-# Start optimizer as main process
-# Start optimizer als hoofdproces
+# Start optimizer as main process / Start optimizer als hoofdproces
 bashio::log.info "Starting optimizer engine..."
 exec python3 main.py
