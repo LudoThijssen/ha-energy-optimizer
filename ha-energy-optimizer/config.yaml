@@ -1,8 +1,8 @@
 name: "HA Energy Optimizer"
 description: >-
-  [ALPHA v0.2.2] Smart home battery optimization using dynamic energy prices,
+  [ALPHA v0.2.3] Smart home battery optimization using dynamic energy prices,
   solar forecasts and household consumption patterns.
-version: "0.2.2"
+version: "0.2.3"
 slug: "ha_energy_optimizer"
 url: "https://github.com/LudoThijssen/ha-energy-optimizer"
 documentation: "https://github.com/LudoThijssen/ha-energy-optimizer/blob/main/README.md"

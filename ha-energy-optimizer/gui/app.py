@@ -59,9 +59,16 @@ def _url(endpoint: str, **kwargs) -> str:
 
 
 @app.context_processor
-def inject_url_helper():
-    """Make _url available in all templates / Maak _url beschikbaar in alle templates."""
-    return {"nav_url": _url}
+def inject_globals():
+    """
+    Inject helpers into all templates.
+    Injecteer hulpfuncties in alle templates.
+    """
+    ingress_path = request.headers.get("X-Ingress-Path", "").rstrip("/")
+    return {
+        "nav_url": _url,
+        "ingress_path": ingress_path,
+    }
 
 
 @app.route("/")
