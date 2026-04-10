@@ -6,180 +6,81 @@
   <title>{% block title %}HA Energy Optimizer{% endblock %}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 15px;
-      color: #1a1a1a;
-      background: #f4f4f5;
-      min-height: 100vh;
+      font-size: 15px; color: #1a1a1a; background: #f4f4f5; min-height: 100vh;
     }
-
-    /* Sidebar navigation / Zijbalk navigatie */
     .layout { display: flex; min-height: 100vh; }
-
-    nav {
-      width: 220px;
-      flex-shrink: 0;
-      background: #1e293b;
-      color: #cbd5e1;
-      padding: 0;
-    }
-
+    nav { width: 220px; flex-shrink: 0; background: #1e293b; color: #cbd5e1; padding: 0; }
     .nav-brand {
-      padding: 20px 18px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #f8fafc;
-      border-bottom: 1px solid #334155;
-      letter-spacing: .02em;
+      padding: 20px 18px 16px; font-size: 13px; font-weight: 600; color: #f8fafc;
+      border-bottom: 1px solid #334155; letter-spacing: .02em;
     }
-
     .nav-brand span { display: block; font-size: 11px; font-weight: 400; color: #64748b; margin-top: 2px; }
-
     nav a {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 11px 18px;
-      color: #94a3b8;
-      text-decoration: none;
-      font-size: 13.5px;
-      transition: background .12s, color .12s;
-      border-left: 3px solid transparent;
+      display: flex; align-items: center; gap: 10px; padding: 11px 18px;
+      color: #94a3b8; text-decoration: none; font-size: 13.5px;
+      transition: background .12s, color .12s; border-left: 3px solid transparent;
     }
-
     nav a:hover { background: #273549; color: #e2e8f0; }
     nav a.active { background: #273549; color: #f8fafc; border-left-color: #3b82f6; }
-
     nav .nav-section {
-      padding: 14px 18px 4px;
-      font-size: 10px;
-      font-weight: 600;
-      color: #475569;
-      letter-spacing: .08em;
-      text-transform: uppercase;
+      padding: 14px 18px 4px; font-size: 10px; font-weight: 600;
+      color: #475569; letter-spacing: .08em; text-transform: uppercase;
     }
-
-    /* Main content area / Hoofdinhoud */
-    main {
-      flex: 1;
-      padding: 32px;
-      max-width: 820px;
-    }
-
+    main { flex: 1; padding: 32px; max-width: 820px; }
     h1 { font-size: 22px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
     .subtitle { font-size: 13px; color: #64748b; margin-bottom: 28px; }
-
-    /* Cards / Kaarten */
     .card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 24px;
-      margin-bottom: 20px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 24px; margin-bottom: 20px;
     }
-
     .card h2 {
-      font-size: 15px;
-      font-weight: 600;
-      color: #0f172a;
-      margin-bottom: 18px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #f1f5f9;
+      font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 18px;
+      padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;
     }
-
-    /* Form elements / Formulierelementen */
     .field { margin-bottom: 16px; }
-    .field label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: #374151;
-      margin-bottom: 5px;
-    }
-    .field .hint {
-      font-size: 11.5px;
-      color: #6b7280;
-      margin-top: 3px;
-    }
-
+    .field label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 5px; }
+    .field .hint { font-size: 11.5px; color: #6b7280; margin-top: 3px; }
     input[type="text"], input[type="number"], input[type="password"],
     input[type="time"], select, textarea {
-      width: 100%;
-      padding: 8px 11px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-size: 14px;
-      color: #111827;
-      background: #fff;
+      width: 100%; padding: 8px 11px; border: 1px solid #d1d5db; border-radius: 6px;
+      font-size: 14px; color: #111827; background: #fff;
       transition: border-color .12s, box-shadow .12s;
     }
-
     input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+      outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12);
     }
-
     .field-row { display: flex; gap: 14px; }
     .field-row .field { flex: 1; }
-
-    /* Checkboxes / Selectievakjes */
     .check-label {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      font-size: 14px;
-      color: #374151;
-      cursor: pointer;
-      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 9px; font-size: 14px;
+      color: #374151; cursor: pointer; margin-bottom: 10px;
     }
     .check-label input { width: auto; }
-
-    /* Buttons / Knoppen */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 9px 18px;
-      border-radius: 7px;
-      font-size: 13.5px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: opacity .12s;
+      display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px;
+      border-radius: 7px; font-size: 13.5px; font-weight: 500;
+      cursor: pointer; border: none; transition: opacity .12s;
     }
     .btn:hover { opacity: .88; }
     .btn-primary { background: #3b82f6; color: #fff; }
     .btn-secondary { background: #f1f5f9; color: #374151; border: 1px solid #d1d5db; }
     .btn-danger { background: #ef4444; color: #fff; }
     .btn-sm { padding: 5px 11px; font-size: 12.5px; }
-
     .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
-
-    /* Alerts / Meldingen */
     .alert {
-      padding: 11px 16px;
-      border-radius: 7px;
-      font-size: 13.5px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      padding: 11px 16px; border-radius: 7px; font-size: 13.5px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
     }
     .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
     .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
     .alert-info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-
-    /* Tables / Tabellen */
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
     th { text-align: left; padding: 8px 12px; font-size: 11.5px; font-weight: 600;
          color: #6b7280; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
     td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-
-    /* Test connection button result / Test verbinding resultaat */
     #test-result { font-size: 13px; }
   </style>
 </head>
@@ -192,19 +93,19 @@
     </div>
 
     <div class="nav-section">Setup</div>
-    <a href="/" {% if request.endpoint == 'index' %}class="active"{% endif %}>Overview / Overzicht</a>
-    <a href="/system" {% if request.endpoint == 'system' %}class="active"{% endif %}>System / Systeem</a>
-    <a href="/database" {% if request.endpoint == 'database' %}class="active"{% endif %}>Database</a>
-    <a href="/homeassistant" {% if request.endpoint == 'homeassistant' %}class="active"{% endif %}>Home Assistant</a>
+    <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Overview / Overzicht</a>
+    <a href="{{ url_for('system') }}" {% if request.endpoint == 'system' %}class="active"{% endif %}>System / Systeem</a>
+    <a href="{{ url_for('database') }}" {% if request.endpoint == 'database' %}class="active"{% endif %}>Database</a>
+    <a href="{{ url_for('homeassistant') }}" {% if request.endpoint == 'homeassistant' %}class="active"{% endif %}>Home Assistant</a>
 
     <div class="nav-section">Hardware</div>
-    <a href="/inverter" {% if request.endpoint == 'inverter' %}class="active"{% endif %}>Inverter & Battery / Batterij</a>
-    <a href="/provider" {% if request.endpoint == 'provider' %}class="active"{% endif %}>Energy provider / Leverancier</a>
-    <a href="/entities" {% if request.endpoint == 'entities' %}class="active"{% endif %}>HA Entities / HA Entiteiten</a>
+    <a href="{{ url_for('inverter') }}" {% if request.endpoint == 'inverter' %}class="active"{% endif %}>Inverter & Battery / Batterij</a>
+    <a href="{{ url_for('provider') }}" {% if request.endpoint == 'provider' %}class="active"{% endif %}>Energy provider / Leverancier</a>
+    <a href="{{ url_for('entities') }}" {% if request.endpoint == 'entities' %}class="active"{% endif %}>HA Entities / HA Entiteiten</a>
 
     <div class="nav-section">Optimizer</div>
-    <a href="/schedule" {% if request.endpoint == 'schedule' %}class="active"{% endif %}>Timing / Tijden</a>
-    <a href="/optimizer" {% if request.endpoint == 'optimizer' %}class="active"{% endif %}>Thresholds / Drempelwaarden</a>
+    <a href="{{ url_for('schedule') }}" {% if request.endpoint == 'schedule' %}class="active"{% endif %}>Timing / Tijden</a>
+    <a href="{{ url_for('optimizer') }}" {% if request.endpoint == 'optimizer' %}class="active"{% endif %}>Thresholds / Drempelwaarden</a>
   </nav>
 
   <main>

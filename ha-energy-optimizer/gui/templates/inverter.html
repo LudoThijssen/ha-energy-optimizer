@@ -3,140 +3,164 @@
 {% block content %}
 
 <h1>Inverter & Battery / Inverter & Batterij</h1>
-<p class="subtitle">Hardware configuration / Hardwareconfiguratie</p>
+<p class="subtitle">Configure your inverter and battery / Configureer uw inverter en batterij</p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+<div class="alert alert-success">&#10003; Saved successfully / Opgeslagen</div>
 {% endif %}
 
-<form method="POST" id="inverter-form">
+<form method="POST">
   <div class="card">
     <h2>Inverter</h2>
 
     <div class="field-row">
       <div class="field">
         <label>Brand / Merk</label>
-        <input type="text" name="brand" placeholder="e.g. Victron, Sungrow, Huawei"
-               value="{{ inverter.brand if inverter else '' }}">
+        <input type="text" name="brand" value="{{ inverter.brand if inverter else 'FOX ESS' }}" placeholder="FOX ESS">
       </div>
       <div class="field">
         <label>Model</label>
-        <input type="text" name="model" placeholder="e.g. MultiPlus-II 48/3000"
-               value="{{ inverter.model if inverter else '' }}">
+        <input type="text" name="model" value="{{ inverter.model if inverter else 'AC1-6.0-E' }}" placeholder="AC1-6.0-E">
       </div>
     </div>
 
     <div class="field">
-      <label>Communication driver / Communicatieprotocol</label>
+      <label>Driver</label>
       <select name="driver" id="driver-select" onchange="showDriverFields()">
-        {% set current_driver = inverter.driver if inverter else 'modbus' %}
-        <option value="modbus"    {% if current_driver == 'modbus' %}selected{% endif %}>Modbus TCP/RTU (local / lokaal)</option>
-        <option value="solaredge" {% if current_driver == 'solaredge' %}selected{% endif %}>SolarEdge cloud API (not yet available / nog niet beschikbaar)</option>
-        <option value="growatt"   {% if current_driver == 'growatt' %}selected{% endif %}>Growatt cloud API (not yet available / nog niet beschikbaar)</option>
-        <option value="mqtt"      {% if current_driver == 'mqtt' %}selected{% endif %}>MQTT (not yet available / nog niet beschikbaar)</option>
+        <option value="simulate" {% if not inverter or inverter.driver == 'simulate' %}selected{% endif %}>
+          Simulate — Safe testing / Veilig testen (aanbevolen)
+        </option>
+        <option value="modbus" {% if inverter and inverter.driver == 'modbus' %}selected{% endif %}>
+          Modbus TCP — Direct inverter connection / Directe inverterverbinding
+        </option>
       </select>
+      <p class="hint">
+        Use Simulate while you don't have Modbus access yet.<br>
+        Gebruik Simulatie zolang u nog geen Modbus-toegang heeft.
+      </p>
+    </div>
+
+    <!-- Simulate fields / Simulatievelden -->
+    <div id="simulate-fields">
+      <div class="field-row">
+        <div class="field">
+          <label>Initial SoC % / Begin laadtoestand %</label>
+          <input type="number" name="initial_soc" value="65" min="0" max="100" step="1">
+          <p class="hint">Starting battery charge level / Begin laadniveau batterij</p>
+        </div>
+        <div class="field">
+          <label>Simulated capacity kWh / Gesimuleerde capaciteit kWh</label>
+          <input type="number" name="capacity_kwh" value="10.0" min="1" max="100" step="0.1">
+        </div>
+        <div class="field">
+          <label>Simulated temperature °C</label>
+          <input type="number" name="temperature_c" value="22.0" min="-10" max="60" step="0.5">
+        </div>
+      </div>
     </div>
 
     <!-- Modbus fields / Modbus-velden -->
-    <div id="fields-modbus" class="driver-fields">
-      <div class="alert alert-info" style="margin-bottom:16px">
-        Modbus TCP communicates directly with your inverter over the local network.<br>
-        Modbus TCP communiceert rechtstreeks met uw inverter via het lokale netwerk.<br>
-        <br>
-        <strong>Important / Belangrijk:</strong> Register addresses in <code>inverter/modbus.py</code>
-        must match your inverter's Modbus register map.<br>
-        Registernummers in <code>inverter/modbus.py</code> moeten overeenkomen met de Modbus-registerkaart van uw inverter.
+    <div id="modbus-fields" style="display:none;">
+      <div class="alert alert-info">
+        &#8505; You will need the Modbus TCP host, port and slave ID from your inverter manual.<br>
+        U heeft het Modbus TCP-adres, poort en slave-ID uit de handleiding van uw inverter nodig.
       </div>
-
-      {% set drv_cfg = inverter.driver_config if inverter else {} %}
       <div class="field-row">
         <div class="field">
-          <label>Inverter IP address / IP-adres inverter</label>
-          <input type="text" name="modbus_host" placeholder="192.168.1.150"
-                 value="{{ drv_cfg.get('host', '') if drv_cfg else '' }}">
+          <label>Modbus host (IP address)</label>
+          <input type="text" name="modbus_host" placeholder="192.168.1.xxx">
         </div>
-        <div class="field" style="max-width:130px">
-          <label>Modbus port / Poort</label>
-          <input type="number" name="modbus_port"
-                 value="{{ drv_cfg.get('port', 502) if drv_cfg else 502 }}">
-          <div class="hint">Default: 502</div>
+        <div class="field">
+          <label>Modbus port</label>
+          <input type="number" name="modbus_port" value="502">
         </div>
-        <div class="field" style="max-width:130px">
+        <div class="field">
           <label>Slave ID</label>
-          <input type="number" name="modbus_slave_id"
-                 value="{{ drv_cfg.get('slave_id', 1) if drv_cfg else 1 }}">
-          <div class="hint">Default: 1</div>
+          <input type="number" name="modbus_slave_id" value="1">
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="card">
-    <h2>Power limits / Vermogensgrenzen</h2>
     <div class="field-row">
       <div class="field">
-        <label>Max. charge power / Max. laadvermogen (kW)</label>
-        <input type="number" name="max_charge_kw" step="0.1" min="0.1"
-               value="{{ inverter.max_charge_kw if inverter else 3.6 }}">
-        <div class="hint">Maximum power used to charge the battery / Maximaal vermogen voor opladen</div>
+        <label>Max charge power kW / Max laadvermogen kW</label>
+        <input type="number" name="max_charge_kw"
+               value="{{ inverter.max_charge_kw if inverter else '6.0' }}"
+               min="0.1" max="50" step="0.1">
+        <p class="hint">FOX ESS AC1-6.0-E: 6.0 kW</p>
       </div>
       <div class="field">
-        <label>Max. discharge power / Max. ontlaadvermogen (kW)</label>
-        <input type="number" name="max_discharge_kw" step="0.1" min="0.1"
-               value="{{ inverter.max_discharge_kw if inverter else 3.6 }}">
-        <div class="hint">Maximum power used to discharge the battery / Maximaal vermogen voor ontladen</div>
+        <label>Max discharge power kW / Max ontlaadvermogen kW</label>
+        <input type="number" name="max_discharge_kw"
+               value="{{ inverter.max_discharge_kw if inverter else '6.0' }}"
+               min="0.1" max="50" step="0.1">
+        <p class="hint">FOX ESS AC1-6.0-E: 6.0 kW</p>
       </div>
     </div>
   </div>
 
   <div class="card">
     <h2>Battery / Batterij</h2>
+
     <div class="field-row">
       <div class="field">
-        <label>Minimum state of charge / Minimale laadtoestand (%)</label>
-        <input type="number" name="min_soc" step="1" min="0" max="50"
-               value="{{ battery.min_soc_pct if battery else 10 }}">
-        <div class="hint">
-          Battery will never discharge below this level.<br>
-          Batterij ontlaadt nooit onder dit niveau.
-        </div>
+        <label>Brand / Merk</label>
+        <input type="text" name="bat_brand"
+               value="{{ battery.brand if battery else '' }}" placeholder="bijv. BYD, Pylontech, FOX ESS">
       </div>
       <div class="field">
-        <label>Maximum state of charge / Maximale laadtoestand (%)</label>
-        <input type="number" name="max_soc" step="1" min="50" max="100"
-               value="{{ battery.max_soc_pct if battery else 95 }}">
-        <div class="hint">
-          Battery will never charge above this level.<br>
-          Batterij laadt nooit boven dit niveau.
-        </div>
+        <label>Model</label>
+        <input type="text" name="bat_model"
+               value="{{ battery.model if battery else '' }}" placeholder="bijv. HVM 11.0">
       </div>
     </div>
+
     <div class="field-row">
       <div class="field">
-        <label>Total capacity / Totale capaciteit (kWh)</label>
-        <input type="number" name="capacity_kwh" step="0.1"
-               value="{{ battery.capacity_kwh if battery else '' }}">
+        <label>Total capacity kWh / Totale capaciteit kWh</label>
+        <input type="number" name="capacity_kwh"
+               value="{{ battery.capacity_kwh if battery else '' }}"
+               min="0.1" max="500" step="0.1" placeholder="bijv. 10.0">
       </div>
       <div class="field">
-        <label>Usable capacity / Bruikbare capaciteit (kWh)</label>
-        <input type="number" name="usable_capacity_kwh" step="0.1"
-               value="{{ battery.usable_capacity_kwh if battery else '' }}">
+        <label>Usable capacity kWh / Bruikbare capaciteit kWh</label>
+        <input type="number" name="usable_kwh"
+               value="{{ battery.usable_capacity_kwh if battery else '' }}"
+               min="0.1" max="500" step="0.1" placeholder="bijv. 9.5">
+        <p class="hint">Usually 90-95% of total / Meestal 90-95% van totaal</p>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Minimum SoC % / Minimale laadtoestand %</label>
+        <input type="number" name="min_soc"
+               value="{{ battery.min_soc_pct if battery else '10' }}"
+               min="0" max="50" step="1">
+        <p class="hint">Protects battery life / Beschermt levensduur batterij</p>
+      </div>
+      <div class="field">
+        <label>Maximum SoC % / Maximale laadtoestand %</label>
+        <input type="number" name="max_soc"
+               value="{{ battery.max_soc_pct if battery else '95' }}"
+               min="50" max="100" step="1">
       </div>
     </div>
   </div>
 
   <div class="btn-row">
     <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel / Annuleren</a>
   </div>
 </form>
 
 <script>
 function showDriverFields() {
-  document.querySelectorAll(".driver-fields").forEach(el => el.style.display = "none");
-  const v = document.getElementById("driver-select").value;
-  const el = document.getElementById("fields-" + v);
-  if (el) el.style.display = "block";
+  const driver = document.getElementById('driver-select').value;
+  document.getElementById('simulate-fields').style.display = driver === 'simulate' ? '' : 'none';
+  document.getElementById('modbus-fields').style.display = driver === 'modbus' ? '' : 'none';
 }
-document.addEventListener("DOMContentLoaded", showDriverFields);
+showDriverFields();
 </script>
+
 {% endblock %}
