@@ -3,8 +3,6 @@
 
 bashio::log.info "Starting HA Energy Optimizer v0.2.0..."
 
-# Get configuration from supervisor API directly
-# Haal configuratie op via supervisor API
 OPTIONS_FILE="/data/options.json"
 
 if [ -f "${OPTIONS_FILE}" ] && [ -s "${OPTIONS_FILE}" ]; then
@@ -19,7 +17,10 @@ fi
 
 bashio::log.info "Configuration ready"
 
-# Start GUI in background / Start GUI op de achtergrond
+# Kill any existing GUI process on port 8099 before starting
+# Beëindig eventueel bestaand GUI-proces op poort 8099
+fuser -k 8099/tcp 2>/dev/null || true
+
 bashio::log.info "Starting configuration GUI on port 8099..."
 cd /app
 python3 -m flask --app gui/app.py run \
@@ -27,6 +28,5 @@ python3 -m flask --app gui/app.py run \
     --port 8099 \
     --no-debugger &
 
-# Start optimizer as main process / Start optimizer als hoofdproces
 bashio::log.info "Starting optimizer engine..."
 exec python3 main.py
