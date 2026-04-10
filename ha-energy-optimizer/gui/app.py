@@ -1,3 +1,4 @@
+# gui/app.py — v0.2.1
 # gui/app.py
 #
 # Configuration GUI — lightweight Flask web server.

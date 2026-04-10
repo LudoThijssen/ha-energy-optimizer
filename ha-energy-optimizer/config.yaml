@@ -1,8 +1,8 @@
 name: "HA Energy Optimizer"
 description: >-
-  [ALPHA v0.2.0] Smart home battery optimization using dynamic energy prices,
+  [ALPHA v0.2.1] Smart home battery optimization using dynamic energy prices,
   solar forecasts and household consumption patterns.
-version: "0.2.0"
+version: "0.2.1"
 slug: "ha_energy_optimizer"
 url: "https://github.com/LudoThijssen/ha-energy-optimizer"
 documentation: "https://github.com/LudoThijssen/ha-energy-optimizer/blob/main/README.md"
@@ -25,7 +25,7 @@ auth_api: true
 host_network: false
 options:
   database:
-    host: "192.168.1.100"
+    host: "core-mariadb"
     port: 3306
     name: "energy"
     user: "energy"
