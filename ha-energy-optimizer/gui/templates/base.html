@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- HA Energy Optimizer GUI — base.html — v0.2.1 -->
+<!-- HA Energy Optimizer GUI — base.html — v0.2.2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -46,7 +46,7 @@
     td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
     #test-result { font-size: 13px; }
-    .version-tag { font-size: 10px; color: #475569; padding: 2px 6px; background: #1e3a5f; border-radius: 4px; }
+    .version-tag { font-size: 10px; color: #94a3b8; }
   </style>
 </head>
 <body>
@@ -54,20 +54,20 @@
   <nav>
     <div class="nav-brand">
       HA Energy Optimizer
-      <span>Configuration / Configuratie <span class="version-tag">v0.2.1</span></span>
+      <span>Configuration / Configuratie <span class="version-tag">v0.2.2</span></span>
     </div>
     <div class="nav-section">Setup</div>
-    <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Overview / Overzicht</a>
-    <a href="{{ url_for('system') }}" {% if request.endpoint == 'system' %}class="active"{% endif %}>System / Systeem</a>
-    <a href="{{ url_for('database') }}" {% if request.endpoint == 'database' %}class="active"{% endif %}>Database</a>
-    <a href="{{ url_for('homeassistant') }}" {% if request.endpoint == 'homeassistant' %}class="active"{% endif %}>Home Assistant</a>
+    <a href="{{ nav_url('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Overview / Overzicht</a>
+    <a href="{{ nav_url('system') }}" {% if request.endpoint == 'system' %}class="active"{% endif %}>System / Systeem</a>
+    <a href="{{ nav_url('database') }}" {% if request.endpoint == 'database' %}class="active"{% endif %}>Database</a>
+    <a href="{{ nav_url('homeassistant') }}" {% if request.endpoint == 'homeassistant' %}class="active"{% endif %}>Home Assistant</a>
     <div class="nav-section">Hardware</div>
-    <a href="{{ url_for('inverter') }}" {% if request.endpoint == 'inverter' %}class="active"{% endif %}>Inverter & Battery / Batterij</a>
-    <a href="{{ url_for('provider') }}" {% if request.endpoint == 'provider' %}class="active"{% endif %}>Energy provider / Leverancier</a>
-    <a href="{{ url_for('entities') }}" {% if request.endpoint == 'entities' %}class="active"{% endif %}>HA Entities / HA Entiteiten</a>
+    <a href="{{ nav_url('inverter') }}" {% if request.endpoint == 'inverter' %}class="active"{% endif %}>Inverter & Battery / Batterij</a>
+    <a href="{{ nav_url('provider') }}" {% if request.endpoint == 'provider' %}class="active"{% endif %}>Energy provider / Leverancier</a>
+    <a href="{{ nav_url('entities') }}" {% if request.endpoint == 'entities' %}class="active"{% endif %}>HA Entities / HA Entiteiten</a>
     <div class="nav-section">Optimizer</div>
-    <a href="{{ url_for('schedule') }}" {% if request.endpoint == 'schedule' %}class="active"{% endif %}>Timing / Tijden</a>
-    <a href="{{ url_for('optimizer') }}" {% if request.endpoint == 'optimizer' %}class="active"{% endif %}>Thresholds / Drempelwaarden</a>
+    <a href="{{ nav_url('schedule') }}" {% if request.endpoint == 'schedule' %}class="active"{% endif %}>Timing / Tijden</a>
+    <a href="{{ nav_url('optimizer') }}" {% if request.endpoint == 'optimizer' %}class="active"{% endif %}>Thresholds / Drempelwaarden</a>
   </nav>
   <main>
     {% block content %}{% endblock %}
