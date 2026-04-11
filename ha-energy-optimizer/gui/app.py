@@ -1,4 +1,4 @@
-# gui/app.py — v0.2.2
+# gui/app.py — v0.2.4
 #
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
@@ -6,6 +6,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json
 import os
+import threading
 from pathlib import Path
 import sys
 
@@ -15,10 +16,6 @@ from database.connection import DatabaseConnection
 from config.config import AppConfig
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-
-# Detect HA ingress prefix from environment or headers
-# Detecteer HA ingress-prefix uit omgevingsvariabele of headers
-INGRESS_ENTRY = os.environ.get("INGRESS_ENTRY", "")
 
 OPTIONS_PATH = Path("/data/options.json")
 if not OPTIONS_PATH.exists():
@@ -46,24 +43,15 @@ def _get_db():
 
 
 def _url(endpoint: str, **kwargs) -> str:
-    """
-    Generate URL that works both with and without HA ingress prefix.
-    Genereer URL die werkt met en zonder HA ingress-prefix.
-    """
-    # Get the X-Ingress-Path header if present
-    ingress_path = request.headers.get("X-Ingress-Path", "")
+    ingress_path = request.headers.get("X-Ingress-Path", "").rstrip("/")
     base = url_for(endpoint, **kwargs)
     if ingress_path:
-        return ingress_path.rstrip("/") + base
+        return ingress_path + base
     return base
 
 
 @app.context_processor
 def inject_globals():
-    """
-    Inject helpers into all templates.
-    Injecteer hulpfuncties in alle templates.
-    """
     ingress_path = request.headers.get("X-Ingress-Path", "").rstrip("/")
     return {
         "nav_url": _url,
@@ -71,10 +59,188 @@ def inject_globals():
     }
 
 
+# ── Routes ───────────────────────────────────────────────────────────────────
+
 @app.route("/")
 def index():
-    return render_template("index.html", options=_load_options())
+    options = _load_options()
+    db = _get_db()
 
+    inverter_ok = False
+    provider_ok = False
+    config_ok   = False
+    entity_count = 0
+    last_schedule = []
+
+    if db:
+        try:
+            with db.cursor() as cur:
+                cur.execute("SELECT COUNT(*) AS c FROM inverter_info")
+                inverter_ok = cur.fetchone()["c"] > 0
+
+                cur.execute("SELECT COUNT(*) AS c FROM provider_config WHERE is_active=1")
+                provider_ok = cur.fetchone()["c"] > 0
+
+                cur.execute("SELECT COUNT(*) AS c FROM system_config")
+                config_ok = cur.fetchone()["c"] > 0
+
+                cur.execute("SELECT COUNT(*) AS c FROM ha_entity_map")
+                entity_count = cur.fetchone()["c"]
+
+                cur.execute("""
+                    SELECT schedule_for, action, target_power_kw,
+                           expected_saving, reason
+                    FROM optimizer_schedule
+                    WHERE DATE(schedule_for) = CURDATE()
+                    ORDER BY schedule_for
+                    LIMIT 24
+                """)
+                last_schedule = cur.fetchall()
+        except Exception:
+            pass
+
+    return render_template("index.html",
+        options=options,
+        inverter_ok=inverter_ok,
+        provider_ok=provider_ok,
+        config_ok=config_ok,
+        entity_count=entity_count,
+        last_schedule=last_schedule,
+    )
+
+
+# ── Action routes / Actie-routes ─────────────────────────────────────────────
+
+@app.route("/action/run-optimizer", methods=["POST"])
+def action_run_optimizer():
+    """Run the optimizer immediately / Voer de optimizer direct uit."""
+    def _run():
+        try:
+            config = AppConfig.load()
+            db = DatabaseConnection(config.database)
+            from reporter.reporter import Reporter
+            from optimizer.engine import OptimizerEngine
+            reporter = Reporter(db, config)
+            engine = OptimizerEngine(db, reporter, config)
+            engine.run()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Manual optimizer run failed: {e}")
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    thread.join(timeout=30)
+
+    return jsonify({
+        "ok": True,
+        "message": "Optimizer started — check logs and refresh in 30s / "
+                   "Optimizer gestart — bekijk logs en ververs over 30s"
+    })
+
+
+@app.route("/action/fetch-prices", methods=["POST"])
+def action_fetch_prices():
+    """Fetch energy prices immediately / Haal energieprijzen direct op."""
+    try:
+        config = AppConfig.load()
+        db = DatabaseConnection(config.database)
+        from reporter.reporter import Reporter
+        from collectors.price_collector import PriceCollector
+        reporter = Reporter(db, config)
+        collector = PriceCollector(db, reporter, config)
+
+        results = []
+        for target in ["today", "tomorrow"]:
+            ok = collector.fetch(target)
+            results.append(f"{'✓' if ok else '✗'} {target}")
+
+        # Count prices in DB
+        with db.cursor() as cur:
+            cur.execute("SELECT COUNT(*) AS c FROM energy_prices")
+            total = cur.fetchone()["c"]
+
+        return jsonify({
+            "ok": True,
+            "message": f"Price fetch complete: {', '.join(results)}. "
+                       f"Total in database: {total} rows / "
+                       f"Prijzen opgehaald: {', '.join(results)}. "
+                       f"Totaal in database: {total} rijen"
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)})
+
+
+@app.route("/action/test-entities", methods=["POST"])
+def action_test_entities():
+    """Read all mapped HA entities and return their current values."""
+    try:
+        config = AppConfig.load()
+        db = _get_db()
+
+        if not db:
+            return jsonify({"ok": False, "message": "Database not connected / Database niet verbonden"})
+
+        with db.cursor() as cur:
+            cur.execute("SELECT internal_name, entity_id, unit FROM ha_entity_map ORDER BY internal_name")
+            mappings = cur.fetchall()
+
+        if not mappings:
+            return jsonify({
+                "ok": False,
+                "message": "No entity mappings configured / Geen entiteitskoppelingen ingesteld",
+                "entities": []
+            })
+
+        import requests as req
+        ha_url = f"http://{config.ha.host}:{config.ha.port}"
+        headers = {"Authorization": f"Bearer {config.ha.token}"}
+
+        results = []
+        for m in mappings:
+            try:
+                resp = req.get(
+                    f"{ha_url}/api/states/{m['entity_id']}",
+                    headers=headers,
+                    timeout=5,
+                )
+                if resp.status_code == 200:
+                    state = resp.json()
+                    results.append({
+                        "internal_name": m["internal_name"],
+                        "entity_id":     m["entity_id"],
+                        "value":         state.get("state", "unknown"),
+                        "unit":          m.get("unit", ""),
+                        "ok":            True,
+                    })
+                else:
+                    results.append({
+                        "internal_name": m["internal_name"],
+                        "entity_id":     m["entity_id"],
+                        "value":         f"HTTP {resp.status_code}",
+                        "unit":          "",
+                        "ok":            False,
+                    })
+            except Exception as e:
+                results.append({
+                    "internal_name": m["internal_name"],
+                    "entity_id":     m["entity_id"],
+                    "value":         str(e)[:40],
+                    "unit":          "",
+                    "ok":            False,
+                })
+
+        ok_count = sum(1 for r in results if r["ok"])
+        return jsonify({
+            "ok": ok_count > 0,
+            "message": f"{ok_count}/{len(results)} entities reachable / entiteiten bereikbaar",
+            "entities": results,
+        })
+
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e), "entities": []})
+
+
+# ── Configuration routes ──────────────────────────────────────────────────────
 
 @app.route("/system", methods=["GET", "POST"])
 def system():
@@ -87,11 +253,11 @@ def system():
         }
         options["language"] = request.form["language"]
         options.setdefault("system", {}).update({
-            "has_grid_connection": "has_grid" in request.form,
-            "has_solar_panels":    "has_solar" in request.form,
-            "has_gas":             "has_gas" in request.form,
-            "has_battery":         "has_battery" in request.form,
-            "has_district_heating":"has_heating" in request.form,
+            "has_grid_connection":  "has_grid" in request.form,
+            "has_solar_panels":     "has_solar" in request.form,
+            "has_gas":              "has_gas" in request.form,
+            "has_battery":          "has_battery" in request.form,
+            "has_district_heating": "has_heating" in request.form,
         })
         _save_options(options)
         return redirect(_url("system") + "?saved=1")
@@ -158,7 +324,7 @@ def test_ha():
             timeout=5,
         )
         if resp.status_code == 200:
-            return jsonify({"ok": True, "message": "Verbinding geslaagd"})
+            return jsonify({"ok": True, "message": "Verbinding geslaagd / Connection successful"})
         return jsonify({"ok": False, "message": f"HTTP {resp.status_code}"})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)})
@@ -169,7 +335,7 @@ def inverter():
     options = _load_options()
     db = _get_db()
     inverter_row = None
-    battery_row = None
+    battery_row  = None
 
     if db:
         with db.cursor() as cur:
@@ -194,22 +360,22 @@ def inverter():
             }
 
         inv = {
-            "brand": request.form.get("brand"),
-            "model": request.form.get("model"),
-            "driver": driver,
-            "cfg": json.dumps(driver_cfg),
-            "max_charge": request.form.get("max_charge_kw"),
-            "max_discharge": request.form.get("max_discharge_kw"),
+            "brand":        request.form.get("brand"),
+            "model":        request.form.get("model"),
+            "driver":       driver,
+            "cfg":          json.dumps(driver_cfg),
+            "max_charge":   request.form.get("max_charge_kw"),
+            "max_discharge":request.form.get("max_discharge_kw"),
         }
         bat = {
-            "brand": request.form.get("bat_brand"),
-            "model": request.form.get("bat_model"),
-            "capacity_kwh": request.form.get("capacity_kwh"),
-            "usable_kwh": request.form.get("usable_kwh"),
-            "max_charge": request.form.get("max_charge_kw"),
+            "brand":         request.form.get("bat_brand"),
+            "model":         request.form.get("bat_model"),
+            "capacity_kwh":  request.form.get("capacity_kwh"),
+            "usable_kwh":    request.form.get("usable_kwh"),
+            "max_charge":    request.form.get("max_charge_kw"),
             "max_discharge": request.form.get("max_discharge_kw"),
-            "min_soc": request.form.get("min_soc", 10),
-            "max_soc": request.form.get("max_soc", 95),
+            "min_soc":       request.form.get("min_soc", 10),
+            "max_soc":       request.form.get("max_soc", 95),
         }
 
         with db.cursor() as cur:
@@ -234,7 +400,8 @@ def inverter():
             else:
                 cur.execute("""INSERT INTO battery_info
                     (brand, model, capacity_kwh, usable_capacity_kwh,
-                     max_charge_kw, max_discharge_kw, working_charge_kw, working_discharge_kw,
+                     max_charge_kw, max_discharge_kw,
+                     working_charge_kw, working_discharge_kw,
                      min_soc_pct, max_soc_pct)
                     VALUES (%(brand)s, %(model)s, %(capacity_kwh)s, %(usable_kwh)s,
                     %(max_charge)s, %(max_discharge)s, %(max_charge)s, %(max_discharge)s,
@@ -276,7 +443,8 @@ def provider():
             if provider_row:
                 cur.execute("""UPDATE provider_config SET provider_driver=%(driver)s,
                     driver_config=%(cfg)s, is_active=1 WHERE id=%(id)s""",
-                    {"driver": driver, "cfg": json.dumps(driver_cfg), "id": provider_row["id"]})
+                    {"driver": driver, "cfg": json.dumps(driver_cfg),
+                     "id": provider_row["id"]})
             else:
                 cur.execute("""INSERT INTO provider_config
                     (energy_type, provider_driver, driver_config, is_active)
@@ -354,7 +522,7 @@ def schedule():
 @app.route("/optimizer", methods=["GET", "POST"])
 def optimizer():
     db = _get_db()
-    config_row = None
+    config_row  = None
     battery_row = None
     if db:
         with db.cursor() as cur:
@@ -371,19 +539,20 @@ def optimizer():
                     battery_efficiency_pct=%(eff)s, price_incl_tax=%(incl)s
                     WHERE id=%(id)s""",
                     {"min_dis": request.form.get("min_discharge_price"),
-                     "eff": request.form.get("battery_efficiency"),
-                     "incl": 1 if "price_incl_tax" in request.form else 0,
-                     "id": config_row["id"]})
+                     "eff":     request.form.get("battery_efficiency"),
+                     "incl":    1 if "price_incl_tax" in request.form else 0,
+                     "id":      config_row["id"]})
             if battery_row:
                 cur.execute("""UPDATE battery_info SET
                     min_soc_pct=%(min_soc)s, max_soc_pct=%(max_soc)s
                     WHERE id=%(id)s""",
                     {"min_soc": request.form.get("min_soc"),
                      "max_soc": request.form.get("max_soc"),
-                     "id": battery_row["id"]})
+                     "id":      battery_row["id"]})
         return redirect(_url("optimizer") + "?saved=1")
 
-    return render_template("optimizer.html", config=config_row, battery=battery_row,
+    return render_template("optimizer.html", config=config_row,
+                           battery=battery_row,
                            saved=request.args.get("saved"))
 
 
