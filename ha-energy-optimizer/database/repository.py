@@ -76,13 +76,13 @@ class BatteryRepository:
 
     def get_latest(self) -> BatteryStatus | None:
         with self._db.cursor() as cur:
-            cur.execute(
-                "SELECT id, measured_at, soc_pct, power_kw, voltage_v,
+            cur.execute("""
+                SELECT id, measured_at, soc_pct, power_kw, voltage_v,
                        temperature_c, energy_charged_kwh,
                        energy_discharged_kwh, cycle_count
                 FROM battery_status
-                ORDER BY measured_at DESC LIMIT 1"
-            )
+                ORDER BY measured_at DESC LIMIT 1
+            """)
             row = cur.fetchone()
             return BatteryStatus(**row) if row else None
 
