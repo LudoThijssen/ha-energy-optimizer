@@ -1,3 +1,7 @@
+# Version 0.2.6.1
+# /ha-energy-optimizer/Dockerfile
+# 12-04-2026 21:50
+
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
