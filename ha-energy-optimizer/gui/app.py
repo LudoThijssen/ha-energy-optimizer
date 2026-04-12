@@ -150,9 +150,21 @@ def action_fetch_prices():
         collector = PriceCollector(db, reporter, config)
 
         results = []
-        for target in ["today", "tomorrow"]:
-            ok = collector.fetch(target)
-            results.append(f"{'✓' if ok else '✗'} {target}")
+        # Try run_safe() which handles today + tomorrow internally
+        # Probeer run_safe() die vandaag + morgen intern afhandelt
+        ok = collector.run_safe()
+        if ok:
+            results.append("✓ prices fetched")
+        else:
+            # Fallback: try individual methods if they exist
+            for method in ["fetch_today", "fetch_tomorrow", "run"]:
+                fn = getattr(collector, method, None)
+                if fn:
+                    try:
+                        r = fn()
+                        results.append(f"{'✓' if r else '✗'} {method}")
+                    except Exception as ex:
+                        results.append(f"✗ {method}: {str(ex)[:30]}")
 
         # Count prices in DB
         with db.cursor() as cur:
