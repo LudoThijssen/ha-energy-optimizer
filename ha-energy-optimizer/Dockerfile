@@ -1,6 +1,3 @@
-# Version 0.2.6.1
-# /ha-energy-optimizer/Dockerfile
-# 12-04-2026 21:50
 ARG CACHEBUST=1
 RUN echo "Cache bust: $CACHEBUST"
 
