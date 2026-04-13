@@ -80,20 +80,20 @@ class SolarRepository:
         with self._db.cursor() as cur:
             cur.execute("""
                 INSERT INTO solar_production
-                    (measured_at, power_kw, energy_today_kwh, source)
+                    (measured_at, power_kw, energy_kwh, source)
                 VALUES (%(measured_at)s, %(power_kw)s,
-                        %(energy_today_kwh)s, %(source)s)
+                        %(energy_kwh)s, %(source)s)
             """, {
                 "measured_at":      production.measured_at,
                 "power_kw":         production.power_kw,
-                "energy_today_kwh": production.energy_today_kwh,
+                "energy_kwh": production.energy_kwh,
                 "source":           production.source,
             })
 
     def get_today_total(self) -> Decimal:
         with self._db.cursor() as cur:
             cur.execute("""
-                SELECT COALESCE(MAX(energy_today_kwh), 0) AS total
+                SELECT COALESCE(MAX(energy_kwh), 0) AS total
                 FROM solar_production
                 WHERE DATE(measured_at) = CURDATE()
             """)
@@ -193,6 +193,9 @@ class WeatherRepository:
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
+
+    def save(self, forecast) -> None:
+        self.save_many([forecast.__dict__ if hasattr(forecast, "__dict__") else forecast])
 
     def save_many(self, forecasts: list[dict]) -> None:
         with self._db.cursor() as cur:
@@ -369,3 +372,4 @@ class ReportRepository:
                 "UPDATE report_log SET notified=1, notified_at=NOW() WHERE id=%(id)s",
                 {"id": entry_id}
             )
+
