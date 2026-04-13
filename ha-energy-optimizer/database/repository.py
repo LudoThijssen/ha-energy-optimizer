@@ -103,7 +103,7 @@ class SolarRepository:
 
 # ── Home consumption ──────────────────────────────────────────────────────────
 
-class ConsumptionRepository:
+class HomeConsumptionRepository:
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
