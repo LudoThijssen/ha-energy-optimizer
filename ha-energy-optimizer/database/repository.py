@@ -87,7 +87,7 @@ class SolarRepository:
                 "measured_at":      production.measured_at,
                 "power_kw":         production.power_kw,
                 "energy_kwh": production.energy_kwh,
-                "source":           production.source,
+                "source":           "ha_collector",
             })
 
     def get_today_total(self) -> Decimal:
