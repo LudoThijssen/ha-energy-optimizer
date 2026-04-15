@@ -17,8 +17,6 @@ def get_provider(config: AppConfig) -> BaseEnergyProvider:
     Factory — geeft de actieve provider-driver terug op basis van de database-config.
     Voeg nieuwe providers toe door ze hier te registreren.
     """
-    with __import__("database.connection", fromlist=["DatabaseConnection"]) as _:
-        pass
 
     from database.connection import DatabaseConnection
     from database.connection import DatabaseConnection as _DC

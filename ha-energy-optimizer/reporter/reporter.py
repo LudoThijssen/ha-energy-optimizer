@@ -51,7 +51,7 @@ class Reporter:
 
         if battery:
             lines += [
-                f"Batterij min/max SoC:  {battery['min_soc']:.0f}% / {battery['max_soc']:.0f}%",
+                f"Batterij min/max SoC:  {battery['min_soc'] or 0:.0f}% / {battery['max_soc'] or 0:.0f}%",
                 f"Totaal opgeladen:      {(battery['total_charged'] or 0):.2f} kWh",
                 f"Totaal ontladen:       {(battery['total_discharged'] or 0):.2f} kWh",
             ]
@@ -81,3 +81,4 @@ class Reporter:
             )
         except Exception as e:
             logger.warning(f"HA-notificatie mislukt: {e}")
+
