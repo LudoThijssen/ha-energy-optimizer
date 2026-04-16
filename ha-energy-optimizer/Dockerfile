@@ -38,3 +38,6 @@ COPY uninstall.py  /app/uninstall.py
 
 # Copy s6 service definition
 COPY rootfs/ /
+
+ARG CACHEBUST=1
+RUN echo "Cache bust: $CACHEBUST"
