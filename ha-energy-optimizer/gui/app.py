@@ -1,5 +1,5 @@
-# gui/app.py — v0.2.4
-#
+# gui/app.py — v0.2.8
+# 2026-04-16 22:35
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
 
@@ -465,6 +465,12 @@ def provider():
 
         return redirect(_url("provider") + "?saved=1")
 
+    import json as _j
+    if provider_row and isinstance(provider_row.get("driver_config"), str):
+        try:
+            provider_row["driver_config"] = _j.loads(provider_row["driver_config"])
+        except Exception:
+            provider_row["driver_config"] = {}
     return render_template("provider.html", provider=provider_row,
                            saved=request.args.get("saved"))
 
@@ -570,3 +576,4 @@ def optimizer():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8099, debug=False)
+
