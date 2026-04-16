@@ -1,6 +1,6 @@
 # HA Energy Optimizer
 
-> ⚠️ **Alpha version / Alfa versie — v0.2.7-alpha**
+> ⚠️ **Alpha version / Alfa versie — v0.2.8-alpha**
 >
 > This add-on is in early development and not yet ready for production use.
 > Test thoroughly before relying on this for your home energy system.
@@ -13,7 +13,7 @@
 ---
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.7--alpha-orange.svg)]()
+[![Version](https://img.shields.io/badge/version-0.2.8--alpha-orange.svg)]()
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Add--on-41BDF5.svg)](https://www.home-assistant.io/)
 [![Status](https://img.shields.io/badge/status-alpha-red.svg)]()
 
