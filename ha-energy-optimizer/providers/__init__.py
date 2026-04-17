@@ -37,7 +37,15 @@ def get_provider(config: AppConfig) -> BaseEnergyProvider:
         )
 
     driver_name = row["provider_driver"]
-    driver_cfg  = row["driver_config"] or {}
+    import json as _json
+    _raw_cfg = row["driver_config"] or {}
+    if isinstance(_raw_cfg, str):
+         try:
+             driver_cfg = _json.loads(_raw_cfg)
+         except Exception:
+             driver_cfg = {}
+    else:
+         driver_cfg = _raw_cfg
 
     # Registry of available providers / Register van beschikbare providers
     registry = {
@@ -65,3 +73,4 @@ def _load(module_path: str, class_name: str, cfg: dict):
 
 
 __all__ = ["BaseEnergyProvider", "get_provider"]
+
