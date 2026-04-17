@@ -164,14 +164,20 @@ class PriceRepository:
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
-    def save(self, price: dict) -> None:
-        """Save a single price — convenience wrapper around save_many."""
-        self.save_many([price])
+    def save(self, price) -> None:
+        """Save a single price — accepts dict or EnergyPrice object."""
+        if hasattr(price, '__dict__'):
+            d = {k: v for k, v in price.__dict__.items() if not k.startswith('_')}
+        else:
+            d = dict(price)
+        self.save_many([d])
 
     def save_many(self, prices: list[dict]) -> int:
         count = 0
-        with self._db.cursor() as cur:
+ 	with self._db.cursor() as cur:
             for p in prices:
+                if hasattr(p, '__dict__'):
+                    p = {k: v for k, v in p.__dict__.items() if not k.startswith('_')}
                 cur.execute("""
                     INSERT INTO energy_prices
                         (price_hour, energy_type, price_per_kwh,
