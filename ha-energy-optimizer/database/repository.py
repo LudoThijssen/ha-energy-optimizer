@@ -164,6 +164,10 @@ class PriceRepository:
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
+    def save(self, price: dict) -> None:
+        """Save a single price — convenience wrapper around save_many."""
+        self.save_many([price])
+
     def save_many(self, prices: list[dict]) -> int:
         count = 0
         with self._db.cursor() as cur:
