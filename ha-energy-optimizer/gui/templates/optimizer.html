@@ -22,7 +22,7 @@
     <div class="field-row">
       <div class="field">
         <label>Minimum price to discharge / Minimale prijs voor ontladen (€/kWh)</label>
-        <input type="number" name="min_discharge_price" step="0.001" min="0"
+        <input type="number" name="min_discharge_price" step="0.001" min="-1"
                value="{{ config.min_price_to_discharge if config else 0.22 }}">
         <div class="hint">
           Only discharge the battery when the electricity price is at or above this value.<br>
@@ -32,7 +32,7 @@
       </div>
       <div class="field">
         <label>Maximum price to charge from grid / Maximale prijs voor laden vanaf net (€/kWh)</label>
-        <input type="number" name="max_charge_price" step="0.001" min="0"
+        <input type="number" name="max_charge_price" step="0.001" min="-1"
                value="{{ config.max_price_to_charge if config else 0.10 }}">
         <div class="hint">
           Only charge from the grid when the electricity price is at or below this value.<br>
