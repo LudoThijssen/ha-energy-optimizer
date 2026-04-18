@@ -321,6 +321,11 @@ class OptimizerRepository:
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
+    def save_schedule(self, slots: list) -> None:
+        """Save a list of slots / Sla een lijst slots op."""
+        for slot in slots:
+            self.save_slot(slot)
+
     def save_slot(self, slot: OptimizerSlot) -> None:
         with self._db.cursor() as cur:
             cur.execute("""
