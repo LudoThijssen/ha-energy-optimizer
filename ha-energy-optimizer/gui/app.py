@@ -564,7 +564,7 @@ def optimizer():
                      "eff":      request.form.get("battery_efficiency"),
                      "incl":     1 if "price_incl_tax" in request.form else 0,
                      "id":      config_row["id"]})
-           if battery_row:
+            if battery_row:
                 cur.execute("""UPDATE battery_info SET
                     min_soc_pct=%(min_soc)s, max_soc_pct=%(max_soc)s
                     WHERE id=%(id)s""",
