@@ -183,3 +183,16 @@ CREATE TABLE IF NOT EXISTS `report_log` (
     `notified_at`  DATETIME,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
+
+-- Insert default system configuration / Standaard systeemconfiguratie invoegen
+INSERT IGNORE INTO system_config
+    (latitude, longitude, has_grid_connection, has_battery,
+     battery_efficiency_pct, hard_min_discharge_price_excl,
+     min_price_to_discharge, max_price_to_charge,
+     price_incl_tax, language)
+VALUES
+    (52.1551, 5.3872, 1, 1,
+     83.00, 0.05000,
+     0.22000, 0.10000,
+     1, 'nl');
+

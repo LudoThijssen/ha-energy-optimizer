@@ -560,7 +560,7 @@ def optimizer():
                     WHERE id=%(id)s""",
                     {"min_dis":  request.form.get("min_discharge_price"),
                      "max_chg":  request.form.get("max_charge_price"),
-                     "hard_min": request.form.get("min_discharge_price"),
+                     "hard_min": request.form.get("hard_min_discharge_price"),
                      "eff":      request.form.get("battery_efficiency"),
                      "incl":     1 if "price_incl_tax" in request.form else 0,
                      "id":      config_row["id"]})
