@@ -91,7 +91,12 @@ def index():
                     SELECT schedule_for, action, target_power_kw,
                            expected_saving, reason
                     FROM optimizer_schedule
-                    WHERE DATE(schedule_for) = CURDATE()
+                    WHERE DATE(schedule_for) = (
+                        SELECT DATE(schedule_for)
+                        FROM optimizer_schedule
+                        ORDER BY schedule_for DESC
+                        LIMIT 1
+                    )
                     ORDER BY schedule_for
                     LIMIT 24
                 """)
