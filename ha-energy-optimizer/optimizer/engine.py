@@ -333,12 +333,58 @@ class OptimizerEngine:
 
     def _send_notifications(self, notifications: list[str]) -> None:
         """
-        Deduplicate and send notifications to Home Assistant.
-        Dedupliceer en verstuur meldingen naar Home Assistant.
+        Group negative price notifications into one summary message.
+        Groepeer negatieve prijsmeldingen in één samenvattend bericht.
         """
-        seen = set()
+        if not notifications:
+            return
+
+        # Separate negative price notifications from others
+        # Scheid negatieve prijsmeldingen van overige meldingen
+        negative_hours = []
+        other_msgs = []
+        solar_surplus_values = []
+
         for msg in notifications:
-            key = msg[:80]  # Deduplicate by first 80 chars / Dedupliceer op eerste 80 tekens
+            if "negative" in msg.lower() or "negatief" in msg.lower():
+                # Extract price and hour info from message
+                # Extraheer prijs- en uurinformatie uit het bericht
+                import re
+                price_match = re.search(r'\((-?\d+\.\d+)\s*€/kWh', msg)
+                solar_match = re.search(r'Solar surplus[:\s]+(-?\d+\.?\d*)\s*kW', msg, re.IGNORECASE)
+                if price_match:
+                    negative_hours.append(float(price_match.group(1)))
+                if solar_match:
+                    solar_surplus_values.append(float(solar_match.group(1)))
+            elif "very low" in msg.lower() or "zeer laag" in msg.lower():
+                # Low price warning — include once
+                if not any("very low" in m.lower() for m in other_msgs):
+                    other_msgs.append(msg)
+            else:
+                other_msgs.append(msg)
+
+        # Build summary for negative prices
+        # Bouw samenvatting voor negatieve prijzen
+        if negative_hours:
+            prices_str = " | ".join(
+                f"{i+1}e uur: {p*100:.2f}ct"
+                for i, p in enumerate(negative_hours)
+            )
+            avg_solar = sum(solar_surplus_values) / len(solar_surplus_values) if solar_surplus_values else 0
+            summary = (
+                f"⚡ {len(negative_hours)} uur negatieve exportprijs: {prices_str} (ct/kWh)\n"
+                f"Zet nu aan: boiler / wasmachine / vaatwasser / laadpaal."
+            )
+            if avg_solar > 0:
+                summary += f" Zonne-overschot: gem. {avg_solar:.2f} kW."
+            self._reporter.warning(summary, category="solar_export")
+            logger.warning(f"[optimizer] Notification: {summary[:120]}")
+
+        # Send remaining unique notifications
+        # Stuur overige unieke meldingen
+        seen = set()
+        for msg in other_msgs:
+            key = msg[:60]
             if key not in seen:
                 seen.add(key)
                 self._reporter.warning(msg, category="solar_export")
