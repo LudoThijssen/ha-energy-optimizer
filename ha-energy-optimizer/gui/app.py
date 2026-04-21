@@ -97,6 +97,7 @@ def index():
                         ORDER BY schedule_for DESC
                         LIMIT 1
                     )
+                    GROUP BY schedule_for
                     ORDER BY schedule_for
                     LIMIT 24
                 """)
