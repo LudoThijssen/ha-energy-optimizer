@@ -49,11 +49,12 @@ def get_provider(config: AppConfig) -> BaseEnergyProvider:
 
     # Registry of available providers / Register van beschikbare providers
     registry = {
-        "anwb":       lambda: _load("providers.anwb",       "AnwbProvider",       driver_cfg),
-        "energyzero": lambda: _load("providers.energyzero", "EnergyZeroProvider", driver_cfg),
-        "entsoe":     lambda: _load("providers.entsoe",     "EntsoEProvider",     driver_cfg),
-        "tibber":     lambda: _load("providers.tibber",     "TibberProvider",     driver_cfg),
-        "frank":      lambda: _load("providers.frank",      "FrankProvider",      driver_cfg),
+        "anwb":          lambda: _load("providers.anwb",          "AnwbProvider",          driver_cfg),
+        "energyzero":    lambda: _load("providers.energyzero",    "EnergyZeroProvider",    driver_cfg),
+        "ha_energyzero": lambda: _load("providers.ha_energyzero", "HaEnergyZeroProvider",  driver_cfg),
+        "entsoe":        lambda: _load("providers.entsoe",        "EntsoEProvider",        driver_cfg),
+        "tibber":        lambda: _load("providers.tibber",        "TibberProvider",        driver_cfg),
+        "frank":         lambda: _load("providers.frank",         "FrankProvider",         driver_cfg),
     }
 
     if driver_name not in registry:
