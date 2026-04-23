@@ -287,7 +287,9 @@ class OptimizerEngine:
                 reason=reason,
             ))
 
-            all_notifications.extend(notifications)
+            all_notifications.extend(
+                (forecast.hour, msg) for msg in notifications
+            )
 
             # Update SoC for next hour / Werk laadtoestand bij voor volgend uur
             soc = self._estimate_next_soc(soc, action, power, strategy)
@@ -331,7 +333,7 @@ class OptimizerEngine:
 
     # ── Notifications / Meldingen ─────────────────────────────────────────────
 
-    def _send_notifications(self, notifications: list[str]) -> None:
+    def _send_notifications(self, notifications: list) -> None:
         """
         Group negative price notifications into one summary message.
         Groepeer negatieve prijsmeldingen in één samenvattend bericht.
@@ -342,22 +344,27 @@ class OptimizerEngine:
         # Separate negative price notifications from others
         # Scheid negatieve prijsmeldingen van overige meldingen
         negative_hours = []
+        negative_times = []
         other_msgs = []
         solar_surplus_values = []
 
-        for msg in notifications:
+        for item in notifications:
+            # Support both (hour, msg) tuples and plain strings
+            if isinstance(item, tuple):
+                hour, msg = item
+            else:
+                hour, msg = None, item
+
             if "negative" in msg.lower() or "negatief" in msg.lower():
-                # Extract price and hour info from message
-                # Extraheer prijs- en uurinformatie uit het bericht
                 import re
                 price_match = re.search(r'\((-?\d+\.\d+)\s*€/kWh', msg)
                 solar_match = re.search(r'Solar surplus[:\s]+(-?\d+\.?\d*)\s*kW', msg, re.IGNORECASE)
                 if price_match:
                     negative_hours.append(float(price_match.group(1)))
+                    negative_times.append(hour)
                 if solar_match:
                     solar_surplus_values.append(float(solar_match.group(1)))
             elif "very low" in msg.lower() or "zeer laag" in msg.lower():
-                # Low price warning — include once
                 if not any("very low" in m.lower() for m in other_msgs):
                     other_msgs.append(msg)
             else:
@@ -367,8 +374,8 @@ class OptimizerEngine:
         # Bouw samenvatting voor negatieve prijzen
         if negative_hours:
             prices_str = " | ".join(
-                f"{i+1}e uur: {p*100:.2f}ct"
-                for i, p in enumerate(negative_hours)
+                f"{t.strftime('%H:%M') if t else f'{i+1}e uur'}: {p*100:.2f}ct"
+                for i, (t, p) in enumerate(zip(negative_times, negative_hours))
             )
             avg_solar = sum(solar_surplus_values) / len(solar_surplus_values) if solar_surplus_values else 0
             summary = (
@@ -383,7 +390,8 @@ class OptimizerEngine:
         # Send remaining unique notifications
         # Stuur overige unieke meldingen
         seen = set()
-        for msg in other_msgs:
+        for item in other_msgs:
+            msg = item[1] if isinstance(item, tuple) else item
             key = msg[:60]
             if key not in seen:
                 seen.add(key)
