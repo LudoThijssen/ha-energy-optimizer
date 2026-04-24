@@ -94,7 +94,7 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
                 price_hour    = ts_naive,
                 energy_type   = "electricity",
                 price_per_kwh = Decimal(str(price)).quantize(Decimal("0.00001")),
-                price_incl_tax= True,
+                price_incl_tax= False,
                 source        = "ha_energyzero",
             ))
 

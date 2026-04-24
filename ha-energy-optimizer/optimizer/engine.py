@@ -373,9 +373,14 @@ class OptimizerEngine:
         # Build summary for negative prices
         # Bouw samenvatting voor negatieve prijzen
         if negative_hours:
+            from datetime import datetime as _dt
+            combined = sorted(
+                zip(negative_times, negative_hours),
+                key=lambda x: x[0] if x[0] else _dt.min
+            )
             prices_str = " | ".join(
-                f"{t.strftime('%H:%M') if t else f'{i+1}e uur'}: {p*100:.2f}ct"
-                for i, (t, p) in enumerate(zip(negative_times, negative_hours))
+                f"{t.strftime('%H:%M') if t else '??:??'}: {p*100:.2f}ct"
+                for t, p in combined
             )
             avg_solar = sum(solar_surplus_values) / len(solar_surplus_values) if solar_surplus_values else 0
             summary = (
