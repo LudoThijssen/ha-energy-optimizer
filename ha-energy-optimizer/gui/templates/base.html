@@ -72,7 +72,9 @@
     <a href="{{ nav_url('database') }}" {% if request.endpoint == 'database' %}class="active"{% endif %}>Database</a>
     <a href="{{ nav_url('homeassistant') }}" {% if request.endpoint == 'homeassistant' %}class="active"{% endif %}>Home Assistant</a>
     <div class="nav-section">Hardware</div>
+    {% if system_config and system_config.has_battery %}
     <a href="{{ nav_url('inverter') }}" {% if request.endpoint == 'inverter' %}class="active"{% endif %}>Inverter & Battery / Batterij</a>
+    {% endif %}
     <a href="{{ nav_url('provider') }}" {% if request.endpoint == 'provider' %}class="active"{% endif %}>Energy provider / Leverancier</a>
     <a href="{{ nav_url('entities') }}" {% if request.endpoint == 'entities' %}class="active"{% endif %}>HA Entities / HA Entiteiten</a>
     <div class="nav-section">Optimizer</div>

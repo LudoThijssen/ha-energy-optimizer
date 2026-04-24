@@ -1,5 +1,5 @@
-# gui/app.py — v0.2.8
-# 2026-04-18 21:48
+# gui/app.py — v0.2.9
+# 2026-04-24 13:11
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
 
@@ -53,9 +53,19 @@ def _url(endpoint: str, **kwargs) -> str:
 @app.context_processor
 def inject_globals():
     ingress_path = request.headers.get("X-Ingress-Path", "").rstrip("/")
+    system_config = None
+    try:
+        db = _get_db()
+        if db:
+            with db.cursor() as cur:
+                cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
+                system_config = cur.fetchone()
+    except Exception:
+        pass
     return {
         "nav_url": _url,
         "ingress_path": ingress_path,
+        "system_config": system_config,
     }
 
 
@@ -270,14 +280,64 @@ def system():
             "timezone":  request.form["timezone"],
         }
         options["language"] = request.form["language"]
+        has_grid    = 1 if "has_grid"    in request.form else 0
+        has_solar   = 1 if "has_solar"   in request.form else 0
+        has_gas     = 1 if "has_gas"     in request.form else 0
+        has_battery = 1 if "has_battery" in request.form else 0
+        has_heating = 1 if "has_heating" in request.form else 0
+
         options.setdefault("system", {}).update({
-            "has_grid_connection":  "has_grid" in request.form,
-            "has_solar_panels":     "has_solar" in request.form,
-            "has_gas":              "has_gas" in request.form,
-            "has_battery":          "has_battery" in request.form,
-            "has_district_heating": "has_heating" in request.form,
+            "has_grid_connection":  bool(has_grid),
+            "has_solar_panels":     bool(has_solar),
+            "has_gas":              bool(has_gas),
+            "has_battery":          bool(has_battery),
+            "has_district_heating": bool(has_heating),
         })
         _save_options(options)
+
+        # Also save to database / Sla ook op in database
+        db = _get_db()
+        if db:
+            lat = float(request.form["latitude"])
+            lng = float(request.form["longitude"])
+            tz  = request.form["timezone"]
+            lang = request.form["language"]
+            with db.cursor() as cur:
+                cur.execute("SELECT id FROM system_config ORDER BY id DESC LIMIT 1")
+                row = cur.fetchone()
+                if row:
+                    cur.execute("""
+                        UPDATE system_config SET
+                            latitude=%(lat)s, longitude=%(lng)s,
+                            has_grid_connection=%(grid)s,
+                            has_solar_panels=%(solar)s,
+                            has_gas=%(gas)s,
+                            has_battery=%(battery)s,
+                            has_district_heating=%(heating)s,
+                            language=%(lang)s
+                        WHERE id=%(id)s
+                    """, {
+                        "lat": lat, "lng": lng,
+                        "grid": has_grid, "solar": has_solar,
+                        "gas": has_gas, "battery": has_battery,
+                        "heating": has_heating,
+                        "lang": lang, "id": row["id"]
+                    })
+                else:
+                    cur.execute("""
+                        INSERT INTO system_config
+                            (latitude, longitude, has_grid_connection,
+                             has_solar_panels, has_gas, has_battery,
+                             has_district_heating, language)
+                        VALUES (%(lat)s, %(lng)s, %(grid)s, %(solar)s,
+                                %(gas)s, %(battery)s, %(heating)s, %(lang)s)
+                    """, {
+                        "lat": lat, "lng": lng,
+                        "grid": has_grid, "solar": has_solar,
+                        "gas": has_gas, "battery": has_battery,
+                        "heating": has_heating, "lang": lang
+                    })
+
         return redirect(_url("system") + "?saved=1")
     return render_template("system.html", options=options,
                            saved=request.args.get("saved"))
