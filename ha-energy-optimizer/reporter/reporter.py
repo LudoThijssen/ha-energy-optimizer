@@ -1,3 +1,7 @@
+# version 0.2.9
+# 2026-04-24
+# ha-energy-optimizer/ha-energy-optimizer/reporter/reporte.py
+
 import logging
 import requests
 from datetime import datetime
@@ -73,12 +77,17 @@ class Reporter:
 
     def _notify(self, message: str, title: str = "HA Energy Optimizer") -> None:
         try:
-            requests.post(
+            resp = requests.post(
                 f"{self._ha_url}/api/services/notify/notify",
                 json={"title": title, "message": message},
                 headers=self._headers,
-                timeout=5,
+                timeout=15,
             )
+            if resp.status_code not in (200, 201):
+                logger.debug(f"HA notification returned {resp.status_code}")
+        except requests.exceptions.ConnectionError:
+            logger.debug("HA not reachable — notification skipped")
+        except requests.exceptions.Timeout:
+            logger.warning("HA notification timeout — check HA host and token in settings / Controleer HA host en token in instellingen")
         except Exception as e:
             logger.warning(f"HA-notificatie mislukt: {e}")
-
