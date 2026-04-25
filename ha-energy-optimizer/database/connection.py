@@ -32,31 +32,26 @@ class DatabaseConnection:
 
     @contextmanager
     def cursor(self, dictionary=True):
-        """
-        Context manager that provides a cursor with automatic cleanup.
-        Context manager die een cursor geeft met automatische opruiming.
-        Retries once if the connection is not available.
-        Probeert opnieuw als de verbinding niet beschikbaar is.
-        """
         conn = None
+        cur = None
         try:
             conn = self._pool.get_connection()
             cur = conn.cursor(dictionary=dictionary)
-            try:
-                yield cur
-            finally:
-                cur.close()
+            yield cur
         except mysql.connector.errors.PoolError:
-            # Pool exhausted — wait briefly and retry
-            # Pool uitgeput — kort wachten en opnieuw proberen
             import time
             time.sleep(0.5)
             conn = self._pool.get_connection()
             cur = conn.cursor(dictionary=dictionary)
-            try:
-                yield cur
-            finally:
-                cur.close()
+            yield cur
         finally:
-            if conn and conn.is_connected():
-                conn.close()
+            try:
+                if cur:
+                    cur.close()
+            except Exception:
+                pass
+            try:
+                if conn:
+                    conn.close()
+            except Exception:
+                pass
