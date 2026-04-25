@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-<!-- index.html — v0.2.9 -->
+<!-- index.html — v0.2.4 -->
 {% block title %}Overview — HA Energy Optimizer{% endblock %}
 {% block content %}
 

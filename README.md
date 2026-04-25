@@ -1,6 +1,6 @@
 # HA Energy Optimizer
 
-> ⚠️ **Alpha version / Alfa versie — v0.2.8-alpha**
+> ⚠️ **Alpha version / Alfa versie — v0.2.8-alpha** 
 >
 > This add-on is in early development and not yet ready for production use.
 > Test thoroughly before relying on this for your home energy system.
