@@ -1,5 +1,5 @@
 # gui/app.py — v0.2.9
-# 2026-04-24 13:11
+# 2026-04-26 16:26
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
 
@@ -455,7 +455,11 @@ def inverter():
             "min_soc":       request.form.get("min_soc", 10),
             "max_soc":       request.form.get("max_soc", 95),
         }
-
+# debug toevoeging
+        import logging as _log
+        _log.getLogger(__name__).warning(f"BAT SAVE: {bat}")
+        _log.getLogger(__name__).warning(f"INV SAVE: {inv}")
+# einde debug toevoeging        
         with db.cursor() as cur:
             if inverter_row:
                 cur.execute("""UPDATE inverter_info SET brand=%(brand)s, model=%(model)s,
