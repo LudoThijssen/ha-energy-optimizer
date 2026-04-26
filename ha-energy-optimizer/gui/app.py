@@ -427,7 +427,7 @@ def inverter():
         if driver == "simulate":
             driver_cfg = {
                 "initial_soc_pct": float(request.form.get("initial_soc", 65.0)),
-                "capacity_kwh":    float(request.form.get("capacity_kwh", 10.0)),
+                "capacity_kwh":    float(request.form.get("sim_capacity_kwh", 10.0)),
                 "temperature_c":   float(request.form.get("temperature_c", 22.0)),
             }
         else:
