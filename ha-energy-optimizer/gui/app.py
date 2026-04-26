@@ -455,13 +455,7 @@ def inverter():
             "min_soc":       request.form.get("min_soc", 10),
             "max_soc":       request.form.get("max_soc", 95),
         }
-# debug toevoeging
-        import logging as _log
-        _log.getLogger(__name__).warning(f"BAT SAVE: {bat}")
-        _log.getLogger(__name__).warning(f"INV SAVE: {inv}")
-        _log.getLogger(__name__).warning(f"battery_row id: {battery_row['id'] if battery_row else 'NONE'}")
-        _log.getLogger(__name__).warning(f"inverter_row id: {inverter_row['id'] if inverter_row else 'NONE'}")
-# einde debug toevoeging        
+        
         with db.cursor() as cur:
             if inverter_row:
                 cur.execute("""UPDATE inverter_info SET brand=%(brand)s, model=%(model)s,
@@ -491,11 +485,6 @@ def inverter():
                     %(max_charge)s, %(max_discharge)s, %(max_charge)s, %(max_discharge)s,
                     %(min_soc)s, %(max_soc)s)""", bat)
 
-        # Verify save / Controleer opslaan
-        with db.cursor() as cur:
-            cur.execute("SELECT capacity_kwh FROM battery_info WHERE id=%(id)s", {"id": battery_row["id"] if battery_row else 0})
-            result = cur.fetchone()
-            _log.getLogger(__name__).warning(f"DB after save: {result}")
         return redirect(_url("inverter") + "?saved=1")
 
     return render_template("inverter.html", options=options,
