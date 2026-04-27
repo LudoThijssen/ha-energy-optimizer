@@ -421,7 +421,7 @@ def inverter():
             inverter_row = cur.fetchone()
             cur.execute("SELECT * FROM battery_info ORDER BY id DESC LIMIT 1")
             battery_row = cur.fetchone()
-
+   
     if request.method == "POST" and db:
         driver = request.form.get("driver", "simulate")
         if driver == "simulate":
