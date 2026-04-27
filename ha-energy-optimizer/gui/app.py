@@ -421,6 +421,20 @@ def inverter():
             inverter_row = cur.fetchone()
             cur.execute("SELECT * FROM battery_info ORDER BY id DESC LIMIT 1")
             battery_row = cur.fetchone()
+
+    # Parse driver_config JSON string
+    # Parseer driver_config JSON-string
+    driver_cfg_parsed = {}
+    if inverter_row and inverter_row.get("driver_config"):
+        import json as _j
+        cfg = inverter_row["driver_config"]
+        if isinstance(cfg, str):
+            try:
+                driver_cfg_parsed = _j.loads(cfg)
+            except Exception:
+                driver_cfg_parsed = {}
+        elif isinstance(cfg, dict):
+            driver_cfg_parsed = cfg
    
     if request.method == "POST" and db:
         driver = request.form.get("driver", "simulate")
@@ -489,6 +503,7 @@ def inverter():
 
     return render_template("inverter.html", options=options,
                            inverter=inverter_row, battery=battery_row,
+                           driver_cfg=driver_cfg_parsed,
                            saved=request.args.get("saved"))
 
 
