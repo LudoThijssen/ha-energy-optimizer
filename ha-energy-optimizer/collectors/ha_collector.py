@@ -88,9 +88,22 @@ class HaCollector(BaseCollector):
         grid_import = readings.get("grid_import_power")
         grid_export = readings.get("grid_export_power")
         total = readings.get("total_consumption_power")
+        solar = readings.get("solar_power")
         gas = readings.get("gas_consumption")
+
         if all(v is None for v in [grid_import, grid_export, total, gas]):
             return
+
+        # Calculate total consumption if not directly measured
+        # Bereken totaal verbruik als het niet direct gemeten wordt
+        if total is None and grid_import is not None:
+            from decimal import Decimal
+            total = (
+                Decimal(str(grid_import))
+                - Decimal(str(grid_export or 0))
+                + Decimal(str(solar or 0))
+            )
+
         self._consumption_repo.save(HomeConsumption(
             measured_at=datetime.now(),
             grid_import_kw=grid_import,
