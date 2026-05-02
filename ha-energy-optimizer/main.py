@@ -13,6 +13,7 @@ from database.connection import DatabaseConnection
 from database.setup import run_migrations
 from reporter.reporter import Reporter
 from collectors import HaCollector, PriceCollector, WeatherCollector
+from collectors.profile_updater import ProfileUpdater
 from optimizer.engine import OptimizerEngine
 from scheduler.scheduler import TaskScheduler
 
@@ -46,6 +47,9 @@ async def main() -> None:
     # 5. Optimizer
     optimizer = OptimizerEngine(db, reporter, config)
 
+    # 5b. Profile updater
+    profile_updater = ProfileUpdater(db)
+    
     # 6. Scheduler — alle tijden en intervallen uit config
     scheduler = TaskScheduler(config)
 
@@ -66,7 +70,9 @@ async def main() -> None:
                     optimizer.plan_evening)
     scheduler.daily(config.reporting.daily_report_time,
                     reporter.daily_summary)
-
+    scheduler.daily(config.optimizer.profile_update_time,
+                    profile_updater.run)
+                    
     reporter.info("Add-on gestart", category="system")
     logger.info("Scheduler gestart — add-on actief")
 

@@ -37,7 +37,8 @@ class OptimizerConfig:
     run_time: str              = "14:30"
     evening_planning_time: str = "21:00"
     rerun_on_price_update: bool = True
-
+    profile_update_time: str    = "03:00"
+    
 
 @dataclass
 class ReportingConfig:
