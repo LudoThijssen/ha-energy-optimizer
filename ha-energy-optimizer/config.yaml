@@ -77,7 +77,7 @@ schema:
     run_time: match(^([01]\d|2[0-3]):[0-5]\d$)
     evening_planning_time: match(^([01]\d|2[0-3]):[0-5]\d$)
     rerun_on_price_update: bool
-    profile_update_time: match(^([01]\d|2[0-3]):[0-5]\d$)?
+    profile_update_time: match(^([01]\d|2[0-3]):[0-5]\d$)
   reporting:
     daily_report_time: match(^([01]\d|2[0-3]):[0-5]\d$)
     notify_on_warning: bool
