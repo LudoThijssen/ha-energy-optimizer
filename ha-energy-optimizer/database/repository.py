@@ -104,12 +104,25 @@ class SolarRepository:
 
     def get_today_total(self) -> Decimal:
         """
-        Calculate today's total solar production from power readings.
-        Bereken de totale zonopbrengst van vandaag uit vermogensmetingen.
-        Each reading represents 5 minutes (300 seconds = 1/12 hour).
-        Elke meting vertegenwoordigt 5 minuten (300 seconden = 1/12 uur).
+        Calculate today's total solar production.
+        Uses energy_kwh counter if available, otherwise estimates from power readings.
+        Bereken de totale zonopbrengst van vandaag.
+        Gebruikt energy_kwh teller indien beschikbaar, anders schatting uit vermogensmetingen.
         """
         with self._db.cursor() as cur:
+            # Try energy counter first / Probeer energieteller eerst
+            cur.execute("""
+                SELECT MAX(energy_kwh) - MIN(energy_kwh) AS total
+                FROM solar_production
+                WHERE DATE(measured_at) = CURDATE()
+                  AND energy_kwh IS NOT NULL
+            """)
+            row = cur.fetchone()
+            if row and row["total"] is not None and row["total"] > 0:
+                return Decimal(str(row["total"])).quantize(Decimal("0.001"))
+
+            # Fallback: estimate from power readings (5-minute intervals)
+            # Terugval: schatting uit vermogensmetingen (5-minuten intervallen)
             cur.execute("""
                 SELECT COALESCE(SUM(power_kw) / 12.0, 0) AS total
                 FROM solar_production

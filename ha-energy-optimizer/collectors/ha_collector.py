@@ -79,9 +79,18 @@ class HaCollector(BaseCollector):
         power = readings.get("solar_power")
         if power is None:
             return
+
+        # Convert solar energy total from Wh to kWh if available
+        # Omzetten zonne-energieteller van Wh naar kWh indien beschikbaar
+        energy_wh = readings.get("solar_energy_total")
+        energy_kwh = None
+        if energy_wh is not None:
+            energy_kwh = energy_wh / Decimal("1000")
+
         self._solar_repo.save(SolarProduction(
             measured_at=datetime.now(),
             power_kw=power,
+            energy_kwh=energy_kwh,
         ))
 
     def _store_consumption(self, readings: dict) -> None:
