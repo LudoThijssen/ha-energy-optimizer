@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+<!-- entities.html — v0.2.10 -->
 {% block title %}HA Entities — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -8,34 +9,18 @@
 </p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Entity saved / Entiteit opgeslagen</div>
+<div class="alert alert-success">&#10003; Saved / Opgeslagen</div>
 {% endif %}
 
-{% set required_entities = [
-  ("battery_soc",           "Battery state of charge (%)",   "Laadtoestand batterij (%)",     "%"),
-  ("battery_power",         "Battery power (kW, + = charge)","Batterijvermogen (kW, + = laden)","kW"),
-  ("battery_temperature",   "Battery temperature (°C)",      "Temperatuur batterij (°C)",      "°C"),
-  ("solar_power",           "Solar production (kW)",         "Zonproductie (kW)",              "kW"),
-  ("grid_import_power",     "Grid import power (kW)",        "Netafname vermogen (kW)",        "kW"),
-  ("grid_export_power",     "Grid export power (kW)",        "Teruglevering vermogen (kW)",    "kW"),
-  ("total_consumption_power","Total home consumption (kW)",  "Totaal huisverbruik (kW)",       "kW"),
-  ("gas_consumption",       "Gas consumption (m³/h)",        "Gasverbruik (m³/u)",             "m³/h"),
-] %}
-
+<!-- Required sensors / Benodigde sensoren -->
 <div class="card">
   <h2>Required sensors / Benodigde sensoren</h2>
-  <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7">
+  <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7;">
     Map each internal name to the correct Home Assistant entity ID.<br>
     Koppel elke interne naam aan het juiste Home Assistant entiteit-ID.<br>
     You can leave sensors empty if the component is not installed.<br>
     Laat sensoren leeg als het component niet aanwezig is.
   </p>
-
-  {% set mapped = {} %}
-  {% for e in entities %}
-    {% set _ = mapped.update({e.internal_name: e}) %}
-  {% endfor %}
-
   <table>
     <thead>
       <tr>
@@ -47,30 +32,31 @@
       </tr>
     </thead>
     <tbody>
-      {% for internal, label_en, label_nl, unit in required_entities %}
-      {% set existing = mapped.get(internal) %}
+      {% for sensor in required_sensors %}
+      {% set existing = entity_map.get(sensor.internal_name) %}
       <tr>
-        <td><code style="font-size:12px; background:#f1f5f9; padding:2px 6px; border-radius:4px">{{ internal }}</code></td>
-        <td>
-          {{ label_en }}<br>
-          <span style="color:#6b7280; font-size:12px">{{ label_nl }}</span>
+        <td><code>{{ sensor.internal_name }}</code></td>
+        <td style="font-size:12px; color:#6b7280;">
+          {{ sensor.description_nl }}<br>
+          <span style="color:#94a3b8;">{{ sensor.description_en }}</span>
         </td>
         <td>
-          <form method="POST" style="display:flex; gap:6px; align-items:center">
-            <input type="hidden" name="internal_name" value="{{ internal }}">
-            <input type="hidden" name="unit" value="{{ unit }}">
-            <input type="hidden" name="description" value="{{ label_en }}">
-            <input type="text" name="entity_id" placeholder="sensor.example"
+          <form method="POST" style="display:flex; gap:8px; align-items:center;">
+            <input type="hidden" name="internal_name" value="{{ sensor.internal_name }}">
+            <input type="hidden" name="unit" value="{{ sensor.unit }}">
+            <input type="hidden" name="description" value="{{ sensor.description_en }}">
+            <input type="text" name="entity_id"
                    value="{{ existing.entity_id if existing else '' }}"
-                   style="min-width:220px">
-            <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                   placeholder="sensor.example"
+                   style="min-width:220px;">
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
           </form>
         </td>
-        <td style="color:#6b7280; font-size:12px">{{ unit }}</td>
+        <td style="color:#6b7280; font-size:12px;">{{ sensor.unit }}</td>
         <td>
           {% if existing %}
-          <form method="POST" action="/entities/delete/{{ existing.id }}">
-            <button type="submit" class="btn btn-danger btn-sm" title="Remove / Verwijder">&#215;</button>
+          <form method="POST" action="{{ nav_url('delete_entity', entity_id=existing.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm" title="Remove">&#215;</button>
           </form>
           {% endif %}
         </td>
@@ -80,13 +66,60 @@
   </table>
 </div>
 
+<!-- Custom entities / Aangepaste entiteiten -->
 <div class="card">
-  <h2>Add custom entity / Aangepaste entiteit toevoegen</h2>
+  <h2>Custom entities / Aangepaste entiteiten</h2>
+
+  {% set custom_entities = entities | selectattr('internal_name', 'not in', required_sensor_names) | list %}
+  {% if custom_entities %}
+  <table style="margin-bottom:20px;">
+    <thead>
+      <tr>
+        <th>Internal name</th>
+        <th>Entity ID</th>
+        <th>Unit</th>
+        <th>Description</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in custom_entities %}
+      <tr>
+        <td><code>{{ e.internal_name }}</code></td>
+        <td style="font-size:13px;">{{ e.entity_id }}</td>
+        <td style="color:#6b7280; font-size:12px;">{{ e.unit }}</td>
+        <td style="color:#6b7280; font-size:12px;">{{ e.description }}</td>
+        <td>
+          <form method="POST" action="{{ nav_url('delete_entity', entity_id=e.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm">&#215;</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <h3 style="font-size:14px; font-weight:600; margin-bottom:14px; color:#374151;">
+    Add custom entity / Aangepaste entiteit toevoegen
+  </h3>
   <form method="POST">
     <div class="field-row">
       <div class="field">
         <label>Internal name / Interne naam</label>
-        <input type="text" name="internal_name" placeholder="my_custom_sensor">
+        {% if unmapped_names %}
+        <select name="internal_name" id="internal-name-select" onchange="updateFromSelect()">
+          <option value="">— custom name —</option>
+          {% for name in unmapped_names %}
+          <option value="{{ name.internal_name }}">{{ name.internal_name }} — {{ name.description }}</option>
+          {% endfor %}
+        </select>
+        <div class="hint" style="margin-top:6px;">
+          Or type a custom name below / Of typ hieronder een eigen naam
+        </div>
+        {% endif %}
+        <input type="text" name="internal_name_custom" id="internal-name-custom"
+               placeholder="my_custom_sensor" style="margin-top:6px;">
       </div>
       <div class="field">
         <label>Entity ID</label>
@@ -94,17 +127,42 @@
       </div>
       <div class="field" style="max-width:100px">
         <label>Unit</label>
-        <input type="text" name="unit" placeholder="kW">
+        <input type="text" name="unit" id="unit-field" placeholder="kW">
       </div>
     </div>
     <div class="field">
       <label>Description / Omschrijving</label>
-      <input type="text" name="description" placeholder="What does this sensor measure?">
+      <input type="text" name="description" id="description-field"
+             placeholder="What does this sensor measure?">
     </div>
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Add / Toevoegen</button>
     </div>
   </form>
 </div>
+
+<script>
+// Known units and descriptions for predefined internal names
+const knownSensors = {
+  {% for name in unmapped_names %}
+  "{{ name.internal_name }}": {"unit": "{{ name.unit }}", "description": "{{ name.description }}"},
+  {% endfor %}
+};
+
+function updateFromSelect() {
+  const select = document.getElementById('internal-name-select');
+  const customInput = document.getElementById('internal-name-custom');
+  const unitField = document.getElementById('unit-field');
+  const descField = document.getElementById('description-field');
+  const val = select.value;
+  if (val && knownSensors[val]) {
+    customInput.value = val;
+    unitField.value = knownSensors[val].unit;
+    descField.value = knownSensors[val].description;
+  } else {
+    customInput.value = '';
+  }
+}
+</script>
 
 {% endblock %}

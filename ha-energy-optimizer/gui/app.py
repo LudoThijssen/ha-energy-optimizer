@@ -566,19 +566,58 @@ def entities():
             entity_rows = cur.fetchall()
 
     if request.method == "POST" and db:
-        with db.cursor() as cur:
-            cur.execute("""INSERT INTO ha_entity_map
-                (internal_name, entity_id, unit, description)
-                VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
-                ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
-                unit=VALUES(unit), description=VALUES(description)""",
-                {"n": request.form.get("internal_name"),
-                 "e": request.form.get("entity_id"),
-                 "u": request.form.get("unit", ""),
-                 "d": request.form.get("description", "")})
+        # Use dropdown selection or custom name
+        # Gebruik dropdown selectie of eigen naam
+        internal_name = (request.form.get("internal_name_custom") or
+                        request.form.get("internal_name", "")).strip()
+        if internal_name:
+            with db.cursor() as cur:
+                cur.execute("""INSERT INTO ha_entity_map
+                    (internal_name, entity_id, unit, description)
+                    VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
+                    ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
+                    unit=VALUES(unit), description=VALUES(description)""",
+                    {"n": internal_name,
+                     "e": request.form.get("entity_id"),
+                     "u": request.form.get("unit", ""),
+                     "d": request.form.get("description", "")})
         return redirect(_url("entities") + "?saved=1")
 
-    return render_template("entities.html", entities=entity_rows,
+    # Build list of all known internal names with metadata
+    # Bouw lijst van alle bekende interne namen met metadata
+    required_sensors = [
+        {"internal_name": "battery_soc",           "unit": "%",    "description_nl": "Laadtoestand batterij (%)",         "description_en": "Battery state of charge (%)"},
+        {"internal_name": "battery_power",          "unit": "kW",   "description_nl": "Batterijvermogen (kW, + = laden)",  "description_en": "Battery power (kW, + = charge)"},
+        {"internal_name": "battery_temperature",    "unit": "°C",   "description_nl": "Temperatuur batterij (°C)",         "description_en": "Battery temperature (°C)"},
+        {"internal_name": "solar_power",            "unit": "kW",   "description_nl": "Zonproductie (kW)",                 "description_en": "Solar production (kW)"},
+        {"internal_name": "solar_energy_total",     "unit": "kWh",  "description_nl": "Totale zonopbrengst (kWh, teller)", "description_en": "Total solar energy (kWh, counter)"},
+        {"internal_name": "grid_import_power",      "unit": "kW",   "description_nl": "Netafname vermogen (kW)",           "description_en": "Grid import power (kW)"},
+        {"internal_name": "grid_export_power",      "unit": "kW",   "description_nl": "Teruglevering vermogen (kW)",       "description_en": "Grid export power (kW)"},
+        {"internal_name": "total_consumption_power","unit": "kW",   "description_nl": "Totaal huisverbruik (kW)",          "description_en": "Total home consumption (kW)"},
+        {"internal_name": "gas_consumption",        "unit": "m³/h", "description_nl": "Gasverbruik (m³/u)",               "description_en": "Gas consumption (m³/h)"},
+    ]
+
+    # Build entity map for quick lookup
+    # Bouw entiteitskaart voor snelle opzoekactie
+    entity_map = {e["internal_name"]: e for e in entity_rows}
+    required_sensor_names = [s["internal_name"] for s in required_sensors]
+
+    # Find known names not yet mapped (for dropdown)
+    # Vind bekende namen die nog niet gekoppeld zijn (voor dropdown)
+    unmapped_names = [
+        {"internal_name": s["internal_name"],
+         "unit": s["unit"],
+         "description": s["description_en"]}
+        for s in required_sensors
+        if s["internal_name"] not in entity_map
+    ]
+
+    return render_template("entities.html",
+                           entities=entity_rows,
+                           required_sensors=required_sensors,
+                           entity_map=entity_map,
+                           required_sensor_names=required_sensor_names,
+                           unmapped_names=unmapped_names,
                            saved=request.args.get("saved"))
 
 
