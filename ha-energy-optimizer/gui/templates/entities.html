@@ -70,7 +70,12 @@
 <div class="card">
   <h2>Custom entities / Aangepaste entiteiten</h2>
 
-  {% set custom_entities = entities | selectattr('internal_name', 'not in', required_sensor_names) | list %}
+  {% set custom_entities = [] %}
+  {% for e in entities %}
+    {% if e.internal_name not in required_sensor_names %}
+      {% set custom_entities = custom_entities + [e] %}
+    {% endif %}
+  {% endfor %}
   {% if custom_entities %}
   <table style="margin-bottom:20px;">
     <thead>
