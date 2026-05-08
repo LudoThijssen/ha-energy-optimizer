@@ -1,0 +1,162 @@
+[
+  {
+    "internal_name": "battery_soc",
+    "unit": "%",
+    "category": "battery",
+    "required": true,
+    "description_nl": "Laadtoestand batterij (%)",
+    "description_en": "Battery state of charge (%)"
+  },
+  {
+    "internal_name": "battery_power",
+    "unit": "kW",
+    "category": "battery",
+    "required": true,
+    "description_nl": "Batterijvermogen (kW, + = laden, - = ontladen)",
+    "description_en": "Battery power (kW, + = charge, - = discharge)"
+  },
+  {
+    "internal_name": "battery_temperature",
+    "unit": "°C",
+    "category": "battery",
+    "required": false,
+    "description_nl": "Temperatuur batterij (°C)",
+    "description_en": "Battery temperature (°C)"
+  },
+  {
+    "internal_name": "battery_voltage",
+    "unit": "V",
+    "category": "battery",
+    "required": false,
+    "description_nl": "Spanning batterij (V)",
+    "description_en": "Battery voltage (V)"
+  },
+  {
+    "internal_name": "solar_power",
+    "unit": "kW",
+    "category": "solar",
+    "required": true,
+    "description_nl": "Huidig zonnepaneel vermogen (kW)",
+    "description_en": "Current solar panel power (kW)"
+  },
+  {
+    "internal_name": "solar_energy_total",
+    "unit": "kWh",
+    "category": "solar",
+    "required": false,
+    "description_nl": "Totale zonopbrengst teller (kWh, oplopend)",
+    "description_en": "Total solar energy counter (kWh, increasing)"
+  },
+  {
+    "internal_name": "grid_import_power",
+    "unit": "kW",
+    "category": "grid",
+    "required": true,
+    "description_nl": "Netafname vermogen (kW)",
+    "description_en": "Grid import power (kW)"
+  },
+  {
+    "internal_name": "grid_export_power",
+    "unit": "kW",
+    "category": "grid",
+    "required": true,
+    "description_nl": "Teruglevering vermogen (kW)",
+    "description_en": "Grid export power (kW)"
+  },
+  {
+    "internal_name": "total_consumption_power",
+    "unit": "kW",
+    "category": "consumption",
+    "required": false,
+    "description_nl": "Totaal huisverbruik (kW) — wordt berekend als niet beschikbaar",
+    "description_en": "Total home consumption (kW) — calculated if not available"
+  },
+  {
+    "internal_name": "gas_consumption",
+    "unit": "m³/h",
+    "category": "gas",
+    "required": false,
+    "description_nl": "Gasverbruik (m³/u)",
+    "description_en": "Gas consumption (m³/h)"
+  },
+  {
+    "internal_name": "indoor_temperature",
+    "unit": "°C",
+    "category": "environment",
+    "required": false,
+    "description_nl": "Binnentemperatuur (°C)",
+    "description_en": "Indoor temperature (°C)"
+  },
+  {
+    "internal_name": "outdoor_temperature",
+    "unit": "°C",
+    "category": "environment",
+    "required": false,
+    "description_nl": "Buitentemperatuur (°C)",
+    "description_en": "Outdoor temperature (°C)"
+  },
+  {
+    "internal_name": "ev_charger_power",
+    "unit": "kW",
+    "category": "ev",
+    "required": false,
+    "description_nl": "Laadpaal vermogen (kW)",
+    "description_en": "EV charger power (kW)"
+  },
+  {
+    "internal_name": "ev_battery_soc",
+    "unit": "%",
+    "category": "ev",
+    "required": false,
+    "description_nl": "Laadtoestand auto batterij (%)",
+    "description_en": "EV battery state of charge (%)"
+  },
+  {
+    "internal_name": "heat_pump_power",
+    "unit": "kW",
+    "category": "heating",
+    "required": false,
+    "description_nl": "Warmtepomp vermogen (kW)",
+    "description_en": "Heat pump power (kW)"
+  },
+  {
+    "internal_name": "boiler_power",
+    "unit": "kW",
+    "category": "heating",
+    "required": false,
+    "description_nl": "Boiler vermogen (kW)",
+    "description_en": "Boiler power (kW)"
+  },
+  {
+    "internal_name": "district_heating_power",
+    "unit": "kW",
+    "category": "heating",
+    "required": false,
+    "description_nl": "Stadsverwarming vermogen (kW)",
+    "description_en": "District heating power (kW)"
+  },
+  {
+    "internal_name": "solar_forecast_today",
+    "unit": "kWh",
+    "category": "solar",
+    "required": false,
+    "description_nl": "Zonne-verwachting vandaag (kWh) — eigen HA sensor",
+    "description_en": "Solar forecast today (kWh) — custom HA sensor"
+  },
+  {
+    "internal_name": "solar_forecast_tomorrow",
+    "unit": "kWh",
+    "category": "solar",
+    "required": false,
+    "description_nl": "Zonne-verwachting morgen (kWh) — eigen HA sensor",
+    "description_en": "Solar forecast tomorrow (kWh) — custom HA sensor"
+  },
+  {
+    "internal_name": "energy_price_current",
+    "unit": "€/kWh",
+    "category": "price",
+    "required": false,
+    "description_nl": "Huidige energieprijs (€/kWh) — eigen HA sensor",
+    "description_en": "Current energy price (€/kWh) — custom HA sensor"
+  }
+]

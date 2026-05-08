@@ -1,5 +1,7 @@
 {% extends "base.html" %}
-<!-- entities.html — v0.2.10 -->
+<!-- gui/templates/entities.html -->
+<!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/entities.html -->
+<!-- v0.2.10 — 2026-05-07 -->
 {% block title %}HA Entities — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -12,72 +14,95 @@
 <div class="alert alert-success">&#10003; Saved / Opgeslagen</div>
 {% endif %}
 
-<!-- Required sensors / Benodigde sensoren -->
-<div class="card">
-  <h2>Required sensors / Benodigde sensoren</h2>
-  <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7;">
-    Map each internal name to the correct Home Assistant entity ID.<br>
-    Koppel elke interne naam aan het juiste Home Assistant entiteit-ID.<br>
-    You can leave sensors empty if the component is not installed.<br>
-    Laat sensoren leeg als het component niet aanwezig is.
-  </p>
-  <table>
-    <thead>
-      <tr>
-        <th>Internal name / Interne naam</th>
-        <th>Description</th>
-        <th>Entity ID</th>
-        <th>Unit</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for sensor in required_sensors %}
-      {% set existing = entity_map.get(sensor.internal_name) %}
-      <tr>
-        <td><code>{{ sensor.internal_name }}</code></td>
-        <td style="font-size:12px; color:#6b7280;">
-          {{ sensor.description_nl }}<br>
-          <span style="color:#94a3b8;">{{ sensor.description_en }}</span>
-        </td>
-        <td>
-          <form method="POST" style="display:flex; gap:8px; align-items:center;">
-            <input type="hidden" name="internal_name" value="{{ sensor.internal_name }}">
-            <input type="hidden" name="unit" value="{{ sensor.unit }}">
-            <input type="hidden" name="description" value="{{ sensor.description_en }}">
-            <input type="text" name="entity_id"
-                   value="{{ existing.entity_id if existing else '' }}"
-                   placeholder="sensor.example"
-                   style="min-width:220px;">
-            <button type="submit" class="btn btn-primary btn-sm">Save</button>
-          </form>
-        </td>
-        <td style="color:#6b7280; font-size:12px;">{{ sensor.unit }}</td>
-        <td>
-          {% if existing %}
-          <form method="POST" action="{{ nav_url('delete_entity', entity_id=existing.id) }}">
-            <button type="submit" class="btn btn-danger btn-sm" title="Remove">&#215;</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<!-- Collect unique categories from all sensors -->
+{% set categories = [] %}
+{% for s in all_sensors %}
+  {% if s.category not in categories %}
+    {% set categories = categories + [s.category] %}
+  {% endif %}
+{% endfor %}
 
-<!-- Custom entities / Aangepaste entiteiten -->
-<div class="card">
-  <h2>Custom entities / Aangepaste entiteiten</h2>
-
-  {% set custom_entities = [] %}
-  {% for e in entities %}
-    {% if e.internal_name not in required_sensor_names %}
-      {% set custom_entities = custom_entities + [e] %}
+<!-- Show one card per category, only if sensors are mapped -->
+{% for category in categories %}
+  {% set cat_sensors = all_sensors | selectattr('category', 'equalto', category) | list %}
+  {% set cat_mapped = [] %}
+  {% for s in cat_sensors %}
+    {% if s.internal_name in entity_map %}
+      {% set cat_mapped = cat_mapped + [s] %}
     {% endif %}
   {% endfor %}
-  {% if custom_entities %}
-  <table style="margin-bottom:20px;">
+  {% if cat_mapped %}
+  <div class="card">
+    <h2>
+      {% if category == 'battery' %}Battery / Batterij
+      {% elif category == 'solar' %}Solar / Zonne-energie
+      {% elif category == 'grid' %}Grid / Net
+      {% elif category == 'consumption' %}Consumption / Verbruik
+      {% elif category == 'gas' %}Gas
+      {% elif category == 'ev' %}EV / Elektrisch voertuig
+      {% elif category == 'heating' %}Heating / Verwarming
+      {% elif category == 'environment' %}Environment / Omgeving
+      {% elif category == 'price' %}Price / Prijs
+      {% else %}{{ category }}
+      {% endif %}
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:180px">Internal name</th>
+          <th>Description</th>
+          <th>Entity ID</th>
+          <th style="width:60px">Unit</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in cat_mapped %}
+        {% set mapped = entity_map[s.internal_name] %}
+        <tr>
+          <td><code style="font-size:12px">{{ s.internal_name }}</code></td>
+          <td style="font-size:12px; color:#6b7280;">
+            {{ s.description_nl }}<br>
+            <span style="color:#94a3b8; font-size:11px">{{ s.description_en }}</span>
+          </td>
+          <td>
+            <form method="POST" style="display:flex; gap:8px; align-items:center;">
+              <input type="hidden" name="internal_name_custom" value="{{ s.internal_name }}">
+              <input type="hidden" name="unit" value="{{ s.unit }}">
+              <input type="hidden" name="description" value="{{ s.description_en }}">
+              <input type="text" name="entity_id"
+                     value="{{ mapped.entity_id }}"
+                     placeholder="sensor.example"
+                     style="min-width:220px; font-size:13px;">
+              <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            </form>
+          </td>
+          <td style="color:#6b7280; font-size:12px;">{{ s.unit }}</td>
+          <td>
+            <form method="POST" action="{{ nav_url('delete_entity', entity_id=mapped.id) }}">
+              <button type="submit" class="btn btn-danger btn-sm" title="Remove">&#215;</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+{% endfor %}
+
+<!-- Custom entities not in JSON -->
+{% set all_known_names = all_sensors | map(attribute='internal_name') | list %}
+{% set extra_entities = [] %}
+{% for e in entities %}
+  {% if e.internal_name not in all_known_names %}
+    {% set extra_entities = extra_entities + [e] %}
+  {% endif %}
+{% endfor %}
+{% if extra_entities %}
+<div class="card">
+  <h2>Other / Overig</h2>
+  <table>
     <thead>
       <tr>
         <th>Internal name</th>
@@ -88,9 +113,9 @@
       </tr>
     </thead>
     <tbody>
-      {% for e in custom_entities %}
+      {% for e in extra_entities %}
       <tr>
-        <td><code>{{ e.internal_name }}</code></td>
+        <td><code style="font-size:12px">{{ e.internal_name }}</code></td>
         <td style="font-size:13px;">{{ e.entity_id }}</td>
         <td style="color:#6b7280; font-size:12px;">{{ e.unit }}</td>
         <td style="color:#6b7280; font-size:12px;">{{ e.description }}</td>
@@ -103,32 +128,40 @@
       {% endfor %}
     </tbody>
   </table>
-  {% endif %}
+</div>
+{% endif %}
 
-  <h3 style="font-size:14px; font-weight:600; margin-bottom:14px; color:#374151;">
-    Add custom entity / Aangepaste entiteit toevoegen
-  </h3>
+<!-- Add entity -->
+<div class="card">
+  <h2>Add entity / Entiteit toevoegen</h2>
+  <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7;">
+    Select a known internal name from the dropdown, or type a custom name.<br>
+    Selecteer een bekende interne naam uit de dropdown, of typ een eigen naam.
+  </p>
   <form method="POST">
     <div class="field-row">
       <div class="field">
         <label>Internal name / Interne naam</label>
         {% if unmapped_names %}
-        <select name="internal_name" id="internal-name-select" onchange="updateFromSelect()">
-          <option value="">— custom name —</option>
-          {% for name in unmapped_names %}
-          <option value="{{ name.internal_name }}">{{ name.internal_name }} — {{ name.description }}</option>
+        <select id="sensor-select" onchange="fillFromSelect()" style="margin-bottom:6px;">
+          <option value="">— select / kies —</option>
+          {% for s in unmapped_names %}
+          <option value="{{ s.internal_name }}"
+                  data-unit="{{ s.unit }}"
+                  data-desc="{{ s.description_en }}"
+                  data-category="{{ s.category }}">
+            [{{ s.category }}] {{ s.internal_name }} — {{ s.description_nl }}
+          </option>
           {% endfor %}
         </select>
-        <div class="hint" style="margin-top:6px;">
-          Or type a custom name below / Of typ hieronder een eigen naam
-        </div>
         {% endif %}
-        <input type="text" name="internal_name_custom" id="internal-name-custom"
-               placeholder="my_custom_sensor" style="margin-top:6px;">
+        <input type="text" name="internal_name_custom" id="custom-name"
+               placeholder="or type custom name / of typ eigen naam">
       </div>
       <div class="field">
         <label>Entity ID</label>
-        <input type="text" name="entity_id" placeholder="sensor.my_custom_sensor">
+        <input type="text" name="entity_id" id="entity-id"
+               placeholder="sensor.my_sensor">
       </div>
       <div class="field" style="max-width:100px">
         <label>Unit</label>
@@ -137,7 +170,7 @@
     </div>
     <div class="field">
       <label>Description / Omschrijving</label>
-      <input type="text" name="description" id="description-field"
+      <input type="text" name="description" id="desc-field"
              placeholder="What does this sensor measure?">
     </div>
     <div class="btn-row">
@@ -147,26 +180,13 @@
 </div>
 
 <script>
-// Known units and descriptions for predefined internal names
-const knownSensors = {
-  {% for name in unmapped_names %}
-  "{{ name.internal_name }}": {"unit": "{{ name.unit }}", "description": "{{ name.description }}"},
-  {% endfor %}
-};
-
-function updateFromSelect() {
-  const select = document.getElementById('internal-name-select');
-  const customInput = document.getElementById('internal-name-custom');
-  const unitField = document.getElementById('unit-field');
-  const descField = document.getElementById('description-field');
-  const val = select.value;
-  if (val && knownSensors[val]) {
-    customInput.value = val;
-    unitField.value = knownSensors[val].unit;
-    descField.value = knownSensors[val].description;
-  } else {
-    customInput.value = '';
-  }
+function fillFromSelect() {
+  const sel = document.getElementById('sensor-select');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return;
+  document.getElementById('custom-name').value = opt.value;
+  document.getElementById('unit-field').value = opt.dataset.unit || '';
+  document.getElementById('desc-field').value = opt.dataset.desc || '';
 }
 </script>
 

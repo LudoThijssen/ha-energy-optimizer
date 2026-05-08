@@ -71,58 +71,113 @@ def inject_globals():
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
-@app.route("/")
-def index():
-    options = _load_options()
+@app.route("/entities", methods=["GET", "POST"])
+def entities():
+    # gui/app.py — entities route — v0.2.10
     db = _get_db()
-
-    inverter_ok = False
-    provider_ok = False
-    config_ok   = False
-    entity_count = 0
-    last_schedule = []
-
+    entity_rows = []
     if db:
-        try:
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM ha_entity_map ORDER BY internal_name")
+            entity_rows = cur.fetchall()
+
+    if request.method == "POST" and db:
+        # Use dropdown selection or custom name
+        # Gebruik dropdown selectie of eigen naam
+        internal_name = (request.form.get("internal_name_custom") or
+                        request.form.get("internal_name", "")).strip()
+        if internal_name:
             with db.cursor() as cur:
-                cur.execute("SELECT COUNT(*) AS c FROM inverter_info")
-                inverter_ok = cur.fetchone()["c"] > 0
+                cur.execute("""INSERT INTO ha_entity_map
+                    (internal_name, entity_id, unit, description)
+                    VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
+                    ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
+                    unit=VALUES(unit), description=VALUES(description)""",
+                    {"n": internal_name,
+                     "e": request.form.get("entity_id"),
+                     "u": request.form.get("unit", ""),
+                     "d": request.form.get("description", "")})
+        return redirect(_url("entities") + "?saved=1")
 
-                cur.execute("SELECT COUNT(*) AS c FROM provider_config WHERE is_active=1")
-                provider_ok = cur.fetchone()["c"] > 0
+    # Load known sensors from JSON
+    # Laad bekende sensoren uit JSON
+    import json as _json
+    sensors_file = Path(__file__).parent.parent / "config" / "internal_sensors.json"
+    try:
+        with open(sensors_file) as f:
+            all_sensors = _json.load(f)
+    except Exception:
+        all_sensors = []
 
-                cur.execute("SELECT COUNT(*) AS c FROM system_config")
-                config_ok = cur.fetchone()["c"] > 0
+    # Build entity map for quick lookup
+    # Bouw entiteitskaart voor snelle opzoekactie
+    entity_map = {e["internal_name"]: e for e in entity_rows}
 
-                cur.execute("SELECT COUNT(*) AS c FROM ha_entity_map")
-                entity_count = cur.fetchone()["c"]
+    # Find unmapped sensors for dropdown
+    # Vind niet-gekoppelde sensoren voor dropdown
+    unmapped_names = [
+        s for s in all_sensors
+        if s["internal_name"] not in entity_map
+    ]
 
-                cur.execute("""
-                    SELECT schedule_for, action, target_power_kw,
-                           expected_saving, reason
-                    FROM optimizer_schedule
-                    WHERE DATE(schedule_for) = (
-                        SELECT DATE(schedule_for)
-                        FROM optimizer_schedule
-                        ORDER BY schedule_for DESC
-                        LIMIT 1
-                    )
-                    GROUP BY schedule_for
-                    ORDER BY schedule_for
-                    LIMIT 24
-                """)
-                last_schedule = cur.fetchall()
-        except Exception:
-            pass
+    return render_template("entities.html",
+                           entities=entity_rows,
+                           all_sensors=all_sensors,
+                           entity_map=entity_map,
+                           unmapped_names=unmapped_names,
+                           saved=request.args.get("saved"))
+#@app.route("/")
+#def index():
+#    options = _load_options()
+#    db = _get_db()
 
-    return render_template("index.html",
-        options=options,
-        inverter_ok=inverter_ok,
-        provider_ok=provider_ok,
-        config_ok=config_ok,
-        entity_count=entity_count,
-        last_schedule=last_schedule,
-    )
+#    inverter_ok = False
+#    provider_ok = False
+#    config_ok   = False
+#    entity_count = 0
+#    last_schedule = []
+
+#    if db:
+#        try:
+#            with db.cursor() as cur:
+#                cur.execute("SELECT COUNT(*) AS c FROM inverter_info")
+#                inverter_ok = cur.fetchone()["c"] > 0
+
+#                cur.execute("SELECT COUNT(*) AS c FROM provider_config WHERE is_active=1")
+#                provider_ok = cur.fetchone()["c"] > 0
+
+#                cur.execute("SELECT COUNT(*) AS c FROM system_config")
+#                config_ok = cur.fetchone()["c"] > 0
+
+#                cur.execute("SELECT COUNT(*) AS c FROM ha_entity_map")
+#                entity_count = cur.fetchone()["c"]
+#                cur.execute("""
+
+#                    SELECT schedule_for, action, target_power_kw,
+#                           expected_saving, reason
+#                    FROM optimizer_schedule
+#                    WHERE DATE(schedule_for) = (
+#                        SELECT DATE(schedule_for)
+#                        FROM optimizer_schedule
+#                        ORDER BY schedule_for DESC
+#                        LIMIT 1
+#                    )
+#                    GROUP BY schedule_for
+#                    ORDER BY schedule_for
+#                    LIMIT 24
+#                """)
+#                last_schedule = cur.fetchall()
+#        except Exception:
+#            pass
+
+#    return render_template("index.html",
+#        options=options,
+#        inverter_ok=inverter_ok,
+#        provider_ok=provider_ok,
+#        config_ok=config_ok,
+#        entity_count=entity_count,
+#        last_schedule=last_schedule,
+#    )
 
 
 # ── Action routes / Actie-routes ─────────────────────────────────────────────
