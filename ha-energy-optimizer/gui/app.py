@@ -569,21 +569,40 @@ def entities():
             entity_rows = cur.fetchall()
 
     if request.method == "POST" and db:
-        # Use dropdown selection or custom name
-        # Gebruik dropdown selectie of eigen naam
-        internal_name = (request.form.get("internal_name_custom") or
-                        request.form.get("internal_name", "")).strip()
-        if internal_name:
-            with db.cursor() as cur:
-                cur.execute("""INSERT INTO ha_entity_map
-                    (internal_name, entity_id, unit, description)
-                    VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
-                    ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
-                    unit=VALUES(unit), description=VALUES(description)""",
-                    {"n": internal_name,
-                     "e": request.form.get("entity_id"),
-                     "u": request.form.get("unit", ""),
-                     "d": request.form.get("description", "")})
+        action = request.form.get("action", "add")
+
+        if action == "update":
+            # Update existing entity mapping / Bestaande koppeling bijwerken
+            internal_name = request.form.get("internal_name_custom", "").strip()
+            entity_id = request.form.get("entity_id", "").strip()
+            unit = request.form.get("unit", "")
+            description = request.form.get("description", "")
+            if internal_name and entity_id:
+                with db.cursor() as cur:
+                    cur.execute("""INSERT INTO ha_entity_map
+                        (internal_name, entity_id, unit, description)
+                        VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
+                        ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
+                        unit=VALUES(unit), description=VALUES(description)""",
+                        {"n": internal_name, "e": entity_id,
+                         "u": unit, "d": description})
+
+        else:
+            # Add new entity mapping / Nieuwe koppeling toevoegen
+            internal_name = (request.form.get("internal_name_custom") or
+                            request.form.get("internal_name", "")).strip()
+            if internal_name:
+                with db.cursor() as cur:
+                    cur.execute("""INSERT INTO ha_entity_map
+                        (internal_name, entity_id, unit, description)
+                        VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
+                        ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
+                        unit=VALUES(unit), description=VALUES(description)""",
+                        {"n": internal_name,
+                         "e": request.form.get("entity_id"),
+                         "u": request.form.get("unit", ""),
+                         "d": request.form.get("description", "")})
+
         return redirect(_url("entities") + "?saved=1")
 
     # Load known sensors from JSON
@@ -596,9 +615,9 @@ def entities():
     except Exception:
         all_sensors = []
 
-    # Build entity map for quick lookup
-    # Bouw entiteitskaart voor snelle opzoekactie
-    entity_map = {e["internal_name"]: e for e in entity_rows}
+    # Build lookup maps / Bouw opzoektabellen
+    entity_map  = {e["internal_name"]: e for e in entity_rows}
+    sensor_map  = {s["internal_name"]: s for s in all_sensors}
 
     # Find unmapped sensors for dropdown
     # Vind niet-gekoppelde sensoren voor dropdown
@@ -611,6 +630,7 @@ def entities():
                            entities=entity_rows,
                            all_sensors=all_sensors,
                            entity_map=entity_map,
+                           sensor_map=sensor_map,
                            unmapped_names=unmapped_names,
                            saved=request.args.get("saved"))
 

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 <!-- gui/templates/entities.html -->
 <!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/entities.html -->
-<!-- v0.2.10 — 2026-05-07 -->
+<!-- v0.2.10 — 2026-05-09 -->
 {% block title %}HA Entities — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -14,124 +14,7 @@
 <div class="alert alert-success">&#10003; Saved / Opgeslagen</div>
 {% endif %}
 
-<!-- Collect unique categories from all sensors -->
-{% set categories = [] %}
-{% for s in all_sensors %}
-  {% if s.category not in categories %}
-    {% set categories = categories + [s.category] %}
-  {% endif %}
-{% endfor %}
-
-<!-- Show one card per category, only if sensors are mapped -->
-{% for category in categories %}
-  {% set cat_sensors = all_sensors | selectattr('category', 'equalto', category) | list %}
-  {% set cat_mapped = [] %}
-  {% for s in cat_sensors %}
-    {% if s.internal_name in entity_map %}
-      {% set cat_mapped = cat_mapped + [s] %}
-    {% endif %}
-  {% endfor %}
-  {% if cat_mapped %}
-  <div class="card">
-    <h2>
-      {% if category == 'battery' %}Battery / Batterij
-      {% elif category == 'solar' %}Solar / Zonne-energie
-      {% elif category == 'grid' %}Grid / Net
-      {% elif category == 'consumption' %}Consumption / Verbruik
-      {% elif category == 'gas' %}Gas
-      {% elif category == 'ev' %}EV / Elektrisch voertuig
-      {% elif category == 'heating' %}Heating / Verwarming
-      {% elif category == 'environment' %}Environment / Omgeving
-      {% elif category == 'price' %}Price / Prijs
-      {% else %}{{ category }}
-      {% endif %}
-    </h2>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:180px">Internal name</th>
-          <th>Description</th>
-          <th>Entity ID</th>
-          <th style="width:60px">Unit</th>
-          <th style="width:80px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in cat_mapped %}
-        {% set mapped = entity_map[s.internal_name] %}
-        <tr>
-          <td><code style="font-size:12px">{{ s.internal_name }}</code></td>
-          <td style="font-size:12px; color:#6b7280;">
-            {{ s.description_nl }}<br>
-            <span style="color:#94a3b8; font-size:11px">{{ s.description_en }}</span>
-          </td>
-          <td>
-            <form method="POST" style="display:flex; gap:8px; align-items:center;">
-              <input type="hidden" name="internal_name_custom" value="{{ s.internal_name }}">
-              <input type="hidden" name="unit" value="{{ s.unit }}">
-              <input type="hidden" name="description" value="{{ s.description_en }}">
-              <input type="text" name="entity_id"
-                     value="{{ mapped.entity_id }}"
-                     placeholder="sensor.example"
-                     style="min-width:220px; font-size:13px;">
-              <button type="submit" class="btn btn-primary btn-sm">Save</button>
-            </form>
-          </td>
-          <td style="color:#6b7280; font-size:12px;">{{ s.unit }}</td>
-          <td>
-            <form method="POST" action="{{ nav_url('delete_entity', entity_id=mapped.id) }}">
-              <button type="submit" class="btn btn-danger btn-sm" title="Remove">&#215;</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
-{% endfor %}
-
-<!-- Custom entities not in JSON -->
-{% set all_known_names = all_sensors | map(attribute='internal_name') | list %}
-{% set extra_entities = [] %}
-{% for e in entities %}
-  {% if e.internal_name not in all_known_names %}
-    {% set extra_entities = extra_entities + [e] %}
-  {% endif %}
-{% endfor %}
-{% if extra_entities %}
-<div class="card">
-  <h2>Other / Overig</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Internal name</th>
-        <th>Entity ID</th>
-        <th>Unit</th>
-        <th>Description</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for e in extra_entities %}
-      <tr>
-        <td><code style="font-size:12px">{{ e.internal_name }}</code></td>
-        <td style="font-size:13px;">{{ e.entity_id }}</td>
-        <td style="color:#6b7280; font-size:12px;">{{ e.unit }}</td>
-        <td style="color:#6b7280; font-size:12px;">{{ e.description }}</td>
-        <td>
-          <form method="POST" action="{{ nav_url('delete_entity', entity_id=e.id) }}">
-            <button type="submit" class="btn btn-danger btn-sm">&#215;</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
-
-<!-- Add entity -->
+<!-- Add entity / Entiteit toevoegen -->
 <div class="card">
   <h2>Add entity / Entiteit toevoegen</h2>
   <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7;">
@@ -139,6 +22,7 @@
     Selecteer een bekende interne naam uit de dropdown, of typ een eigen naam.
   </p>
   <form method="POST">
+    <input type="hidden" name="action" value="add">
     <div class="field-row">
       <div class="field">
         <label>Internal name / Interne naam</label>
@@ -154,6 +38,8 @@
           </option>
           {% endfor %}
         </select>
+        {% else %}
+        <p style="font-size:13px; color:#16a34a; margin-bottom:6px;">&#10003; All known sensors are mapped / Alle bekende sensoren zijn gekoppeld</p>
         {% endif %}
         <input type="text" name="internal_name_custom" id="custom-name"
                placeholder="or type custom name / of typ eigen naam">
@@ -178,6 +64,77 @@
     </div>
   </form>
 </div>
+
+<!-- Mapped entities / Gekoppelde entiteiten -->
+{% if entities %}
+<div class="card">
+  <h2>Mapped entities / Gekoppelde entiteiten</h2>
+  <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">
+    Edit the Entity ID and save, or remove the mapping.<br>
+    Pas het Entiteit-ID aan en sla op, of verwijder de koppeling.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:180px">Internal name</th>
+        <th style="width:200px">Description</th>
+        <th>Entity ID</th>
+        <th style="width:60px">Unit</th>
+        <th style="width:120px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entities %}
+      {% set sensor_info = sensor_map.get(e.internal_name) %}
+      <tr>
+        <td>
+          <code style="font-size:12px">{{ e.internal_name }}</code>
+          {% if sensor_info and sensor_info.required %}
+          <span style="font-size:10px; color:#3b82f6; margin-left:4px;">required</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:#6b7280;">
+          {% if sensor_info %}
+            {{ sensor_info.description_nl }}
+          {% else %}
+            {{ e.description or '—' }}
+          {% endif %}
+        </td>
+        <td>
+          <form method="POST" style="display:flex; gap:8px; align-items:center;">
+            <input type="hidden" name="action" value="update">
+            <input type="hidden" name="entity_db_id" value="{{ e.id }}">
+            <input type="hidden" name="internal_name_custom" value="{{ e.internal_name }}">
+            <input type="hidden" name="unit" value="{{ e.unit or (sensor_info.unit if sensor_info else '') }}">
+            <input type="hidden" name="description" value="{{ e.description or (sensor_info.description_en if sensor_info else '') }}">
+            <input type="text" name="entity_id"
+                   value="{{ e.entity_id }}"
+                   style="min-width:200px; font-size:13px;">
+            <button type="submit" class="btn btn-primary btn-sm">Save / Opslaan</button>
+          </form>
+        </td>
+        <td style="color:#6b7280; font-size:12px;">
+          {{ e.unit or (sensor_info.unit if sensor_info else '—') }}
+        </td>
+        <td>
+          <form method="POST" action="{{ nav_url('delete_entity', entity_id=e.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm"
+                    onclick="return confirm('Remove mapping for {{ e.internal_name }}?')"
+                    title="Remove / Verwijder">
+              &#215; Remove
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card">
+  <p style="color:#6b7280; font-size:13px;">No entities mapped yet. Add one above. / Nog geen entiteiten gekoppeld. Voeg er hierboven een toe.</p>
+</div>
+{% endif %}
 
 <script>
 function fillFromSelect() {
