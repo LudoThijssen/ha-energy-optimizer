@@ -71,6 +71,59 @@ def inject_globals():
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
+@app.route("/")
+def index():
+    options = _load_options()
+    db = _get_db()
+
+    inverter_ok  = False
+    provider_ok  = False
+    config_ok    = False
+    entity_count = 0
+    last_schedule = []
+
+    if db:
+        try:
+            with db.cursor() as cur:
+                cur.execute("SELECT COUNT(*) AS c FROM inverter_info")
+                inverter_ok = cur.fetchone()["c"] > 0
+
+                cur.execute("SELECT COUNT(*) AS c FROM provider_config WHERE is_active=1")
+                provider_ok = cur.fetchone()["c"] > 0
+
+                cur.execute("SELECT COUNT(*) AS c FROM system_config")
+                config_ok = cur.fetchone()["c"] > 0
+
+                cur.execute("SELECT COUNT(*) AS c FROM ha_entity_map")
+                entity_count = cur.fetchone()["c"]
+
+                cur.execute("""
+                    SELECT schedule_for, action, target_power_kw,
+                           expected_saving, reason
+                    FROM optimizer_schedule
+                    WHERE DATE(schedule_for) = (
+                        SELECT DATE(schedule_for)
+                        FROM optimizer_schedule
+                        ORDER BY schedule_for DESC
+                        LIMIT 1
+                    )
+                    GROUP BY schedule_for
+                    ORDER BY schedule_for
+                    LIMIT 24
+                """)
+                last_schedule = cur.fetchall()
+        except Exception:
+            pass
+
+    return render_template("index.html",
+        options=options,
+        inverter_ok=inverter_ok,
+        provider_ok=provider_ok,
+        config_ok=config_ok,
+        entity_count=entity_count,
+        last_schedule=last_schedule,
+    )
+
 
 # ── Action routes / Actie-routes ─────────────────────────────────────────────
 
