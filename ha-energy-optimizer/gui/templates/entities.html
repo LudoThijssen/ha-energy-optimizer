@@ -14,7 +14,7 @@
 <div class="alert alert-success">&#10003; Saved / Opgeslagen</div>
 {% endif %}
 
-<!-- Add entity / Entiteit toevoegen -->
+<!-- Add entity -->
 <div class="card">
   <h2>Add entity / Entiteit toevoegen</h2>
   <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7;">
@@ -39,15 +39,24 @@
           {% endfor %}
         </select>
         {% else %}
-        <p style="font-size:13px; color:#16a34a; margin-bottom:6px;">&#10003; All known sensors are mapped / Alle bekende sensoren zijn gekoppeld</p>
+        <p style="font-size:13px; color:#16a34a; margin-bottom:6px;">
+          &#10003; All relevant sensors are mapped / Alle relevante sensoren zijn gekoppeld
+        </p>
         {% endif %}
         <input type="text" name="internal_name_custom" id="custom-name"
                placeholder="or type custom name / of typ eigen naam">
       </div>
       <div class="field">
         <label>Entity ID</label>
-        <input type="text" name="entity_id" id="entity-id"
-               placeholder="sensor.my_sensor">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" name="entity_id" id="add-entity-id"
+                 placeholder="sensor.my_sensor" oninput="clearValidation('add')">
+          <button type="button" class="btn btn-secondary btn-sm"
+                  onclick="validateEntity('add-entity-id', 'add-validation')">
+            Test
+          </button>
+        </div>
+        <div id="add-validation" style="font-size:12px; margin-top:4px;"></div>
       </div>
       <div class="field" style="max-width:100px">
         <label>Unit</label>
@@ -65,58 +74,59 @@
   </form>
 </div>
 
-<!-- Mapped entities / Gekoppelde entiteiten -->
+<!-- Mapped entities -->
 {% if entities %}
 <div class="card">
   <h2>Mapped entities / Gekoppelde entiteiten</h2>
-  <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">
-    Edit the Entity ID and save, or remove the mapping.<br>
-    Pas het Entiteit-ID aan en sla op, of verwijder de koppeling.
-  </p>
   <table>
     <thead>
       <tr>
         <th style="width:180px">Internal name</th>
-        <th style="width:200px">Description</th>
+        <th style="width:180px">Description</th>
         <th>Entity ID</th>
-        <th style="width:60px">Unit</th>
-        <th style="width:120px"></th>
+        <th style="width:55px">Unit</th>
+        <th style="width:130px"></th>
       </tr>
     </thead>
     <tbody>
       {% for e in entities %}
       {% set sensor_info = sensor_map.get(e.internal_name) %}
+      {% set is_required = sensor_info and sensor_info.required %}
       <tr>
         <td>
           <code style="font-size:12px">{{ e.internal_name }}</code>
-          {% if sensor_info and sensor_info.required %}
-          <span style="font-size:10px; color:#3b82f6; margin-left:4px;">required</span>
+          {% if is_required %}
+          <span style="font-size:10px; color:#3b82f6; display:block; margin-top:2px;">required</span>
           {% endif %}
         </td>
         <td style="font-size:12px; color:#6b7280;">
-          {% if sensor_info %}
-            {{ sensor_info.description_nl }}
-          {% else %}
-            {{ e.description or '—' }}
-          {% endif %}
+          {% if sensor_info %}{{ sensor_info.description_nl }}
+          {% else %}{{ e.description or '—' }}{% endif %}
         </td>
         <td>
-          <form method="POST" style="display:flex; gap:8px; align-items:center;">
+          <form method="POST" style="display:flex; gap:6px; align-items:center;"
+                id="form-{{ e.id }}">
             <input type="hidden" name="action" value="update">
-            <input type="hidden" name="entity_db_id" value="{{ e.id }}">
             <input type="hidden" name="internal_name_custom" value="{{ e.internal_name }}">
             <input type="hidden" name="unit" value="{{ e.unit or (sensor_info.unit if sensor_info else '') }}">
             <input type="hidden" name="description" value="{{ e.description or (sensor_info.description_en if sensor_info else '') }}">
-            <input type="text" name="entity_id"
+            <input type="text" name="entity_id" id="eid-{{ e.id }}"
                    value="{{ e.entity_id }}"
-                   style="min-width:200px; font-size:13px;">
-            <button type="submit" class="btn btn-primary btn-sm">Save / Opslaan</button>
+                   style="min-width:190px; font-size:13px;"
+                   oninput="clearValidation('val-{{ e.id }}')">
+            <button type="button" class="btn btn-secondary btn-sm"
+                    onclick="validateEntity('eid-{{ e.id }}', 'val-{{ e.id }}')">
+              Test
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
           </form>
+          <div id="val-{{ e.id }}" style="font-size:12px; margin-top:3px;"></div>
         </td>
         <td style="color:#6b7280; font-size:12px;">
           {{ e.unit or (sensor_info.unit if sensor_info else '—') }}
         </td>
         <td>
+          {% if not is_required %}
           <form method="POST" action="{{ nav_url('delete_entity', entity_id=e.id) }}">
             <button type="submit" class="btn btn-danger btn-sm"
                     onclick="return confirm('Remove mapping for {{ e.internal_name }}?')"
@@ -124,6 +134,9 @@
               &#215; Remove
             </button>
           </form>
+          {% else %}
+          <span style="font-size:11px; color:#94a3b8;">required — cannot remove</span>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -132,11 +145,48 @@
 </div>
 {% else %}
 <div class="card">
-  <p style="color:#6b7280; font-size:13px;">No entities mapped yet. Add one above. / Nog geen entiteiten gekoppeld. Voeg er hierboven een toe.</p>
+  <p style="color:#6b7280; font-size:13px;">
+    No entities mapped yet. Add one above.<br>
+    Nog geen entiteiten gekoppeld. Voeg er hierboven een toe.
+  </p>
 </div>
 {% endif %}
 
 <script>
+const BASE_URL = "{{ ingress_path }}";
+
+async function validateEntity(inputId, resultId) {
+  const input = document.getElementById(inputId);
+  const result = document.getElementById(resultId);
+  if (!input || !result) return;
+  const entity_id = input.value.trim();
+  if (!entity_id) {
+    result.textContent = 'Enter an entity ID first / Vul eerst een entiteit-ID in';
+    result.style.color = '#6b7280';
+    return;
+  }
+  result.textContent = 'Checking... / Controleren...';
+  result.style.color = '#6b7280';
+  try {
+    const resp = await fetch(BASE_URL + '/entities/validate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({entity_id}),
+    });
+    const data = await resp.json();
+    result.textContent = data.message;
+    result.style.color = data.ok ? '#16a34a' : '#dc2626';
+  } catch(e) {
+    result.textContent = '✗ Request failed: ' + e.message;
+    result.style.color = '#dc2626';
+  }
+}
+
+function clearValidation(resultId) {
+  const el = document.getElementById(resultId);
+  if (el) { el.textContent = ''; }
+}
+
 function fillFromSelect() {
   const sel = document.getElementById('sensor-select');
   const opt = sel.options[sel.selectedIndex];
@@ -144,6 +194,7 @@ function fillFromSelect() {
   document.getElementById('custom-name').value = opt.value;
   document.getElementById('unit-field').value = opt.dataset.unit || '';
   document.getElementById('desc-field').value = opt.dataset.desc || '';
+  clearValidation('add-validation');
 }
 </script>
 

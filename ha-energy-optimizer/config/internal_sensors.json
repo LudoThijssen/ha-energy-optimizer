@@ -4,6 +4,7 @@
     "unit": "%",
     "category": "battery",
     "required": true,
+    "requires_component": "has_battery",
     "description_nl": "Laadtoestand batterij (%)",
     "description_en": "Battery state of charge (%)"
   },
@@ -12,6 +13,7 @@
     "unit": "kW",
     "category": "battery",
     "required": true,
+    "requires_component": "has_battery",
     "description_nl": "Batterijvermogen (kW, + = laden, - = ontladen)",
     "description_en": "Battery power (kW, + = charge, - = discharge)"
   },
@@ -20,6 +22,7 @@
     "unit": "°C",
     "category": "battery",
     "required": false,
+    "requires_component": "has_battery",
     "description_nl": "Temperatuur batterij (°C)",
     "description_en": "Battery temperature (°C)"
   },
@@ -28,6 +31,7 @@
     "unit": "V",
     "category": "battery",
     "required": false,
+    "requires_component": "has_battery",
     "description_nl": "Spanning batterij (V)",
     "description_en": "Battery voltage (V)"
   },
@@ -36,6 +40,7 @@
     "unit": "kW",
     "category": "solar",
     "required": true,
+    "requires_component": "has_solar_panels",
     "description_nl": "Huidig zonnepaneel vermogen (kW)",
     "description_en": "Current solar panel power (kW)"
   },
@@ -44,6 +49,7 @@
     "unit": "kWh",
     "category": "solar",
     "required": false,
+    "requires_component": "has_solar_panels",
     "description_nl": "Totale zonopbrengst teller (kWh, oplopend)",
     "description_en": "Total solar energy counter (kWh, increasing)"
   },
@@ -52,6 +58,7 @@
     "unit": "kW",
     "category": "grid",
     "required": true,
+    "requires_component": "has_grid_connection",
     "description_nl": "Netafname vermogen (kW)",
     "description_en": "Grid import power (kW)"
   },
@@ -60,6 +67,7 @@
     "unit": "kW",
     "category": "grid",
     "required": true,
+    "requires_component": "has_grid_connection",
     "description_nl": "Teruglevering vermogen (kW)",
     "description_en": "Grid export power (kW)"
   },
@@ -68,22 +76,25 @@
     "unit": "kW",
     "category": "consumption",
     "required": false,
+    "requires_component": null,
     "description_nl": "Totaal huisverbruik (kW) — wordt berekend als niet beschikbaar",
     "description_en": "Total home consumption (kW) — calculated if not available"
   },
   {
     "internal_name": "gas_consumption",
-    "unit": "m³/h",
+    "unit": "m3/h",
     "category": "gas",
-    "required": false,
-    "description_nl": "Gasverbruik (m³/u)",
-    "description_en": "Gas consumption (m³/h)"
+    "required": true,
+    "requires_component": "has_gas",
+    "description_nl": "Gasverbruik (m3/u)",
+    "description_en": "Gas consumption (m3/h)"
   },
   {
     "internal_name": "indoor_temperature",
     "unit": "°C",
     "category": "environment",
     "required": false,
+    "requires_component": null,
     "description_nl": "Binnentemperatuur (°C)",
     "description_en": "Indoor temperature (°C)"
   },
@@ -92,6 +103,7 @@
     "unit": "°C",
     "category": "environment",
     "required": false,
+    "requires_component": null,
     "description_nl": "Buitentemperatuur (°C)",
     "description_en": "Outdoor temperature (°C)"
   },
@@ -100,6 +112,7 @@
     "unit": "kW",
     "category": "ev",
     "required": false,
+    "requires_component": null,
     "description_nl": "Laadpaal vermogen (kW)",
     "description_en": "EV charger power (kW)"
   },
@@ -108,6 +121,7 @@
     "unit": "%",
     "category": "ev",
     "required": false,
+    "requires_component": null,
     "description_nl": "Laadtoestand auto batterij (%)",
     "description_en": "EV battery state of charge (%)"
   },
@@ -116,6 +130,7 @@
     "unit": "kW",
     "category": "heating",
     "required": false,
+    "requires_component": "has_district_heating",
     "description_nl": "Warmtepomp vermogen (kW)",
     "description_en": "Heat pump power (kW)"
   },
@@ -124,6 +139,7 @@
     "unit": "kW",
     "category": "heating",
     "required": false,
+    "requires_component": null,
     "description_nl": "Boiler vermogen (kW)",
     "description_en": "Boiler power (kW)"
   },
@@ -132,6 +148,7 @@
     "unit": "kW",
     "category": "heating",
     "required": false,
+    "requires_component": "has_district_heating",
     "description_nl": "Stadsverwarming vermogen (kW)",
     "description_en": "District heating power (kW)"
   },
@@ -140,6 +157,7 @@
     "unit": "kWh",
     "category": "solar",
     "required": false,
+    "requires_component": "has_solar_panels",
     "description_nl": "Zonne-verwachting vandaag (kWh) — eigen HA sensor",
     "description_en": "Solar forecast today (kWh) — custom HA sensor"
   },
@@ -148,6 +166,7 @@
     "unit": "kWh",
     "category": "solar",
     "required": false,
+    "requires_component": "has_solar_panels",
     "description_nl": "Zonne-verwachting morgen (kWh) — eigen HA sensor",
     "description_en": "Solar forecast tomorrow (kWh) — custom HA sensor"
   },
@@ -156,6 +175,7 @@
     "unit": "€/kWh",
     "category": "price",
     "required": false,
+    "requires_component": null,
     "description_nl": "Huidige energieprijs (€/kWh) — eigen HA sensor",
     "description_en": "Current energy price (€/kWh) — custom HA sensor"
   }

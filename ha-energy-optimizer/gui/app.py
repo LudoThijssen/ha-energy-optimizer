@@ -615,27 +615,95 @@ def entities():
     except Exception:
         all_sensors = []
 
-    # Build lookup maps / Bouw opzoektabellen
-    entity_map  = {e["internal_name"]: e for e in entity_rows}
-    sensor_map  = {s["internal_name"]: s for s in all_sensors}
+    # Load installed components from system_config
+    # Laad geïnstalleerde componenten uit system_config
+    installed = {
+        "has_grid_connection": True,
+        "has_solar_panels":    False,
+        "has_battery":         False,
+        "has_gas":             False,
+        "has_district_heating":False,
+    }
+    db2 = _get_db()
+    if db2:
+        try:
+            with db2.cursor() as cur:
+                cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
+                row = cur.fetchone()
+                if row:
+                    for key in installed:
+                        installed[key] = bool(row.get(key, 0))
+        except Exception:
+            pass
 
-    # Find unmapped sensors for dropdown
-    # Vind niet-gekoppelde sensoren voor dropdown
+    # Filter sensors based on installed components
+    # Filter sensoren op basis van geïnstalleerde componenten
+    def component_active(sensor: dict) -> bool:
+        comp = sensor.get("requires_component")
+        if comp is None:
+            return True
+        return installed.get(comp, False)
+
+    visible_sensors = [s for s in all_sensors if component_active(s)]
+
+    # Build lookup maps / Bouw opzoektabellen
+    entity_map = {e["internal_name"]: e for e in entity_rows}
+    sensor_map = {s["internal_name"]: s for s in all_sensors}
+
+    # Find unmapped visible sensors for dropdown
+    # Vind niet-gekoppelde zichtbare sensoren voor dropdown
     unmapped_names = [
-        s for s in all_sensors
+        s for s in visible_sensors
         if s["internal_name"] not in entity_map
     ]
 
     return render_template("entities.html",
                            entities=entity_rows,
-                           all_sensors=all_sensors,
+                           all_sensors=visible_sensors,
                            entity_map=entity_map,
                            sensor_map=sensor_map,
                            unmapped_names=unmapped_names,
+                           installed=installed,
                            saved=request.args.get("saved"))
 
 
-@app.route("/entities/delete/<int:entity_id>", methods=["POST"])
+@app.route("/entities/validate", methods=["POST"])
+def validate_entity():
+    """
+    Check if an entity ID exists in HA.
+    Controleer of een entiteit-ID bestaat in HA.
+    """
+    import requests as req
+    data = request.json or {}
+    entity_id = data.get("entity_id", "").strip()
+    if not entity_id:
+        return jsonify({"ok": False, "message": "No entity ID provided"})
+    try:
+        config = AppConfig.load()
+        resp = req.get(
+            f"http://{config.ha.host}:{config.ha.port}/api/states/{entity_id}",
+            headers={"Authorization": f"Bearer {config.ha.token}"},
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            state = resp.json()
+            value = state.get("state", "unknown")
+            unit  = state.get("attributes", {}).get("unit_of_measurement", "")
+            return jsonify({
+                "ok": True,
+                "message": f"✓ Found: {value} {unit}",
+                "value": value,
+                "unit": unit,
+            })
+        elif resp.status_code == 404:
+            return jsonify({"ok": False, "message": f"✗ Entity not found in HA"})
+        else:
+            return jsonify({"ok": False, "message": f"✗ HTTP {resp.status_code}"})
+    except Exception as e:
+        return jsonify({"ok": False, "message": f"✗ Error: {str(e)[:60]}"})
+
+
+
 def delete_entity(entity_id: int):
     db = _get_db()
     if db:
