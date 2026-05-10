@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+<!-- gui/templates/reportlog.html -->
+<!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/reportlog.html -->
+<!-- v0.2.10 — 2026-05-10 -->
+{% block title %}Report Log — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Report log</h1>
+<p class="subtitle">
+  System messages and optimizer decisions / Systeemmeldingen en optimalisatiebeslissingen
+</p>
+
+<!-- Filter bar -->
+<div class="card" style="padding:16px;">
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+    <span style="font-size:13px; font-weight:500; color:#374151;">Filter:</span>
+
+    <a href="{{ nav_url('reportlog') }}"
+       class="btn btn-sm {% if not active_type and not active_cat %}btn-primary{% else %}btn-secondary{% endif %}">
+      All / Alles ({{ total_count }})
+    </a>
+
+    {% for t, count in type_counts.items() %}
+    <a href="{{ nav_url('reportlog') }}?type={{ t }}"
+       class="btn btn-sm {% if active_type == t %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="{% if t == 'error' %}border-color:#fca5a5;{% elif t == 'warning' %}border-color:#fcd34d;{% elif t == 'daily' %}border-color:#86efac;{% endif %}">
+      {{ t }} ({{ count }})
+    </a>
+    {% endfor %}
+
+    <span style="color:#d1d5db; margin:0 4px;">|</span>
+
+    {% for cat, count in cat_counts.items() %}
+    <a href="{{ nav_url('reportlog') }}?category={{ cat }}"
+       class="btn btn-sm {% if active_cat == cat %}btn-primary{% else %}btn-secondary{% endif %}">
+      {{ cat }} ({{ count }})
+    </a>
+    {% endfor %}
+
+    {% if active_type or active_cat %}
+    <a href="{{ nav_url('reportlog') }}" class="btn btn-sm btn-secondary"
+       style="margin-left:8px;">&#215; Clear</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Log entries -->
+<div class="card" style="padding:0;">
+  {% if entries %}
+  <table>
+    <thead>
+      <tr>
+        <th style="width:145px">Time / Tijd</th>
+        <th style="width:70px">Type</th>
+        <th style="width:120px">Category</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr style="{% if e.report_type == 'error' %}background:#fef2f2;{% elif e.report_type == 'warning' %}background:#fffbeb;{% elif e.report_type == 'daily' %}background:#f0fdf4;{% endif %}">
+        <td style="font-size:12px; color:#6b7280; white-space:nowrap;">
+          {{ e.created_at.strftime('%Y-%m-%d %H:%M') if e.created_at else '—' }}
+        </td>
+        <td>
+          {% if e.report_type == 'error' %}
+            <span style="color:#dc2626; font-size:12px; font-weight:600;">&#9888; error</span>
+          {% elif e.report_type == 'warning' %}
+            <span style="color:#d97706; font-size:12px; font-weight:600;">&#9888; warning</span>
+          {% elif e.report_type == 'daily' %}
+            <span style="color:#16a34a; font-size:12px; font-weight:600;">&#128197; daily</span>
+          {% else %}
+            <span style="color:#6b7280; font-size:12px;">info</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:#6b7280;">{{ e.category or '—' }}</td>
+        <td style="font-size:13px; white-space:pre-wrap; word-break:break-word; max-width:500px;">{{ e.message }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div style="display:flex; gap:8px; padding:16px; align-items:center; border-top:1px solid #f1f5f9;">
+    <span style="font-size:13px; color:#6b7280;">
+      Page {{ page }} of {{ total_pages }} ({{ total_count }} entries)
+    </span>
+    <div style="margin-left:auto; display:flex; gap:6px;">
+      {% if page > 1 %}
+      <a href="{{ nav_url('reportlog') }}?page={{ page - 1 }}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_cat %}&category={{ active_cat }}{% endif %}"
+         class="btn btn-secondary btn-sm">&#8592; Prev</a>
+      {% endif %}
+      {% if page < total_pages %}
+      <a href="{{ nav_url('reportlog') }}?page={{ page + 1 }}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_cat %}&category={{ active_cat }}{% endif %}"
+         class="btn btn-secondary btn-sm">Next &#8594;</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <p style="padding:24px; color:#6b7280; font-size:13px;">
+    No log entries found. / Geen logregels gevonden.
+  </p>
+  {% endif %}
+</div>
+
+{% endblock %}

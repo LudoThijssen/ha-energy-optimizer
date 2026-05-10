@@ -80,6 +80,7 @@
     <div class="nav-section">Optimizer</div>
     <a href="{{ nav_url('schedule') }}" {% if request.endpoint == 'schedule' %}class="active"{% endif %}>Timing / Tijden</a>
     <a href="{{ nav_url('optimizer') }}" {% if request.endpoint == 'optimizer' %}class="active"{% endif %}>Thresholds / Drempelwaarden</a>
+    <a href="{{ nav_url('reportlog') }}" {% if request.endpoint == 'reportlog' %}class="active"{% endif %}>Report log</a>
   </nav>
   <main>
     {% block content %}{% endblock %}

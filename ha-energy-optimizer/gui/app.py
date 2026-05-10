@@ -781,6 +781,81 @@ def optimizer():
                            saved=request.args.get("saved"))
 
 
+@app.route("/reportlog")
+def reportlog():
+    # gui/app.py — reportlog route — v0.2.10
+    # Shows paginated report log with filters
+    # Toont gepagineerd rapport-log met filters
+    db = _get_db()
+    entries = []
+    type_counts = {}
+    cat_counts  = {}
+    total_count = 0
+    per_page    = 50
+    page        = int(request.args.get("page", 1))
+    active_type = request.args.get("type", "")
+    active_cat  = request.args.get("category", "")
+
+    if db:
+        with db.cursor() as cur:
+            # Count per type / Aantal per type
+            cur.execute("""
+                SELECT report_type, COUNT(*) AS c
+                FROM report_log
+                GROUP BY report_type
+                ORDER BY FIELD(report_type,'error','warning','daily','info')
+            """)
+            type_counts = {row["report_type"]: row["c"] for row in cur.fetchall()}
+
+            # Count per category / Aantal per categorie
+            cur.execute("""
+                SELECT category, COUNT(*) AS c
+                FROM report_log
+                WHERE category IS NOT NULL
+                GROUP BY category
+                ORDER BY c DESC
+                LIMIT 10
+            """)
+            cat_counts = {row["category"]: row["c"] for row in cur.fetchall()}
+
+            # Build WHERE clause / Bouw WHERE clausule
+            where = "WHERE 1=1"
+            params: dict = {}
+            if active_type:
+                where += " AND report_type = %(type)s"
+                params["type"] = active_type
+            if active_cat:
+                where += " AND category = %(cat)s"
+                params["cat"] = active_cat
+
+            # Total count for pagination
+            cur.execute(f"SELECT COUNT(*) AS c FROM report_log {where}", params)
+            total_count = cur.fetchone()["c"]
+
+            # Fetch page
+            offset = (page - 1) * per_page
+            cur.execute(f"""
+                SELECT id, created_at, report_type, category, message
+                FROM report_log
+                {where}
+                ORDER BY created_at DESC
+                LIMIT %(limit)s OFFSET %(offset)s
+            """, {**params, "limit": per_page, "offset": offset})
+            entries = cur.fetchall()
+
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+
+    return render_template("reportlog.html",
+                           entries=entries,
+                           type_counts=type_counts,
+                           cat_counts=cat_counts,
+                           total_count=total_count,
+                           total_pages=total_pages,
+                           page=page,
+                           active_type=active_type,
+                           active_cat=active_cat)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8099, debug=False)
 
