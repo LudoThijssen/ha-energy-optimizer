@@ -50,6 +50,27 @@ def _url(endpoint: str, **kwargs) -> str:
     return base
 
 
+def _get_addon_version() -> str:
+    """
+    Read version from config.yaml without PyYAML.
+    Lees versie uit config.yaml zonder PyYAML.
+    """
+    try:
+        for config_file in [
+            Path(__file__).parent.parent.parent / "config.yaml",
+            Path(__file__).parent.parent / "config.yaml",
+        ]:
+            if config_file.exists():
+                for line in config_file.read_text().splitlines():
+                    if line.startswith("version:"):
+                        return line.split(":", 1)[1].strip().strip('"').strip("'")
+    except Exception:
+        pass
+    return "?"
+
+_ADDON_VERSION = _get_addon_version()
+
+
 @app.context_processor
 def inject_globals():
     ingress_path = request.headers.get("X-Ingress-Path", "").rstrip("/")
@@ -63,9 +84,10 @@ def inject_globals():
     except Exception:
         pass
     return {
-        "nav_url": _url,
-        "ingress_path": ingress_path,
+        "nav_url":       _url,
+        "ingress_path":  ingress_path,
         "system_config": system_config,
+        "addon_version": _ADDON_VERSION,
     }
 
 
