@@ -704,6 +704,7 @@ def validate_entity():
 
 
 
+@app.route("/entities/delete/<int:entity_id>", methods=["POST"])
 def delete_entity(entity_id: int):
     db = _get_db()
     if db:
