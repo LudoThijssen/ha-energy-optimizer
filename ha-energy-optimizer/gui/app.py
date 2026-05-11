@@ -546,6 +546,13 @@ def provider():
         if driver in ("anwb", "energyzero"):
             driver_cfg = {"vat_pct": float(request.form.get("vat_pct", 21.0)),
                           "incl_tax": "incl_tax" in request.form}
+        elif driver == "ha_energyzero":
+            driver_cfg = {
+                "entity_id": request.form.get("ha_entity_id", "sensor.energy_prices_today"),
+                "ha_host":   request.form.get("ha_energyzero_host", "homeassistant"),
+                "ha_port":   int(request.form.get("ha_energyzero_port", 8123)),
+                "ha_token":  request.form.get("ha_energyzero_token", ""),
+            }
         elif driver == "tibber":
             driver_cfg = {"token": request.form.get("tibber_token", "")}
         elif driver == "entsoe":

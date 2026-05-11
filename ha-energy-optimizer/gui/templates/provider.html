@@ -21,7 +21,8 @@
         <option value="energyzero" {% if current == 'energyzero' %}selected{% endif %}>EnergyZero</option>
         <option value="tibber"     {% if current == 'tibber' %}selected{% endif %}>Tibber</option>
         <option value="entsoe"     {% if current == 'entsoe' %}selected{% endif %}>ENTSO-E (European day-ahead)</option>
-        <option value="frank"      {% if current == 'frank' %}selected{% endif %}>Frank Energie (not yet available / nog niet beschikbaar)</option>
+        <option value="ha_energyzero" {% if current == 'ha_energyzero' %}selected{% endif %}>HA EnergyZero sensor (aanbevolen / recommended)</option>
+        <option value="frank"      {% if current == 'frank' %}selected{% endif %}>Frank Energie (not yet available / nog niet beschikbaar)</option>        
       </select>
     </div>
 
@@ -45,6 +46,43 @@
       <div class="alert alert-info" style="margin-top:8px">
         ANWB Energie uses the EnergyZero platform. Prices for tomorrow are published around 14:00.<br>
         ANWB Energie maakt gebruik van het EnergyZero platform. Prijzen van morgen worden rond 14:00 gepubliceerd.
+      </div>
+    </div>
+
+    <!-- HA EnergyZero fields -->
+    <div id="fields-ha_energyzero" class="provider-fields" style="display:none">
+      <div class="alert alert-info">
+        Reads prices directly from your HA EnergyZero sensor — correct local time, no API key needed.<br>
+        Leest prijzen direct uit uw HA EnergyZero sensor — correcte lokale tijd, geen API-sleutel nodig.
+      </div>
+      <div class="field">
+        <label>Entity ID</label>
+        <input type="text" name="ha_entity_id"
+               value="{{ (provider.driver_config or {}).get('entity_id', 'sensor.energy_prices_today') if provider else 'sensor.energy_prices_today' }}">
+        <div class="hint">
+          Default: sensor.energy_prices_today — check Developer Tools → States in HA
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>HA Host</label>
+          <input type="text" name="ha_energyzero_host"
+                 value="{{ (provider.driver_config or {}).get('ha_host', 'homeassistant') if provider else 'homeassistant' }}">
+        </div>
+        <div class="field" style="max-width:120px">
+          <label>Port</label>
+          <input type="number" name="ha_energyzero_port"
+                 value="{{ (provider.driver_config or {}).get('ha_port', 8123) if provider else 8123 }}">
+        </div>
+      </div>
+      <div class="field">
+        <label>HA Token</label>
+        <input type="password" name="ha_energyzero_token"
+               value="{{ (provider.driver_config or {}).get('ha_token', '') if provider else '' }}">
+        <div class="hint">
+          Same token as on the Home Assistant settings page.<br>
+          Zelfde token als op de Home Assistant instellingenpagina.
+        </div>
       </div>
     </div>
 
@@ -99,7 +137,7 @@
 function showProviderFields() {
   document.querySelectorAll(".provider-fields").forEach(el => el.style.display = "none");
   const v = document.getElementById("provider-select").value;
-  const map = { anwb: "fields-anwb", energyzero: "fields-anwb", tibber: "fields-tibber", entsoe: "fields-entsoe" };
+  const map = { anwb: "fields-anwb", energyzero: "fields-anwb", ha_energyzero: "fields-ha_energyzero", tibber: "fields-tibber", entsoe: "fields-entsoe" };
   const target = document.getElementById(map[v]);
   if (target) target.style.display = "block";
 }
