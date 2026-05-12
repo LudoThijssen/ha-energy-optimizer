@@ -756,6 +756,8 @@ def schedule():
         }
         options["optimizer"] = {
             "run_time":              request.form["optimizer_time"],
+            "evening_planning_time": request.form.get("evening_planning_time", "21:00"),
+            "profile_update_time":   request.form.get("profile_update_time", "03:00"),
             "rerun_on_price_update": "rerun" in request.form,
         }
         options["reporting"] = {

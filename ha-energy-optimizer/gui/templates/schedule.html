@@ -103,6 +103,27 @@
       </div>
     </div>
 
+    <div class="field-row">
+      <div class="field">
+        <label>Profile update time / Profielupdate-tijd</label>
+        <input type="time" name="profile_update_time"
+               value="{{ options.get('optimizer', {}).get('profile_update_time', '03:00') }}" required>
+        <div class="hint">
+          Time to recalculate historical consumption, solar and price profiles. Default 03:00.<br>
+          Tijdstip voor herberekening van historische verbruiks-, zon- en prijsprofielen. Standaard 03:00.
+        </div>
+      </div>
+      <div class="field">
+        <label>Evening planning time / Avondplanning-tijd</label>
+        <input type="time" name="evening_planning_time"
+               value="{{ options.get('optimizer', {}).get('evening_planning_time', '21:00') }}" required>
+        <div class="hint">
+          Time to calculate day balance for tomorrow. Default 21:00.<br>
+          Tijdstip voor berekening dagbalans voor morgen. Standaard 21:00.
+        </div>
+      </div>
+    </div>
+
     <label class="check-label">
       <input type="checkbox" name="rerun"
              {% if options.get('optimizer', {}).get('rerun_on_price_update', True) %}checked{% endif %}>
