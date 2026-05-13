@@ -70,11 +70,13 @@
         <td>{% if options.get("homeassistant") %}<span style="color:#16a34a;font-weight:500;">&#10003; Configured / Ingesteld</span>{% else %}<span style="color:#dc2626;">&#8212; Not configured / Niet ingesteld</span>{% endif %}</td>
         <td><a href="{{ nav_url('homeassistant') }}" class="btn btn-secondary btn-sm">Edit / Bewerk</a></td>
       </tr>
+      {% if not system_config or system_config.has_battery %}
       <tr>
         <td><strong>4. Inverter &amp; battery</strong><br><span style="color:#6b7280;font-size:12px;">Inverter &amp; batterij</span></td>
         <td>{% if inverter_ok %}<span style="color:#16a34a;font-weight:500;">&#10003; Configured / Ingesteld</span>{% else %}<span style="color:#dc2626;">&#8212; Not configured / Niet ingesteld</span>{% endif %}</td>
         <td><a href="{{ nav_url('inverter') }}" class="btn btn-secondary btn-sm">Edit / Bewerk</a></td>
       </tr>
+      {% endif %}
       <tr>
         <td><strong>5. Energy provider</strong><br><span style="color:#6b7280;font-size:12px;">Energieprovider</span></td>
         <td>{% if provider_ok %}<span style="color:#16a34a;font-weight:500;">&#10003; Configured / Ingesteld</span>{% else %}<span style="color:#dc2626;">&#8212; Not configured / Niet ingesteld</span>{% endif %}</td>
