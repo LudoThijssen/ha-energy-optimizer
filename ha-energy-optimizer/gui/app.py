@@ -52,9 +52,25 @@ def _url(endpoint: str, **kwargs) -> str:
 
 def _get_addon_version() -> str:
     """
-    Read version from config.yaml without PyYAML.
-    Lees versie uit config.yaml zonder PyYAML.
+    Read version from supervisor API or config.yaml.
+    Lees versie uit supervisor API of config.yaml.
     """
+    # Try supervisor API first
+    try:
+        import requests as _req
+        token = os.environ.get("SUPERVISOR_TOKEN", "")
+        if token:
+            resp = _req.get(
+                "http://supervisor/addons/self/info",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=3,
+            )
+            if resp.status_code == 200:
+                return resp.json().get("data", {}).get("version", "?")
+    except Exception:
+        pass
+
+    # Fallback: read from config.yaml
     try:
         for config_file in [
             Path(__file__).parent.parent.parent / "config.yaml",
