@@ -7,7 +7,7 @@ import requests
 from datetime import datetime
 from database.connection import DatabaseConnection
 from database.models import ReportEntry
-from database.repository import ReportRepository, BatteryRepository, SolarRepository
+from database.repository import ReportRepository, BatteryRepository, SolarRepository, HomeConsumptionRepository
 from config.config import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -20,10 +20,11 @@ class Reporter:
     """
 
     def __init__(self, db: DatabaseConnection, config: AppConfig):
-        self._repo    = ReportRepository(db)
-        self._battery = BatteryRepository(db)
-        self._solar   = SolarRepository(db)
-        self._config  = config
+        self._repo        = ReportRepository(db)
+        self._battery     = BatteryRepository(db)
+        self._solar       = SolarRepository(db)
+        self._consumption = HomeConsumptionRepository(db)
+        self._config      = config
         self._ha_url  = f"http://{config.ha.host}:{config.ha.port}"
         self._headers = {
             "Authorization": f"Bearer {config.ha.token}",
@@ -45,19 +46,36 @@ class Reporter:
 
     def daily_summary(self) -> None:
         """Stel een dagrapport samen en stuur het als notificatie."""
-        battery  = self._battery.get_today_summary()
-        solar    = self._solar.get_today_total()
+        battery     = self._battery.get_today_summary()
+        solar       = self._solar.get_today_total()
+        consumption = self._consumption.get_today_summary()
 
-        lines = [
-            "Dagrapport energie-optimizer",
-            f"Zonopbrengst vandaag:  {solar:.2f} kWh",
-        ]
+        lines = ["Dagrapport energie-optimizer"]
 
-        if battery:
+        # Solar / Zon
+        solar_ok = solar > 0
+        lines.append(f"Zonopbrengst:     {solar:.2f} kWh"
+                     + ("" if solar_ok else " ⚠ (geen data)"))
+
+        # Grid / Net
+        import_kwh  = consumption.get("import_kwh")  or 0
+        export_kwh  = consumption.get("export_kwh")  or 0
+        verbruik    = consumption.get("verbruik_kwh") or 0
+
+        if import_kwh > 0 or export_kwh > 0:
+            lines.append(f"Netafname:        {float(import_kwh):.2f} kWh")
+            lines.append(f"Teruglevering:    {float(export_kwh):.2f} kWh")
+            if verbruik > 0:
+                lines.append(f"Totaal verbruik:  {float(verbruik):.2f} kWh")
+        else:
+            lines.append("Netdata:          ⚠ geen data beschikbaar")
+
+        # Battery / Batterij
+        if battery and (battery.get("min_soc") is not None):
             lines += [
-                f"Batterij min/max SoC:  {battery['min_soc'] or 0:.0f}% / {battery['max_soc'] or 0:.0f}%",
-                f"Totaal opgeladen:      {(battery['total_charged'] or 0):.2f} kWh",
-                f"Totaal ontladen:       {(battery['total_discharged'] or 0):.2f} kWh",
+                f"Batterij SoC:     {battery['min_soc'] or 0:.0f}% — {battery['max_soc'] or 0:.0f}%",
+                f"Opgeladen:        {(battery['total_charged'] or 0):.2f} kWh",
+                f"Ontladen:         {(battery['total_discharged'] or 0):.2f} kWh",
             ]
 
         message = "\n".join(lines)

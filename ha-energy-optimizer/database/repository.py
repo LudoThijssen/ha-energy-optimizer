@@ -160,6 +160,22 @@ class HomeConsumptionRepository:
                 "gas_m3":              getattr(consumption, "gas_m3", None),
             })
 
+    def get_today_summary(self) -> dict:
+        """
+        Return today's grid import, export and consumption totals.
+        Geef de dagelijkse netafname, teruglevering en verbruikstotalen.
+        """
+        with self._db.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    ROUND(SUM(GREATEST(grid_import_kw, 0)) / 12.0, 3)  AS import_kwh,
+                    ROUND(SUM(GREATEST(grid_export_kw, 0)) / 12.0, 3)  AS export_kwh,
+                    ROUND(SUM(GREATEST(total_consumption_kw, 0)) / 12.0, 3) AS verbruik_kwh
+                FROM home_consumption
+                WHERE DATE(measured_at) = CURDATE()
+            """)
+            return cur.fetchone() or {}
+
     def get_average_hourly_kwh(self) -> Decimal:
         with self._db.cursor() as cur:
             cur.execute("""
