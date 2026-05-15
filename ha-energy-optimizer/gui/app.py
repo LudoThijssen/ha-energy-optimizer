@@ -30,8 +30,26 @@ def _load_options() -> dict:
 
 
 def _save_options(data: dict) -> None:
+    # Save to local options.json
+    # Sla op naar lokale options.json
     with open(OPTIONS_PATH, "w") as f:
         json.dump(data, f, indent=2)
+
+    # Sync to supervisor so HA config tab stays in sync
+    # Synchroniseer naar supervisor zodat HA configuratietab gesynchroniseerd blijft
+    try:
+        import requests as _req
+        token = os.environ.get("SUPERVISOR_TOKEN", "")
+        if token:
+            _req.post(
+                "http://supervisor/addons/self/options",
+                json={"options": data},
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=5,
+            )
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).debug(f"Supervisor sync failed (non-critical): {e}")
 
 
 def _get_db():
