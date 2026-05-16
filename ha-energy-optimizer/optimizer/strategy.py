@@ -511,9 +511,20 @@ class Strategy:
             )
 
         # Rule B: High spread + near peak / Regel B: Grote spreiding + nabij piekprijs
-        spread_ratio = (
-            most_expensive / cheapest if cheapest > 0 else Decimal("1")
-        )
+        # Use absolute spread to handle negative prices correctly
+        # Gebruik absoluut verschil voor correcte verwerking van negatieve prijzen
+        abs_cheapest = abs(cheapest) if cheapest < 0 else cheapest
+        if cheapest < 0:
+            # Negative cheapest: spread = most_expensive - cheapest (always positive)
+            # Negatieve goedkoopste: spread = duurste - goedkoopste (altijd positief)
+            spread_ratio = (
+                (most_expensive - cheapest) / abs_cheapest
+                if abs_cheapest > Decimal("0.001") else Decimal("10")
+            )
+        elif cheapest > Decimal("0.001"):
+            spread_ratio = most_expensive / cheapest
+        else:
+            spread_ratio = Decimal("1")
         near_peak = price_excl >= most_expensive * self.discharge_near_peak
 
         if spread_ratio >= self.min_spread_ratio and near_peak:
@@ -554,7 +565,16 @@ class Strategy:
         cheapest       = day_stats.cheapest_today
         most_expensive = day_stats.most_expensive_today
 
-        spread_ok     = most_expensive >= cheapest * self.required_spread_factor
+        # Spread check — handles negative cheapest prices correctly
+        # Spreadcontrole — verwerkt negatieve goedkope prijzen correct
+        if cheapest < 0:
+            # When cheapest is negative, any positive peak means good spread
+            # Als goedkoopste negatief is, geeft elke positieve piek goede spread
+            spread_ok = most_expensive > Decimal("0.05")
+        elif cheapest > Decimal("0.001"):
+            spread_ok = most_expensive >= cheapest * self.required_spread_factor
+        else:
+            spread_ok = most_expensive >= self.required_spread_factor * Decimal("0.05")
         near_cheapest = price_excl <= cheapest * self.charge_near_cheapest
         effective_cost = (price_excl / self.efficiency) + self.depreciation_per_kwh
         revenue_ok    = most_expensive >= effective_cost
