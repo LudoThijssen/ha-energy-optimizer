@@ -123,6 +123,18 @@
         </div>
       </div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Dashboard refresh interval (seconds / seconden)</label>
+        <input type="number" name="dashboard_refresh_seconds" min="60" max="3600"
+               value="{{ options.get('reporting', {}).get('dashboard_refresh_seconds', 300) }}">
+        <div class="hint">
+          How often the dashboard refreshes live data. Default 300 = every 5 min.<br>
+          Hoe vaak het dashboard live data vernieuwt. Standaard 300 = elke 5 min.<br>
+          <em>Note: faster refresh increases system load / Sneller verversen verhoogt systeembelasting</em>
+        </div>
+      </div>
+    </div>
 
     <label class="check-label">
       <input type="checkbox" name="rerun"

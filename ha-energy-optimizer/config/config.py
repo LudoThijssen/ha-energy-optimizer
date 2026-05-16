@@ -45,6 +45,7 @@ class ReportingConfig:
     daily_report_time: str  = "07:00"
     notify_on_warning: bool = True
     notify_on_error: bool   = True
+    dashboard_refresh_seconds: int = 300
 
 
 @dataclass

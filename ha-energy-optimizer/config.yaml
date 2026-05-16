@@ -50,6 +50,7 @@ options:
     daily_report_time: "07:00"
     notify_on_warning: true
     notify_on_error: true
+    dashboard_refresh_seconds: 300
   location:
     latitude: 52.1551
     longitude: 5.3872
@@ -82,6 +83,7 @@ schema:
     daily_report_time: match(^([01]\d|2[0-3]):[0-5]\d$)
     notify_on_warning: bool
     notify_on_error: bool
+    dashboard_refresh_seconds: int(60,3600)?
   location:
     latitude: float
     longitude: float

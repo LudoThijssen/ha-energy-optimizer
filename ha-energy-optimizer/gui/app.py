@@ -795,9 +795,10 @@ def schedule():
             "rerun_on_price_update": "rerun" in request.form,
         }
         options["reporting"] = {
-            "daily_report_time":  request.form["report_time"],
-            "notify_on_warning":  "notify_warning" in request.form,
-            "notify_on_error":    "notify_error" in request.form,
+            "daily_report_time":           request.form["report_time"],
+            "notify_on_warning":           "notify_warning" in request.form,
+            "notify_on_error":             "notify_error" in request.form,
+            "dashboard_refresh_seconds":   int(request.form.get("dashboard_refresh_seconds", 300)),
         }
         _save_options(options)
         return redirect(_url("schedule") + "?saved=1")
