@@ -128,6 +128,11 @@ def inject_globals():
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @app.route("/")
+def root():
+    return redirect(_url("dashboard"))
+
+
+@app.route("/overview")
 def index():
     options = _load_options()
     db = _get_db()
