@@ -922,6 +922,169 @@ def reportlog():
                            active_cat=active_cat)
 
 
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+
+@app.route("/dashboard")
+def dashboard():
+    # gui/app.py — dashboard route — v0.2.11
+    options = _load_options()
+    refresh = options.get("reporting", {}).get("dashboard_refresh_seconds", 300)
+    return render_template("dashboard.html",
+                           refresh_seconds=refresh,
+                           options=options)
+
+
+@app.route("/api/dashboard-data")
+def api_dashboard_data():
+    """
+    JSON endpoint for live dashboard data.
+    JSON-endpoint voor live dashboardgegevens.
+    """
+    db = _get_db()
+    data = {
+        "live":     {},
+        "today":    {},
+        "schedule": [],
+        "prices":   [],
+    }
+
+    if not db:
+        return jsonify(data)
+
+    try:
+        config = AppConfig.load()
+        import requests as _req
+
+        ha_url     = f"http://{config.ha.host}:{config.ha.port}"
+        ha_headers = {"Authorization": f"Bearer {config.ha.token}"}
+
+        # ── Live sensor readings / Live sensorwaarden ─────────────────────
+        with db.cursor() as cur:
+            cur.execute("SELECT internal_name, entity_id FROM ha_entity_map")
+            entity_map = {r["internal_name"]: r["entity_id"] for r in cur.fetchall()}
+
+        live = {}
+        for name, entity_id in entity_map.items():
+            try:
+                resp = _req.get(
+                    f"{ha_url}/api/states/{entity_id}",
+                    headers=ha_headers, timeout=4
+                )
+                if resp.status_code == 200:
+                    state = resp.json().get("state", "unavailable")
+                    try:
+                        live[name] = float(state)
+                    except (ValueError, TypeError):
+                        live[name] = None
+                else:
+                    live[name] = None
+            except Exception:
+                live[name] = None
+
+        data["live"] = live
+
+        # ── Current price / Huidige prijs ─────────────────────────────────
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT price_per_kwh, price_incl_tax
+                FROM energy_prices
+                WHERE price_hour <= NOW()
+                  AND energy_type = 'electricity'
+                ORDER BY price_hour DESC LIMIT 1
+            """)
+            row = cur.fetchone()
+            if row:
+                data["live"]["current_price"] = float(row["price_per_kwh"])
+                data["live"]["price_incl_tax"] = bool(row["price_incl_tax"])
+
+        # ── Today summary / Samenvatting vandaag ──────────────────────────
+        with db.cursor() as cur:
+            # Solar today / Zon vandaag
+            cur.execute("""
+                SELECT COALESCE(SUM(power_kw) / 12.0, 0) AS solar_kwh
+                FROM solar_production
+                WHERE DATE(measured_at) = CURDATE()
+            """)
+            row = cur.fetchone()
+            data["today"]["solar_kwh"] = round(float(row["solar_kwh"] or 0), 2)
+
+            # Grid today / Net vandaag
+            cur.execute("""
+                SELECT
+                    ROUND(SUM(GREATEST(grid_import_kw, 0)) / 12.0, 2) AS import_kwh,
+                    ROUND(SUM(GREATEST(grid_export_kw, 0)) / 12.0, 2) AS export_kwh
+                FROM home_consumption
+                WHERE DATE(measured_at) = CURDATE()
+            """)
+            row = cur.fetchone()
+            data["today"]["import_kwh"] = float(row["import_kwh"] or 0)
+            data["today"]["export_kwh"] = float(row["export_kwh"] or 0)
+
+            # Battery today / Batterij vandaag
+            cur.execute("""
+                SELECT MIN(soc_pct) AS min_soc, MAX(soc_pct) AS max_soc
+                FROM battery_status
+                WHERE DATE(measured_at) = CURDATE()
+            """)
+            row = cur.fetchone()
+            if row and row["min_soc"] is not None:
+                data["today"]["battery_min_soc"] = float(row["min_soc"])
+                data["today"]["battery_max_soc"] = float(row["max_soc"])
+
+            # Expected saving / Verwachte besparing
+            cur.execute("""
+                SELECT COALESCE(SUM(expected_saving), 0) AS total_saving
+                FROM optimizer_schedule
+                WHERE DATE(schedule_for) = CURDATE()
+            """)
+            row = cur.fetchone()
+            data["today"]["expected_saving"] = round(float(row["total_saving"] or 0), 4)
+
+        # ── Optimizer schedule / Optimizer schema ─────────────────────────
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT schedule_for, action, target_power_kw,
+                       expected_price, expected_saving, executed
+                FROM optimizer_schedule
+                WHERE DATE(schedule_for) = CURDATE()
+                ORDER BY schedule_for
+            """)
+            data["schedule"] = [
+                {
+                    "hour":          row["schedule_for"].strftime("%H:%M"),
+                    "action":        row["action"],
+                    "power_kw":      float(row["target_power_kw"] or 0),
+                    "price":         float(row["expected_price"] or 0),
+                    "saving":        float(row["expected_saving"] or 0),
+                    "executed":      bool(row["executed"]),
+                }
+                for row in cur.fetchall()
+            ]
+
+        # ── Today's prices / Prijzen vandaag ──────────────────────────────
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT price_hour, price_per_kwh, price_incl_tax
+                FROM energy_prices
+                WHERE DATE(price_hour) = CURDATE()
+                  AND energy_type = 'electricity'
+                ORDER BY price_hour
+            """)
+            data["prices"] = [
+                {
+                    "hour":      row["price_hour"].strftime("%H:%M"),
+                    "price":     float(row["price_per_kwh"]),
+                    "incl_tax":  bool(row["price_incl_tax"]),
+                }
+                for row in cur.fetchall()
+            ]
+
+    except Exception as e:
+        data["error"] = str(e)
+
+    return jsonify(data)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8099, debug=False)
 

@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+<!-- gui/templates/dashboard.html -->
+<!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
+<!-- v0.2.11 — 2026-05-15 -->
+{% block title %}Dashboard — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+  <h1 style="margin-bottom:0;">Dashboard</h1>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <span id="refresh-countdown" style="font-size:12px; color:#94a3b8;"></span>
+    <button onclick="loadData()" class="btn btn-secondary btn-sm">&#8635; Refresh</button>
+  </div>
+</div>
+<p class="subtitle">Live energy overview / Live energie-overzicht</p>
+
+<!-- Live values / Live waarden -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px;">
+
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+    <div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Prijs nu</div>
+    <div id="val-price" style="font-size:26px; font-weight:700; color:#0f172a; margin:6px 0;">—</div>
+    <div style="font-size:11px; color:#6b7280;">ct/kWh</div>
+  </div>
+
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+    <div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Zonne-energie</div>
+    <div id="val-solar" style="font-size:26px; font-weight:700; color:#f59e0b; margin:6px 0;">—</div>
+    <div style="font-size:11px; color:#6b7280;">kW</div>
+  </div>
+
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+    <div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Netafname</div>
+    <div id="val-import" style="font-size:26px; font-weight:700; color:#3b82f6; margin:6px 0;">—</div>
+    <div style="font-size:11px; color:#6b7280;">kW</div>
+  </div>
+
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+    <div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Teruglevering</div>
+    <div id="val-export" style="font-size:26px; font-weight:700; color:#10b981; margin:6px 0;">—</div>
+    <div style="font-size:11px; color:#6b7280;">kW</div>
+  </div>
+
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+    <div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Batterij SoC</div>
+    <div id="val-soc" style="font-size:26px; font-weight:700; color:#8b5cf6; margin:6px 0;">—</div>
+    <div style="font-size:11px; color:#6b7280;">%</div>
+  </div>
+
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+    <div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Besparing vandaag</div>
+    <div id="val-saving" style="font-size:26px; font-weight:700; color:#16a34a; margin:6px 0;">—</div>
+    <div style="font-size:11px; color:#6b7280;">€</div>
+  </div>
+
+</div>
+
+<!-- Today summary / Samenvatting vandaag -->
+<div class="card">
+  <h2>Vandaag / Today</h2>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; font-size:13px;">
+    <div>
+      <div style="color:#6b7280; margin-bottom:3px;">Zonopbrengst</div>
+      <div id="today-solar" style="font-weight:600;">— kWh</div>
+    </div>
+    <div>
+      <div style="color:#6b7280; margin-bottom:3px;">Netafname</div>
+      <div id="today-import" style="font-weight:600;">— kWh</div>
+    </div>
+    <div>
+      <div style="color:#6b7280; margin-bottom:3px;">Teruglevering</div>
+      <div id="today-export" style="font-weight:600;">— kWh</div>
+    </div>
+  </div>
+</div>
+
+<!-- Price + schedule chart / Prijs + schema grafiek -->
+<div class="card">
+  <h2>Prijzen & schema vandaag / Prices & schedule today</h2>
+  <div style="overflow-x:auto;">
+    <canvas id="price-chart" height="120"></canvas>
+  </div>
+  <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:#6b7280; flex-wrap:wrap;">
+    <span>&#9646; Prijs (ct/kWh)</span>
+    <span style="color:#3b82f6;">&#9646; Laden van net</span>
+    <span style="color:#ef4444;">&#9646; Ontladen</span>
+    <span style="color:#f59e0b;">&#9646; Zonne-lading</span>
+    <span style="color:#6b7280;">&#9646; Rust</span>
+  </div>
+</div>
+
+<!-- Schedule table / Schematabel -->
+<div class="card">
+  <h2>Optimizer schema / Optimizer schedule</h2>
+  <div id="schedule-loading" style="color:#6b7280; font-size:13px;">Laden...</div>
+  <table id="schedule-table" style="display:none;">
+    <thead>
+      <tr>
+        <th>Uur</th>
+        <th>Actie</th>
+        <th>Vermogen</th>
+        <th>Prijs</th>
+        <th>Besparing</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="schedule-body"></tbody>
+  </table>
+</div>
+
+<script>
+const BASE_URL   = "{{ ingress_path }}";
+const REFRESH_MS = {{ refresh_seconds }} * 1000;
+let countdown    = {{ refresh_seconds }};
+let chart        = null;
+
+// ── Load data / Gegevens laden ────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const resp = await fetch(BASE_URL + '/api/dashboard-data');
+    const d    = await resp.json();
+    updateLive(d.live || {});
+    updateToday(d.today || {});
+    updateChart(d.prices || [], d.schedule || []);
+    updateSchedule(d.schedule || []);
+    countdown = {{ refresh_seconds }};
+  } catch(e) {
+    console.error('Dashboard load error:', e);
+  }
+}
+
+// ── Live values / Live waarden ────────────────────────────────────────────────
+function updateLive(live) {
+  const price = live.current_price;
+  if (price !== undefined && price !== null) {
+    const ct   = (price * 100).toFixed(2);
+    const el   = document.getElementById('val-price');
+    el.textContent = ct;
+    el.style.color = price < 0 ? '#ef4444' : price < 0.05 ? '#f59e0b' : '#0f172a';
+  }
+
+  const solar = live.solar_power;
+  if (solar !== null && solar !== undefined)
+    document.getElementById('val-solar').textContent = Number(solar).toFixed(3);
+
+  const imp = live.grid_import_power;
+  if (imp !== null && imp !== undefined)
+    document.getElementById('val-import').textContent = Number(imp).toFixed(3);
+
+  const exp = live.grid_export_power;
+  if (exp !== null && exp !== undefined)
+    document.getElementById('val-export').textContent = Number(exp).toFixed(3);
+
+  const soc = live.battery_soc;
+  if (soc !== null && soc !== undefined)
+    document.getElementById('val-soc').textContent = Number(soc).toFixed(1);
+  else
+    document.getElementById('val-soc').textContent = 'n/a';
+}
+
+// ── Today summary / Samenvatting vandaag ──────────────────────────────────────
+function updateToday(today) {
+  if (today.solar_kwh !== undefined)
+    document.getElementById('today-solar').textContent =
+      Number(today.solar_kwh).toFixed(2) + ' kWh';
+  if (today.import_kwh !== undefined)
+    document.getElementById('today-import').textContent =
+      Number(today.import_kwh).toFixed(2) + ' kWh';
+  if (today.export_kwh !== undefined)
+    document.getElementById('today-export').textContent =
+      Number(today.export_kwh).toFixed(2) + ' kWh';
+  if (today.expected_saving !== undefined)
+    document.getElementById('val-saving').textContent =
+      '€ ' + Number(today.expected_saving).toFixed(2);
+}
+
+// ── Chart / Grafiek ───────────────────────────────────────────────────────────
+function updateChart(prices, schedule) {
+  const canvas = document.getElementById('price-chart');
+  const ctx    = canvas.getContext('2d');
+
+  // Map schedule actions to colors
+  const actionColors = {
+    'charge':       'rgba(59,130,246,0.7)',
+    'discharge':    'rgba(239,68,68,0.7)',
+    'self_consume': 'rgba(245,158,11,0.7)',
+    'idle':         'rgba(156,163,175,0.3)',
+  };
+
+  const scheduleMap = {};
+  schedule.forEach(s => { scheduleMap[s.hour] = s.action; });
+
+  const labels    = prices.map(p => p.hour);
+  const priceData = prices.map(p => (p.price * 100).toFixed(2));
+  const barColors = labels.map(h => actionColors[scheduleMap[h]] || 'rgba(156,163,175,0.3)');
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Prijs (ct/kWh)',
+          data: priceData,
+          backgroundColor: barColors,
+          borderColor: barColors,
+          borderWidth: 1,
+          yAxisID: 'y',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          title: { display: true, text: 'ct/kWh', font: { size: 11 } },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── Schedule table / Schematabel ──────────────────────────────────────────────
+function updateSchedule(schedule) {
+  const loading = document.getElementById('schedule-loading');
+  const table   = document.getElementById('schedule-table');
+  const tbody   = document.getElementById('schedule-body');
+
+  if (!schedule.length) {
+    loading.textContent = 'Geen schema beschikbaar voor vandaag.';
+    return;
+  }
+
+  const actionLabel = {
+    'charge':       '<span style="color:#3b82f6;font-weight:600;">↑ Laden</span>',
+    'discharge':    '<span style="color:#ef4444;font-weight:600;">↓ Ontladen</span>',
+    'self_consume': '<span style="color:#f59e0b;font-weight:600;">☀ Zonne-lading</span>',
+    'idle':         '<span style="color:#6b7280;">— Rust</span>',
+  };
+
+  tbody.innerHTML = schedule.map(s => `
+    <tr style="${s.executed ? 'opacity:0.6;' : ''}">
+      <td style="font-weight:600;">${s.hour}</td>
+      <td>${actionLabel[s.action] || s.action}</td>
+      <td>${s.power_kw ? s.power_kw.toFixed(1) + ' kW' : '—'}</td>
+      <td>${s.price !== undefined ? (s.price * 100).toFixed(2) + ' ct' : '—'}</td>
+      <td>${s.saving !== undefined ? '€ ' + s.saving.toFixed(4) : '—'}</td>
+      <td style="font-size:12px; color:#6b7280;">${s.executed ? '✓ uitgevoerd' : 'gepland'}</td>
+    </tr>
+  `).join('');
+
+  loading.style.display = 'none';
+  table.style.display   = '';
+}
+
+// ── Countdown / Aftellen ──────────────────────────────────────────────────────
+function updateCountdown() {
+  const el = document.getElementById('refresh-countdown');
+  if (countdown > 0) {
+    const m = Math.floor(countdown / 60);
+    const s = countdown % 60;
+    el.textContent = `Refresh in ${m}:${String(s).padStart(2,'0')}`;
+    countdown--;
+  } else {
+    loadData();
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+// Load Chart.js from CDN
+const script = document.createElement('script');
+script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+script.onload = () => {
+  loadData();
+  setInterval(updateCountdown, 1000);
+};
+document.head.appendChild(script);
+</script>
+
+{% endblock %}
