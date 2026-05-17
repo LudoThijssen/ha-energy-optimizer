@@ -67,6 +67,7 @@
      <span>Configuration / Configuratie <span class="version-tag">v{{ addon_version }}</span></span>
     </div>
     <div class="nav-section">Setup</div>
+    <a href="{{ nav_url('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}" style="color:#f59e0b;">&#9685; Dashboard</a>
     <a href="{{ nav_url('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Overview / Overzicht</a>
     <a href="{{ nav_url('system') }}" {% if request.endpoint == 'system' %}class="active"{% endif %}>System / Systeem</a>
     <a href="{{ nav_url('database') }}" {% if request.endpoint == 'database' %}class="active"{% endif %}>Database</a>
