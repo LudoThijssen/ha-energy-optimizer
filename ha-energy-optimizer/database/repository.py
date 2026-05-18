@@ -104,10 +104,11 @@ class SolarRepository:
 
     def get_today_total(self) -> Decimal:
         """
-        Calculate today's total solar production.
-        Uses energy_kwh counter if available, otherwise estimates from power readings.
-        Bereken de totale zonopbrengst van vandaag.
-        Gebruikt energy_kwh teller indien beschikbaar, anders schatting uit vermogensmetingen.
+        Calculate today's total solar production using hourly averages.
+        Bereken de totale zonopbrengst van vandaag via uurgemiddelden.
+
+        Uses AVG per hour × 1h to avoid errors from irregular measurement intervals.
+        Gebruikt AVG per uur × 1u om fouten door onregelmatige meetintervallen te vermijden.
         """
         with self._db.cursor() as cur:
             # Try energy counter first / Probeer energieteller eerst
@@ -121,12 +122,15 @@ class SolarRepository:
             if row and row["total"] is not None and row["total"] > 0:
                 return Decimal(str(row["total"])).quantize(Decimal("0.001"))
 
-            # Fallback: estimate from power readings (5-minute intervals)
-            # Terugval: schatting uit vermogensmetingen (5-minuten intervallen)
+            # Calculate from hourly averages / Bereken uit uurgemiddelden
             cur.execute("""
-                SELECT COALESCE(SUM(power_kw) / 12.0, 0) AS total
-                FROM solar_production
-                WHERE DATE(measured_at) = CURDATE()
+                SELECT COALESCE(SUM(avg_kw), 0) AS total
+                FROM (
+                    SELECT AVG(power_kw) AS avg_kw
+                    FROM solar_production
+                    WHERE DATE(measured_at) = CURDATE()
+                    GROUP BY HOUR(measured_at)
+                ) per_hour
             """)
             row = cur.fetchone()
             return Decimal(str(row["total"])).quantize(Decimal("0.001")) if row else Decimal("0")
