@@ -189,29 +189,74 @@ class OptimizerEngine:
         battery = self._battery_repo.get_latest()
         current_soc = battery.soc_pct if battery else Decimal("50")
 
+        # Load solar profile for this month / Laad zonprofiel voor deze maand
+        # Profile gives average kW per hour based on historical measurements
+        # Profiel geeft gemiddeld kW per uur op basis van historische metingen
+        solar_profile = {}
+        consumption_profile = {}
+        with self._db.cursor() as cur:
+            cur.execute("""
+                SELECT hour_of_day, avg_kw
+                FROM solar_profile
+                WHERE month = %(month)s
+            """, {"month": now.month})
+            for row in cur.fetchall():
+                solar_profile[row["hour_of_day"]] = Decimal(str(row["avg_kw"]))
+
+            cur.execute("""
+                SELECT hour_of_day, avg_kw
+                FROM consumption_profile
+                WHERE day_of_week = %(dow)s
+            """, {"dow": now.weekday()})
+            for row in cur.fetchall():
+                consumption_profile[row["hour_of_day"]] = Decimal(str(row["avg_kw"]))
+
         forecasts = []
         for offset in range(24):
             hour      = now + timedelta(hours=offset)
             price     = prices.get(hour)
             weather_h = weather.get(hour)
-
             if not price:
-                continue  # Skip hours without price data / Sla uren zonder prijs over
+                continue
 
+            # Solar forecast / Zonverwachting
+            # Use historical profile corrected by cloud cover
+            # Gebruik historisch profiel gecorrigeerd met bewolking
             solar_kw = Decimal("0")
-            if weather_h and weather_h.solar_irradiance_wm2:
+            profile_kw = solar_profile.get(hour.hour, Decimal("0"))
+
+            if profile_kw > 0:
+                if weather_h and weather_h.cloud_cover_pct is not None:
+                    # Cloud correction with minimum 15% for diffuse light
+                    # Bewolkingscorrectie met minimum 15% voor diffuus licht
+                    cloud_factor = max(
+                        Decimal("0.15"),
+                        Decimal("1") - weather_h.cloud_cover_pct / Decimal("100")
+                    )
+                    solar_kw = (profile_kw * cloud_factor).quantize(Decimal("0.001"))
+                else:
+                    # No weather data — use profile directly
+                    # Geen weerdata — gebruik profiel direct
+                    solar_kw = profile_kw
+            elif weather_h and weather_h.solar_irradiance_wm2:
+                # Fallback to irradiance if no profile available
+                # Terugval op straling als er geen profiel beschikbaar is
                 solar_kw = (
                     weather_h.solar_irradiance_wm2 * _WM2_TO_KW_FACTOR
                 ).quantize(Decimal("0.001"))
+
+            # Consumption forecast / Verbruiksverwachting
+            consumption_kw = consumption_profile.get(
+                hour.hour, _FALLBACK_CONSUMPTION_KW
+            )
 
             forecasts.append(HourForecast(
                 hour=hour,
                 price_per_kwh=price,
                 solar_kw=solar_kw,
-                consumption_kw=_FALLBACK_CONSUMPTION_KW,
+                consumption_kw=consumption_kw,
                 soc_pct=current_soc,
             ))
-
         return forecasts
 
     def _get_tonight_prices_excl(self, strategy: Strategy) -> list:
