@@ -334,6 +334,33 @@ def action_test_entities():
 @app.route("/system", methods=["GET", "POST"])
 def system():
     options = _load_options()
+
+    # On GET: sync options from database if system section is missing/empty
+    # Bij GET: synchroniseer opties vanuit database als systeemsectie ontbreekt
+    if request.method == "GET":
+        db = _get_db()
+        if db and not options.get("system"):
+            try:
+                with db.cursor() as cur:
+                    cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
+                    row = cur.fetchone()
+                    if row:
+                        options["system"] = {
+                            "has_grid_connection":  bool(row.get("has_grid_connection", 1)),
+                            "has_solar_panels":     bool(row.get("has_solar_panels", 0)),
+                            "has_battery":          bool(row.get("has_battery", 0)),
+                            "has_gas":              bool(row.get("has_gas", 0)),
+                            "has_district_heating": bool(row.get("has_district_heating", 0)),
+                        }
+                        options["location"] = {
+                            "latitude":  float(row.get("latitude", 52.1551)),
+                            "longitude": float(row.get("longitude", 5.3872)),
+                            "timezone":  options.get("location", {}).get("timezone", "Europe/Amsterdam"),
+                        }
+                        _save_options(options)
+            except Exception:
+                pass
+
     if request.method == "POST":
         options["location"] = {
             "latitude":  float(request.form["latitude"]),
