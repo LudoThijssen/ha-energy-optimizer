@@ -29,9 +29,12 @@
     <div id="val-price" style="font-size:28px; font-weight:700; margin:6px 0;">—</div>
     <div style="font-size:11px; color:#6b7280;">ct/kWh</div>
   </div>
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;
+       {% if system_config and not system_config.has_solar_panels %}opacity:0.35; filter:grayscale(1);{% endif %}">
     <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Zonne-energie</div>
-    <div id="val-solar" style="font-size:28px; font-weight:700; color:#f59e0b; margin:6px 0;">—</div>
+    <div id="val-solar" style="font-size:28px; font-weight:700; color:#f59e0b; margin:6px 0;">
+      {% if system_config and not system_config.has_solar_panels %}n/a{% else %}—{% endif %}
+    </div>
     <div style="font-size:11px; color:#6b7280;">kW</div>
   </div>
   <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
@@ -44,9 +47,12 @@
     <div id="val-export" style="font-size:28px; font-weight:700; color:#10b981; margin:6px 0;">—</div>
     <div style="font-size:11px; color:#6b7280;">kW</div>
   </div>
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
+  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;
+       {% if system_config and not system_config.has_battery %}opacity:0.35; filter:grayscale(1);{% endif %}">
     <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Batterij SoC</div>
-    <div id="val-soc" style="font-size:28px; font-weight:700; color:#8b5cf6; margin:6px 0;">—</div>
+    <div id="val-soc" style="font-size:28px; font-weight:700; color:#8b5cf6; margin:6px 0;">
+      {% if system_config and not system_config.has_battery %}n/a{% else %}—{% endif %}
+    </div>
     <div style="font-size:11px; color:#6b7280;">%</div>
   </div>
   <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
@@ -60,8 +66,12 @@
 <div class="card">
   <h2>Vandaag / Today</h2>
   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; font-size:13px;">
-    <div><div style="color:#6b7280; margin-bottom:3px;">Zonopbrengst</div>
-         <div id="today-solar" style="font-weight:600;">— kWh</div></div>
+    <div style="{% if system_config and not system_config.has_solar_panels %}opacity:0.35;{% endif %}">
+      <div style="color:#6b7280; margin-bottom:3px;">Zonopbrengst</div>
+      <div id="today-solar" style="font-weight:600;">
+        {% if system_config and not system_config.has_solar_panels %}n/a{% else %}— kWh{% endif %}
+      </div>
+    </div>
     <div><div style="color:#6b7280; margin-bottom:3px;">Netafname</div>
          <div id="today-import" style="font-weight:600;">— kWh</div></div>
     <div><div style="color:#6b7280; margin-bottom:3px;">Teruglevering</div>
@@ -145,13 +155,17 @@
       el.textContent = ct;
       el.style.color = price < 0 ? '#ef4444' : price < 0.05 ? '#f59e0b' : '#0f172a';
     }
+    {% if not system_config or system_config.has_solar_panels %}
     setVal('val-solar',  live.solar_power,       3);
+    {% endif %}
     setVal('val-import', live.grid_import_power,  3);
     setVal('val-export', live.grid_export_power,  3);
+    {% if not system_config or system_config.has_battery %}
     if (live.battery_soc != null)
       setVal('val-soc', live.battery_soc, 1);
     else
       document.getElementById('val-soc').textContent = 'n/a';
+    {% endif %}
   }
 
   function setVal(id, val, dec) {
