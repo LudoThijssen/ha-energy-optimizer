@@ -55,6 +55,12 @@ options:
     latitude: 52.1551
     longitude: 5.3872
     timezone: "Europe/Amsterdam"
+  system:
+    has_grid_connection: true
+    has_solar_panels: false
+    has_battery: false
+    has_gas: false
+    has_district_heating: false
   language: "nl"
 schema:
   database:
@@ -88,6 +94,12 @@ schema:
     latitude: float
     longitude: float
     timezone: str
+  system:
+    has_grid_connection: bool?
+    has_solar_panels: bool?
+    has_battery: bool?
+    has_gas: bool?
+    has_district_heating: bool?
   language: list(nl|en|de|fr|es)?
 map:
   - data

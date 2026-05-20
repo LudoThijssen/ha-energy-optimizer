@@ -23,7 +23,52 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def _sync_system_config(db: DatabaseConnection, config: AppConfig) -> None:
+    """
+    On first start after reinstall, restore system_config from options.json.
+    Bij eerste start na herinstallatie, herstel system_config vanuit options.json.
+    """
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT COUNT(*) AS c FROM system_config")
+            if cur.fetchone()["c"] > 0:
+                return
 
+            import json as _json
+            from pathlib import Path as _Path
+            opts_path = _Path("/data/options.json")
+            opts = {}
+            if opts_path.exists():
+                with open(opts_path) as f:
+                    opts = _json.load(f)
+
+            sys_opts = opts.get("system", {})
+            loc_opts = opts.get("location", {})
+
+            cur.execute("""
+                INSERT INTO system_config
+                    (latitude, longitude, has_grid_connection,
+                     has_solar_panels, has_battery, has_gas,
+                     has_district_heating, language,
+                     battery_efficiency_pct,
+                     hard_min_discharge_price_excl)
+                VALUES (%(lat)s, %(lng)s, %(grid)s, %(solar)s,
+                        %(battery)s, %(gas)s, %(heating)s,
+                        %(lang)s, 83.00, 0.05000)
+            """, {
+                "lat":     loc_opts.get("latitude",  52.1551),
+                "lng":     loc_opts.get("longitude", 5.3872),
+                "grid":    1 if sys_opts.get("has_grid_connection", True)  else 0,
+                "solar":   1 if sys_opts.get("has_solar_panels",    False) else 0,
+                "battery": 1 if sys_opts.get("has_battery",         False) else 0,
+                "gas":     1 if sys_opts.get("has_gas",             False) else 0,
+                "heating": 1 if sys_opts.get("has_district_heating",False) else 0,
+                "lang":    opts.get("language", "nl"),
+            })
+            logger.info("system_config restored from options.json after reinstall")
+    except Exception as e:
+        logger.warning(f"Could not sync system_config: {e}")
+        
 async def main() -> None:
     logger.info("HA Energy Optimizer opstarten...")
 
@@ -36,6 +81,10 @@ async def main() -> None:
     run_migrations(db)
     logger.info("Database klaar")
 
+    # 2b. Sync system_config from options if empty
+    # Synchroniseer system_config vanuit options als leeg
+    _sync_system_config(db, config)
+    
     # 3. Reporter
     reporter = Reporter(db, config)
 
