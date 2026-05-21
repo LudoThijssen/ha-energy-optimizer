@@ -339,7 +339,16 @@ def system():
     # Bij GET: synchroniseer opties vanuit database als systeemsectie ontbreekt
     if request.method == "GET":
         db = _get_db()
-        if db and not options.get("system"):
+        sys_opts = options.get("system", {})
+        # Sync from DB if all components are default false (= fresh install)
+        # Synchroniseer vanuit DB als alle componenten standaard false zijn (= nieuwe installatie)
+        all_default = not any([
+            sys_opts.get("has_solar_panels"),
+            sys_opts.get("has_battery"),
+            sys_opts.get("has_gas"),
+            sys_opts.get("has_district_heating"),
+        ])
+        if db and all_default:
             try:
                 with db.cursor() as cur:
                     cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
