@@ -330,6 +330,9 @@ class OptimizerEngine:
                 target_soc_pct=soc,
                 expected_saving=saving,
                 reason=reason,
+                expected_solar_kw=forecast.solar_kw,
+                expected_consumption_kw=forecast.consumption_kw,
+                expected_price=forecast.price_per_kwh,
             ))
 
             all_notifications.extend(
@@ -372,6 +375,9 @@ class OptimizerEngine:
                 target_soc_pct=s.target_soc_pct,
                 expected_saving=s.expected_saving,
                 reason=s.reason,
+                expected_solar_kw=s.expected_solar_kw,
+                expected_consumption_kw=s.expected_consumption_kw,
+                expected_price=s.expected_price,
             )
             for s in slots
         ]
