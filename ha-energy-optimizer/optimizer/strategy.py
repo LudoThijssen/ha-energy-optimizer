@@ -588,7 +588,7 @@ class Strategy:
                 True,
                 f"Cheap price {price_excl:.4f} €/kWh excl., "
                 f"spread {most_expensive:.4f}/{cheapest:.4f} = "
-                f"{(most_expensive/cheapest):.2f}× "
+                f"{(most_expensive/cheapest if cheapest != 0 else Decimal('99')):.2f}× "
                 f"(≥{self.required_spread_factor}×){dep} — "
                 f"charging from grid / Goedkope prijs, spread voldoende — laden vanaf net",
             )
