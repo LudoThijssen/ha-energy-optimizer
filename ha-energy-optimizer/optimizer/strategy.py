@@ -559,6 +559,11 @@ class Strategy:
         if not day_stats:
             return False, ""
 
+        # Don't charge from grid if solar will fill battery anyway
+        # Laad niet van net als zon de batterij toch al vult
+        if solar_outlook and solar_outlook.estimated_yield_kwh >= usable_capacity * 0.8:
+            return False, "Voldoende zon verwacht — laden van net niet nodig"
+            
         if soc_pct >= self.max_soc - Decimal("2"):
             return False, ""
 
@@ -802,9 +807,35 @@ def _build_solar_outlook(db) -> "SolarOutlook | None":
     if not row or row.get("avg_sunshine") is None:
         return None
 
-    sunshine_pct  = Decimal(str(row["avg_sunshine"] or 0))
-    irradiance    = Decimal(str(row["total_irradiance"] or 0))
-    estimated_kwh = irradiance * Decimal("0.0008")
+    sunshine_pct = Decimal(str(row["avg_sunshine"] or 0))
+    cloud_pct    = Decimal("100") - sunshine_pct
+
+    # Try solar profile for better estimate / Probeer zonprofiel voor betere schatting
+    from datetime import date as _date
+    next_month = (tomorrow.replace(day=1) + __import__('datetime').timedelta(days=32)).month
+    profile_month = tomorrow.month
+
+    with db.cursor() as cur2:
+        cur2.execute("""
+            SELECT COALESCE(SUM(avg_kw), 0) AS profile_kwh
+            FROM solar_profile
+            WHERE month = %(month)s
+        """, {"month": profile_month})
+        profile_row = cur2.fetchone()
+
+    profile_kwh = Decimal(str(profile_row["profile_kwh"] or 0)) if profile_row else Decimal("0")
+
+    if profile_kwh > 0:
+        # Apply cloud correction with minimum 15% for diffuse light
+        cloud_factor = max(
+            Decimal("0.15"),
+            Decimal("1") - cloud_pct / Decimal("100")
+        )
+        estimated_kwh = profile_kwh * cloud_factor
+    else:
+        # Fallback to irradiance / Terugval op straling
+        irradiance    = Decimal(str(row["total_irradiance"] or 0))
+        estimated_kwh = irradiance * Decimal("0.0008")
 
     return SolarOutlook(
         sunshine_pct=sunshine_pct,
