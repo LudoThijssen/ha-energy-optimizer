@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 <!-- gui/templates/dashboard.html -->
 <!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- v0.2.11 — 2026-05-18 -->
+<!-- v0.2.11 — 2026-05-22 -->
 {% block title %}Dashboard — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<!-- Load Chart.js first in head via CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
@@ -16,92 +15,130 @@
   </div>
 </div>
 <p class="subtitle">Live energy overview / Live energie-overzicht</p>
-
-<!-- Status bar -->
-<div id="status-bar" style="font-size:12px; color:#6b7280; margin-bottom:12px;">
-  Laden... / Loading...
-</div>
+<div id="status-bar" style="font-size:12px; color:#6b7280; margin-bottom:12px;">Laden...</div>
 
 <!-- Live tiles -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px;">
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
-    <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Prijs nu</div>
-    <div id="val-price" style="font-size:28px; font-weight:700; margin:6px 0;">—</div>
-    <div style="font-size:11px; color:#6b7280;">ct/kWh</div>
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:20px;">
+  <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Prijs nu</div>
+    <div id="val-price" style="font-size:24px; font-weight:700; margin:4px 0;">—</div>
+    <div style="font-size:10px; color:#6b7280;">€/kWh</div>
   </div>
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;
-       {% if system_config and not system_config.has_solar_panels %}opacity:0.35; filter:grayscale(1);{% endif %}">
-    <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Zonne-energie</div>
-    <div id="val-solar" style="font-size:28px; font-weight:700; color:#f59e0b; margin:6px 0;">
+  <div class="card" style="padding:14px; text-align:center; margin-bottom:0;
+    {% if system_config and not system_config.has_solar_panels %}opacity:0.35; filter:grayscale(1);{% endif %}">
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Zonne-energie</div>
+    <div id="val-solar" style="font-size:24px; font-weight:700; color:#f59e0b; margin:4px 0;">
       {% if system_config and not system_config.has_solar_panels %}n/a{% else %}—{% endif %}
     </div>
-    <div style="font-size:11px; color:#6b7280;">kW</div>
+    <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
-    <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Netafname</div>
-    <div id="val-import" style="font-size:28px; font-weight:700; color:#3b82f6; margin:6px 0;">—</div>
-    <div style="font-size:11px; color:#6b7280;">kW</div>
+  <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Netafname</div>
+    <div id="val-import" style="font-size:24px; font-weight:700; color:#3b82f6; margin:4px 0;">—</div>
+    <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
-    <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Teruglevering</div>
-    <div id="val-export" style="font-size:28px; font-weight:700; color:#10b981; margin:6px 0;">—</div>
-    <div style="font-size:11px; color:#6b7280;">kW</div>
+  <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Teruglevering</div>
+    <div id="val-export" style="font-size:24px; font-weight:700; color:#10b981; margin:4px 0;">—</div>
+    <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;
-       {% if system_config and not system_config.has_battery %}opacity:0.35; filter:grayscale(1);{% endif %}">
-    <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Batterij SoC</div>
-    <div id="val-soc" style="font-size:28px; font-weight:700; color:#8b5cf6; margin:6px 0;">
+  <div class="card" style="padding:14px; text-align:center; margin-bottom:0;
+    {% if system_config and not system_config.has_battery %}opacity:0.35; filter:grayscale(1);{% endif %}">
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Batterij SoC</div>
+    <div id="val-soc" style="font-size:24px; font-weight:700; color:#8b5cf6; margin:4px 0;">
       {% if system_config and not system_config.has_battery %}n/a{% else %}—{% endif %}
     </div>
-    <div style="font-size:11px; color:#6b7280;">%</div>
+    <div style="font-size:10px; color:#6b7280;">%</div>
   </div>
-  <div class="card" style="padding:16px; text-align:center; margin-bottom:0;">
-    <div style="font-size:11px; color:#6b7280; text-transform:uppercase;">Besparing vandaag</div>
-    <div id="val-saving" style="font-size:28px; font-weight:700; color:#16a34a; margin:6px 0;">—</div>
-    <div style="font-size:11px; color:#6b7280;">€</div>
+  <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Kosten vandaag</div>
+    <div id="val-saving" style="font-size:24px; font-weight:700; color:#16a34a; margin:4px 0;">—</div>
+    <div style="font-size:10px; color:#6b7280;">€</div>
   </div>
 </div>
 
 <!-- Today summary -->
 <div class="card">
   <h2>Vandaag / Today</h2>
-  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; font-size:13px;">
+  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; font-size:13px;">
     <div style="{% if system_config and not system_config.has_solar_panels %}opacity:0.35;{% endif %}">
       <div style="color:#6b7280; margin-bottom:3px;">Zonopbrengst</div>
-      <div id="today-solar" style="font-weight:600;">
-        {% if system_config and not system_config.has_solar_panels %}n/a{% else %}— kWh{% endif %}
-      </div>
+      <div id="today-solar" style="font-weight:600;">{% if system_config and not system_config.has_solar_panels %}n/a{% else %}— kWh{% endif %}</div>
     </div>
-    <div><div style="color:#6b7280; margin-bottom:3px;">Netafname</div>
-         <div id="today-import" style="font-weight:600;">— kWh</div></div>
-    <div><div style="color:#6b7280; margin-bottom:3px;">Teruglevering</div>
-         <div id="today-export" style="font-weight:600;">— kWh</div></div>
+    <div>
+      <div style="color:#6b7280; margin-bottom:3px;">Netafname</div>
+      <div id="today-import" style="font-weight:600;">— kWh</div>
+    </div>
+    <div>
+      <div style="color:#6b7280; margin-bottom:3px;">Teruglevering</div>
+      <div id="today-export" style="font-weight:600;">— kWh</div>
+    </div>
+    <div>
+      <div style="color:#6b7280; margin-bottom:3px;">Verwachte besparing</div>
+      <div id="today-saving" style="font-weight:600;">— €</div>
+    </div>
   </div>
 </div>
 
-<!-- Price chart -->
+<!-- Grafiek 1: Verwachting -->
 <div class="card">
-  <h2>Prijzen & schema vandaag / Prices & schedule today</h2>
-  <div id="chart-container" style="position:relative; height:160px;">
-    <canvas id="price-chart"></canvas>
+  <h2>Grafiek 1 — Verwachting optimizer / Optimizer forecast</h2>
+  <p style="font-size:12px; color:#6b7280; margin-bottom:12px;">
+    Verwacht zon, verbruik en netlading per uur / Expected solar, consumption and grid charge per hour
+  </p>
+  <div style="position:relative; height:180px;">
+    <canvas id="chart-forecast"></canvas>
   </div>
-  <div style="display:flex; gap:16px; margin-top:10px; font-size:12px; color:#6b7280; flex-wrap:wrap;">
-    <span>&#9646; Prijs</span>
-    <span style="color:#3b82f6;">&#9646; Laden</span>
-    <span style="color:#ef4444;">&#9646; Ontladen</span>
-    <span style="color:#f59e0b;">&#9646; Zonne-lading</span>
-    <span style="color:#6b7280;">&#9646; Rust</span>
+  <div style="display:flex; gap:16px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
+    <span style="color:#f59e0b;">&#9646; Zon verwacht (kW)</span>
+    <span style="color:#6366f1;">&#9646; Verbruik verwacht (kW)</span>
+    <span style="color:#3b82f6;">&#9646; Nettoladen (kW)</span>
+    <span style="color:#ef4444;">&#9646; Ontladen (kW)</span>
+    <span style="color:#8b5cf6;">&#9644; Batterij SoC (%)</span>
+  </div>
+</div>
+
+<!-- Grafiek 2: Gemeten waarden -->
+<div class="card">
+  <h2>Grafiek 2 — Gemeten waarden / Measured values</h2>
+  <p style="font-size:12px; color:#6b7280; margin-bottom:12px;">
+    Werkelijke metingen per uur — bijgewerkt elk interval / Actual hourly measurements — updated each interval
+  </p>
+  <div style="position:relative; height:180px;">
+    <canvas id="chart-measured"></canvas>
+  </div>
+  <div style="display:flex; gap:16px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
+    <span style="color:#f59e0b;">&#9646; Zon gemeten (kW)</span>
+    <span style="color:#6366f1;">&#9646; Verbruik gemeten (kW)</span>
+    <span style="color:#3b82f6;">&#9646; Netafname (kW)</span>
+    <span style="color:#10b981;">&#9646; Teruglevering (kW)</span>
+  </div>
+</div>
+
+<!-- Grafiek 3: Energiekosten -->
+<div class="card">
+  <h2>Grafiek 3 — Energiekosten / Energy costs</h2>
+  <p style="font-size:12px; color:#6b7280; margin-bottom:12px;">
+    Prijs per uur in € — negatief = opbrengst / Price per hour in € — negative = revenue
+  </p>
+  <div style="position:relative; height:180px;">
+    <canvas id="chart-prices"></canvas>
+  </div>
+  <div style="display:flex; gap:16px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
+    <span style="color:#3b82f6;">&#9646; Laden van net</span>
+    <span style="color:#ef4444;">&#9646; Ontladen naar net</span>
+    <span style="color:#6b7280;">&#9646; Rust / idle</span>
   </div>
 </div>
 
 <!-- Schedule table -->
 <div class="card">
-  <h2>Optimizer schema / Optimizer schedule</h2>
-  <div id="schedule-empty" style="color:#6b7280; font-size:13px;">Geen schema beschikbaar.</div>
+  <h2>Optimizer schema / Schedule</h2>
+  <div id="schedule-empty" style="color:#6b7280; font-size:13px;">Geen schema.</div>
   <table id="schedule-table" style="display:none;">
     <thead><tr>
       <th>Uur</th><th>Actie</th><th>Vermogen</th>
-      <th>Prijs (ct)</th><th>Besparing</th><th>Status</th>
+      <th>Prijs (€)</th><th>Zon (kW)</th><th>Verbruik (kW)</th><th>Status</th>
     </tr></thead>
     <tbody id="schedule-body"></tbody>
   </table>
@@ -110,37 +147,28 @@
 <script>
 (function() {
   'use strict';
-
   const BASE      = "{{ ingress_path }}";
   const REFRESH_S = {{ refresh_seconds }};
-  let chart       = null;
-  let timer       = null;
+  let charts      = {};
   let remaining   = REFRESH_S;
 
-  // ── Fetch data ──────────────────────────────────────────────────────────────
+  // ── Fetch ───────────────────────────────────────────────────────────────────
   async function loadData() {
-    document.getElementById('status-bar').textContent = 'Vernieuwen... / Refreshing...';
+    document.getElementById('status-bar').textContent = 'Vernieuwen...';
     try {
-      const url  = BASE + '/api/dashboard-data';
-      const resp = await fetch(url, {credentials: 'include'});
-      if (!resp.ok) {
-        document.getElementById('status-bar').textContent =
-          'Fout: HTTP ' + resp.status;
-        return;
-      }
+      const resp = await fetch(BASE + '/api/dashboard-data', {credentials: 'include'});
+      if (!resp.ok) { document.getElementById('status-bar').textContent = 'Fout: HTTP ' + resp.status; return; }
       const d = await resp.json();
-      if (d.error) {
-        document.getElementById('status-bar').textContent = 'Fout: ' + d.error;
-        return;
-      }
+      if (d.error) { document.getElementById('status-bar').textContent = 'Fout: ' + d.error; return; }
       updateLive(d.live   || {});
       updateToday(d.today || {});
-      updateChart(d.prices || [], d.schedule || []);
+      updateForecastChart(d.schedule || []);
+      updateMeasuredChart(d.measured || []);
+      updatePriceChart(d.prices || [], d.schedule || []);
       updateSchedule(d.schedule || []);
       remaining = REFRESH_S;
       const now = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
-      document.getElementById('status-bar').textContent =
-        'Bijgewerkt om ' + now + ' · volgende refresh over ' + REFRESH_S + 's';
+      document.getElementById('status-bar').textContent = 'Bijgewerkt om ' + now;
     } catch(e) {
       document.getElementById('status-bar').textContent = 'Fout: ' + e.message;
     }
@@ -150,67 +178,141 @@
   function updateLive(live) {
     const price = live.current_price;
     if (price != null) {
-      const ct = (price * 100).toFixed(2);
       const el = document.getElementById('val-price');
-      el.textContent = ct;
+      el.textContent = price.toFixed(5);
       el.style.color = price < 0 ? '#ef4444' : price < 0.05 ? '#f59e0b' : '#0f172a';
     }
     {% if not system_config or system_config.has_solar_panels %}
-    setVal('val-solar',  live.solar_power,       3);
+    if (live.solar_power != null) document.getElementById('val-solar').textContent = live.solar_power.toFixed(3);
     {% endif %}
-    setVal('val-import', live.grid_import_power,  3);
-    setVal('val-export', live.grid_export_power,  3);
+    if (live.grid_import_power != null) document.getElementById('val-import').textContent = live.grid_import_power.toFixed(3);
+    if (live.grid_export_power != null) document.getElementById('val-export').textContent = live.grid_export_power.toFixed(3);
     {% if not system_config or system_config.has_battery %}
-    if (live.battery_soc != null)
-      setVal('val-soc', live.battery_soc, 1);
-    else
-      document.getElementById('val-soc').textContent = 'n/a';
+    if (live.battery_soc != null) document.getElementById('val-soc').textContent = live.battery_soc.toFixed(1);
     {% endif %}
   }
 
-  function setVal(id, val, dec) {
-    if (val != null)
-      document.getElementById(id).textContent = Number(val).toFixed(dec);
-  }
-
-  // ── Today summary ───────────────────────────────────────────────────────────
+  // ── Today ───────────────────────────────────────────────────────────────────
   function updateToday(t) {
+    {% if not system_config or system_config.has_solar_panels %}
     if (t.solar_kwh  != null) document.getElementById('today-solar').textContent  = t.solar_kwh.toFixed(2)  + ' kWh';
+    {% endif %}
     if (t.import_kwh != null) document.getElementById('today-import').textContent = t.import_kwh.toFixed(2) + ' kWh';
     if (t.export_kwh != null) document.getElementById('today-export').textContent = t.export_kwh.toFixed(2) + ' kWh';
-    if (t.expected_saving != null)
-      document.getElementById('val-saving').textContent = '€ ' + t.expected_saving.toFixed(2);
+    if (t.expected_saving != null) {
+      const saving = t.expected_saving;
+      const el = document.getElementById('val-saving');
+      el.textContent = (saving >= 0 ? '+' : '') + saving.toFixed(2);
+      el.style.color = saving >= 0 ? '#16a34a' : '#ef4444';
+      document.getElementById('today-saving').textContent =
+        (saving >= 0 ? '+' : '') + saving.toFixed(4) + ' €';
+    }
   }
 
-  // ── Price chart ─────────────────────────────────────────────────────────────
-  function updateChart(prices, schedule) {
-    if (!prices.length) return;
-    const colors = {
-      charge:       'rgba(59,130,246,0.75)',
-      discharge:    'rgba(239,68,68,0.75)',
-      self_consume: 'rgba(245,158,11,0.75)',
-      idle:         'rgba(156,163,175,0.4)',
-    };
-    const sched = {};
-    schedule.forEach(s => { sched[s.hour] = s.action; });
+  // ── Helper: make/update chart ───────────────────────────────────────────────
+  function makeChart(id, config) {
+    if (charts[id]) { charts[id].destroy(); }
+    const ctx = document.getElementById(id).getContext('2d');
+    charts[id] = new Chart(ctx, config);
+  }
 
-    const labels = prices.map(p => p.hour);
-    const data   = prices.map(p => (p.price * 100).toFixed(2));
-    const bg     = labels.map(h => colors[sched[h]] || 'rgba(156,163,175,0.4)');
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 } } }
+    }
+  };
 
-    const ctx = document.getElementById('price-chart').getContext('2d');
-    if (chart) { chart.destroy(); chart = null; }
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ data, backgroundColor: bg, borderWidth: 0 }] },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+  // ── Grafiek 1: Verwachting ──────────────────────────────────────────────────
+  function updateForecastChart(schedule) {
+    if (!schedule.length) return;
+    const labels  = schedule.map(s => s.hour);
+    const solar   = schedule.map(s => s.solar_kw || 0);
+    const consume = schedule.map(s => s.consumption_kw || 0);
+    const charge  = schedule.map(s => s.action === 'charge'    ?  s.power_kw : 0);
+    const disch   = schedule.map(s => s.action === 'discharge' ? -s.power_kw : 0);
+    const soc     = schedule.map(s => s.soc_pct || null);
+
+    makeChart('chart-forecast', {
+      data: {
+        labels,
+        datasets: [
+          { type: 'bar',  label: 'Zon',      data: solar,   backgroundColor: 'rgba(245,158,11,0.7)', yAxisID: 'y' },
+          { type: 'bar',  label: 'Verbruik', data: consume, backgroundColor: 'rgba(99,102,241,0.5)', yAxisID: 'y' },
+          { type: 'bar',  label: 'Laden',    data: charge,  backgroundColor: 'rgba(59,130,246,0.8)', yAxisID: 'y' },
+          { type: 'bar',  label: 'Ontladen', data: disch,   backgroundColor: 'rgba(239,68,68,0.8)',  yAxisID: 'y' },
+          { type: 'line', label: 'SoC %',    data: soc,     borderColor: '#8b5cf6', backgroundColor: 'transparent',
+            borderWidth: 2, pointRadius: 2, yAxisID: 'y2', tension: 0.3 },
+        ]
+      },
+      options: { ...chartDefaults,
         scales: {
-          y: { title: { display: true, text: 'ct/kWh', font: { size: 10 } },
-               grid: { color: 'rgba(0,0,0,0.04)' } },
-          x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+          x:  { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y:  { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+          y2: { position: 'right', min: 0, max: 100,
+                title: { display: true, text: '%', font: { size: 10 } },
+                grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // ── Grafiek 2: Gemeten ──────────────────────────────────────────────────────
+  function updateMeasuredChart(measured) {
+    if (!measured.length) return;
+    const labels  = measured.map(m => m.hour);
+    const solar   = measured.map(m => m.solar_kw);
+    const consume = measured.map(m => m.consumption_kw);
+    const imp     = measured.map(m => m.import_kw);
+    const exp     = measured.map(m => -m.export_kw);
+
+    makeChart('chart-measured', {
+      data: {
+        labels,
+        datasets: [
+          { type: 'line', label: 'Zon',         data: solar,   borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.3, pointRadius: 2, borderWidth: 2 },
+          { type: 'line', label: 'Verbruik',     data: consume, borderColor: '#6366f1', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+          { type: 'bar',  label: 'Netafname',    data: imp,     backgroundColor: 'rgba(59,130,246,0.6)' },
+          { type: 'bar',  label: 'Teruglevering',data: exp,     backgroundColor: 'rgba(16,185,129,0.6)' },
+        ]
+      },
+      options: { ...chartDefaults,
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+        }
+      }
+    });
+  }
+
+  // ── Grafiek 3: Prijzen ──────────────────────────────────────────────────────
+  function updatePriceChart(prices, schedule) {
+    if (!prices.length) return;
+    const sched  = {};
+    schedule.forEach(s => { sched[s.hour] = s.action; });
+    const actionColors = {
+      charge:    'rgba(59,130,246,0.8)',
+      discharge: 'rgba(239,68,68,0.8)',
+      idle:      'rgba(156,163,175,0.5)',
+    };
+    const labels = prices.map(p => p.hour);
+    const data   = prices.map(p => p.price);
+    const colors = labels.map(h => actionColors[sched[h]] || 'rgba(156,163,175,0.5)');
+
+    makeChart('chart-prices', {
+      data: {
+        labels,
+        datasets: [{
+          type: 'bar', label: 'Prijs', data, backgroundColor: colors, borderWidth: 0
+        }]
+      },
+      options: { ...chartDefaults,
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { title: { display: true, text: '€/kWh', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
         }
       }
     });
@@ -222,7 +324,7 @@
     const labels = {
       charge:       '<span style="color:#3b82f6;font-weight:600;">↑ Laden</span>',
       discharge:    '<span style="color:#ef4444;font-weight:600;">↓ Ontladen</span>',
-      self_consume: '<span style="color:#f59e0b;font-weight:600;">☀ Zonne-lading</span>',
+      self_consume: '<span style="color:#f59e0b;font-weight:600;">☀ Zon</span>',
       idle:         '<span style="color:#6b7280;">— Rust</span>',
     };
     document.getElementById('schedule-body').innerHTML = schedule.map(s => `
@@ -230,8 +332,9 @@
         <td style="font-weight:600;">${s.hour}</td>
         <td>${labels[s.action] || s.action}</td>
         <td>${s.power_kw ? s.power_kw.toFixed(1) + ' kW' : '—'}</td>
-        <td>${s.price != null ? (s.price * 100).toFixed(2) : '—'}</td>
-        <td>${s.saving != null ? '€ ' + s.saving.toFixed(4) : '—'}</td>
+        <td>${s.price != null ? s.price.toFixed(5) : '—'}</td>
+        <td>${s.solar_kw != null ? s.solar_kw.toFixed(3) : '—'}</td>
+        <td>${s.consumption_kw != null ? s.consumption_kw.toFixed(3) : '—'}</td>
         <td style="font-size:11px; color:#6b7280;">${s.executed ? '✓' : '●'}</td>
       </tr>`).join('');
     document.getElementById('schedule-empty').style.display = 'none';
@@ -241,26 +344,19 @@
   // ── Countdown ───────────────────────────────────────────────────────────────
   function tick() {
     remaining--;
-    if (remaining <= 0) {
-      loadData();
-    } else {
+    if (remaining <= 0) { loadData(); }
+    else {
       const m = Math.floor(remaining / 60);
       const s = remaining % 60;
       document.getElementById('refresh-countdown').textContent =
-        'Refresh in ' + m + ':' + String(s).padStart(2, '0');
+        m + ':' + String(s).padStart(2, '0');
     }
   }
 
   // ── Init ────────────────────────────────────────────────────────────────────
-  document.getElementById('refresh-btn').addEventListener('click', function() {
-    remaining = REFRESH_S;
-    loadData();
-  });
-
-  // Start
+  document.getElementById('refresh-btn').addEventListener('click', () => { remaining = REFRESH_S; loadData(); });
   loadData();
-  timer = setInterval(tick, 1000);
-
+  setInterval(tick, 1000);
 })();
 </script>
 

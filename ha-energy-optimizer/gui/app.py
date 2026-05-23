@@ -1085,22 +1085,73 @@ def api_dashboard_data():
         with db.cursor() as cur:
             cur.execute("""
                 SELECT schedule_for, action, target_power_kw,
-                       expected_price, expected_saving, executed
+                       expected_price, expected_saving, executed,
+                       expected_solar_kw, expected_consumption_kw,
+                       target_soc_pct
                 FROM optimizer_schedule
                 WHERE DATE(schedule_for) = CURDATE()
                 ORDER BY schedule_for
             """)
             data["schedule"] = [
                 {
-                    "hour":          row["schedule_for"].strftime("%H:%M"),
-                    "action":        row["action"],
-                    "power_kw":      float(row["target_power_kw"] or 0),
-                    "price":         float(row["expected_price"] or 0),
-                    "saving":        float(row["expected_saving"] or 0),
-                    "executed":      bool(row["executed"]),
+                    "hour":           row["schedule_for"].strftime("%H:%M"),
+                    "action":         row["action"],
+                    "power_kw":       float(row["target_power_kw"] or 0),
+                    "price":          float(row["expected_price"] or 0),
+                    "saving":         float(row["expected_saving"] or 0),
+                    "executed":       bool(row["executed"]),
+                    "solar_kw":       float(row["expected_solar_kw"] or 0),
+                    "consumption_kw": float(row["expected_consumption_kw"] or 0),
+                    "soc_pct":        float(row["target_soc_pct"] or 0),
                 }
                 for row in cur.fetchall()
             ]
+
+        # ── Measured hourly values / Gemeten uurwaarden ───────────────────
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    DATE_FORMAT(measured_at, '%H:00') AS hour,
+                    ROUND(AVG(power_kw), 3)           AS solar_kw
+                FROM solar_production
+                WHERE DATE(measured_at) = CURDATE()
+                GROUP BY DATE_FORMAT(measured_at, '%H:00')
+                ORDER BY hour
+            """)
+            solar_measured = {r["hour"]: float(r["solar_kw"]) for r in cur.fetchall()}
+
+            cur.execute("""
+                SELECT
+                    DATE_FORMAT(measured_at, '%H:00')               AS hour,
+                    ROUND(AVG(GREATEST(grid_import_kw, 0)), 3)     AS import_kw,
+                    ROUND(AVG(GREATEST(grid_export_kw, 0)), 3)     AS export_kw,
+                    ROUND(AVG(GREATEST(total_consumption_kw,0)),3)  AS consumption_kw
+                FROM home_consumption
+                WHERE DATE(measured_at) = CURDATE()
+                GROUP BY DATE_FORMAT(measured_at, '%H:00')
+                ORDER BY hour
+            """)
+            consumption_measured = {
+                r["hour"]: {
+                    "import_kw":      float(r["import_kw"]),
+                    "export_kw":      float(r["export_kw"]),
+                    "consumption_kw": float(r["consumption_kw"]),
+                }
+                for r in cur.fetchall()
+            }
+
+        all_hours = sorted(set(list(solar_measured.keys()) +
+                               list(consumption_measured.keys())))
+        data["measured"] = [
+            {
+                "hour":           h,
+                "solar_kw":       solar_measured.get(h, 0),
+                "import_kw":      consumption_measured.get(h, {}).get("import_kw", 0),
+                "export_kw":      consumption_measured.get(h, {}).get("export_kw", 0),
+                "consumption_kw": consumption_measured.get(h, {}).get("consumption_kw", 0),
+            }
+            for h in all_hours
+        ]
 
         # ── Today's prices / Prijzen vandaag ──────────────────────────────
         with db.cursor() as cur:
