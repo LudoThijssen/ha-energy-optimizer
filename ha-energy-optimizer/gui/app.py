@@ -866,14 +866,17 @@ def optimizer():
                     min_price_to_discharge=%(min_dis)s,
                     max_price_to_charge=%(max_chg)s,
                     hard_min_discharge_price_excl=%(hard_min)s,
-                    battery_efficiency_pct=%(eff)s, price_incl_tax=%(incl)s
+                    battery_efficiency_pct=%(eff)s,
+                    price_incl_tax=%(incl)s,
+                    solar_charge_threshold=%(solar_thr)s
                     WHERE id=%(id)s""",
-                    {"min_dis":  request.form.get("min_discharge_price"),
-                     "max_chg":  request.form.get("max_charge_price"),
-                     "hard_min": request.form.get("hard_min_discharge_price"),
-                     "eff":      request.form.get("battery_efficiency"),
-                     "incl":     1 if "price_incl_tax" in request.form else 0,
-                     "id":      config_row["id"]})
+                    {"min_dis":   request.form.get("min_discharge_price"),
+                     "max_chg":   request.form.get("max_charge_price"),
+                     "hard_min":  request.form.get("hard_min_discharge_price"),
+                     "eff":       request.form.get("battery_efficiency"),
+                     "incl":      1 if "price_incl_tax" in request.form else 0,
+                     "solar_thr": request.form.get("solar_charge_threshold", "0.80"),
+                     "id":        config_row["id"]})
             if battery_row:
                 cur.execute("""UPDATE battery_info SET
                     min_soc_pct=%(min_soc)s, max_soc_pct=%(max_soc)s

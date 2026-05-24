@@ -197,6 +197,11 @@ class Strategy:
 
         # ── Usable battery capacity / Bruikbare batterijcapaciteit ───────────
         usable_capacity_kwh: Decimal = Decimal("10"),
+
+        # ── Solar charge threshold / Zon-laaddrempel ─────────────────────────
+        # Block grid charging when expected solar >= this fraction of capacity.
+        # Blokkeer nettoladen als verwachte zon >= deze fractie van capaciteit.
+        solar_charge_threshold: Decimal = Decimal("0.80"),
     ):
         self.efficiency                    = battery_efficiency_pct / 100
         self.min_soc                       = min_soc_pct
@@ -218,6 +223,7 @@ class Strategy:
         self.avg_consumption_kwh           = avg_consumption_kwh
         self.sunrise_buffer_pct            = sunrise_buffer_pct
         self.price_incl_tax                = price_incl_tax
+        self.solar_charge_threshold        = solar_charge_threshold
         self.vat_multiplier                = Decimal("1") + vat_pct / 100
         self.depreciation_per_kwh          = depreciation_per_kwh
         self.usable_capacity_kwh           = usable_capacity_kwh
@@ -561,7 +567,8 @@ class Strategy:
 
         # Don't charge from grid if solar will fill battery anyway
         # Laad niet van net als zon de batterij toch al vult
-        if solar_outlook and solar_outlook.estimated_yield_kwh >= usable_capacity * 0.8:
+        solar_threshold = getattr(self, 'solar_charge_threshold', Decimal("0.8"))
+        if solar_outlook and solar_outlook.estimated_yield_kwh >= usable_capacity * solar_threshold:
             return False, "Voldoende zon verwacht — laden van net niet nodig"
             
         if soc_pct >= self.max_soc - Decimal("2"):
@@ -741,6 +748,7 @@ def build_strategy_from_db(db) -> tuple["Strategy", "DayPriceStats | None", "Sol
         price_incl_tax                = price_incl_tax,
         vat_pct                       = vat_pct,
         depreciation_per_kwh          = dep_per_kwh,
+        solar_charge_threshold        = Decimal(str(cfg.get("solar_charge_threshold") or "0.80")),
         usable_capacity_kwh           = usable_kwh,
     )
 

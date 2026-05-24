@@ -162,8 +162,26 @@
     </table>
   </div>
 
-  <div class="btn-row">
-    <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+  <div class="card">
+    <h2>Solar charge threshold / Zon-laaddrempel</h2>
+    <div class="alert alert-info">
+      Grid charging is blocked when expected solar production exceeds this fraction of usable battery capacity.<br>
+      Nettoladen wordt geblokkeerd wanneer verwachte zonopbrengst deze fractie van de bruikbare capaciteit overschrijdt.
+    </div>
+    <div class="field">
+      <label>Solar charge threshold / Zon-laaddrempel (0.0 – 1.0)</label>
+      <input type="number" name="solar_charge_threshold" step="0.05" min="0.0" max="1.0"
+             value="{{ config.solar_charge_threshold if config and config.solar_charge_threshold else 0.80 }}">
+      <div class="hint">
+        0.80 = block grid charging when solar ≥ 80% of usable capacity.<br>
+        0.80 = blokkeer nettoladen als zon ≥ 80% van bruikbare capaciteit.<br>
+        <em>Example / Voorbeeld: 15.55 kWh × 0.80 = 12.44 kWh expected solar → no grid charging</em>
+      </div>
+    </div>
   </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+    </div>
 </form>
 {% endblock %}
