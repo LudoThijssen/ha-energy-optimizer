@@ -426,7 +426,7 @@ class Strategy:
         # ── Step 5: Price-based grid charging ────────────────────────────────
         # Stap 5: Prijsgebaseerd laden vanaf net
         should_chg, chg_reason = self._should_charge_from_grid(
-            price_excl, soc_pct, day_stats
+            price_excl, soc_pct, day_stats, solar_outlook
         )
         if should_chg:
             power = power_limits.charge_kw
@@ -561,15 +561,15 @@ class Strategy:
         price_excl: Decimal,
         soc_pct: Decimal,
         day_stats: Optional[DayPriceStats],
+        solar_outlook: Optional["SolarOutlook"] = None,
     ) -> tuple[bool, str]:
         if not day_stats:
             return False, ""
-
         # Don't charge from grid if solar will fill battery anyway
         # Laad niet van net als zon de batterij toch al vult
-        solar_threshold = getattr(self, 'solar_charge_threshold', Decimal("0.8"))
-        if solar_outlook and solar_outlook.estimated_yield_kwh >= usable_capacity * solar_threshold:
-            return False, "Voldoende zon verwacht — laden van net niet nodig"
+        solar_threshold = self.solar_charge_threshold
+        if solar_outlook and solar_outlook.estimated_yield_kwh >= self.usable_capacity_kwh * solar_threshold:
+            return False, "Voldoende zon verwacht — laden van net niet nodig / Sufficient solar expected — grid charging blocked"
             
         if soc_pct >= self.max_soc - Decimal("2"):
             return False, ""
