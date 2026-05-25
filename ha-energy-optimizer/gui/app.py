@@ -1156,24 +1156,6 @@ def api_dashboard_data():
             for h in all_hours
         ]
 
-#        # ── Today's prices / Prijzen vandaag ──────────────────────────────
-#        with db.cursor() as cur:
-#            cur.execute("""
-#                SELECT price_hour, price_per_kwh, price_incl_tax
-#                FROM energy_prices
-#                WHERE DATE(price_hour) = CURDATE()
-#                  AND energy_type = 'electricity'
-#                ORDER BY price_hour
-#            """)
-#            data["prices"] = [
-#                {
-#                    "hour":      row["price_hour"].strftime("%H:%M"),
-#                    "price":     float(row["price_per_kwh"]),
-#                    "incl_tax":  bool(row["price_incl_tax"]),
-#                }
-#                for row in cur.fetchall()
-#            ]
-
         # ── Today's prices / Prijzen vandaag ──────────────────────────────
         with db.cursor() as cur:
             cur.execute("""
@@ -1183,23 +1165,16 @@ def api_dashboard_data():
                   AND energy_type = 'electricity'
                 ORDER BY price_hour
             """)
-            rows = cur.fetchall()
             data["prices"] = [
                 {
                     "hour":      row["price_hour"].strftime("%H:%M"),
                     "price":     float(row["price_per_kwh"]),
                     "incl_tax":  bool(row["price_incl_tax"]),
                 }
-                for row in rows
+                for row in cur.fetchall()
             ]
-            # Debug — log first few prices
-            import logging as _log
-            _log.getLogger(__name__).info(
-                f"Dashboard prices sample: {data['prices'][12:16]}"
-            )
-            _log.getLogger(__name__).info(
-                f"Dashboard schedule sample: {data['schedule'][12:16] if len(data['schedule']) > 12 else data['schedule']}"
-            )
+
+
 
     except Exception as e:
         data["error"] = str(e)
