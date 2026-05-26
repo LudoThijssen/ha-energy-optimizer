@@ -3,14 +3,13 @@
 <!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
 <!-- v0.2.11 — 2026-05-22 -->
 {% block title %}Dashboard — HA Energy Optimizer{% endblock %}
+{% block content %}
 
 <!-- Debug data — visible with Ctrl+U / Debuggegevens — zichtbaar met Ctrl+U -->
 <div id="debug-data" style="display:none;">
   <pre id="debug-prices"></pre>
   <pre id="debug-schedule"></pre>
 </div>
-
-{% block content %}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
