@@ -1084,7 +1084,7 @@ def api_dashboard_data():
             row = cur.fetchone()
             data["today"]["expected_saving"] = round(float(row["total_saving"] or 0), 4)
 
-        # ── Optimizer schedule / Optimizer schema ─────────────────────────
+        # ── Optimizer schedule 48h / Optimizer schema 48 uur ─────────────────
         with db.cursor() as cur:
             cur.execute("""
                 SELECT schedule_for, action, target_power_kw,
@@ -1092,12 +1092,15 @@ def api_dashboard_data():
                        expected_solar_kw, expected_consumption_kw,
                        target_soc_pct
                 FROM optimizer_schedule
-                WHERE DATE(schedule_for) = CURDATE()
+                WHERE schedule_for >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')
+                  AND schedule_for < DATE_FORMAT(NOW() + INTERVAL 2 DAY, '%Y-%m-%d 00:00:00')
                 ORDER BY schedule_for
             """)
             data["schedule"] = [
                 {
-                    "hour":           row["schedule_for"].strftime("%H:%M"),
+                    "hour":           row["schedule_for"].strftime("%d-%m %H:%M"),
+                    "hour_only":      row["schedule_for"].strftime("%H:%M"),
+                    "day":            row["schedule_for"].strftime("%Y-%m-%d"),
                     "action":         row["action"],
                     "power_kw":       float(row["target_power_kw"] or 0),
                     "price":          float(row["expected_price"] or 0),
@@ -1156,18 +1159,21 @@ def api_dashboard_data():
             for h in all_hours
         ]
 
-        # ── Today's prices / Prijzen vandaag ──────────────────────────────
+        # ── Prices 48h / Prijzen 48 uur ──────────────────────────────────
         with db.cursor() as cur:
             cur.execute("""
                 SELECT price_hour, price_per_kwh, price_incl_tax
                 FROM energy_prices
-                WHERE DATE(price_hour) = CURDATE()
+                WHERE price_hour >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')
+                  AND price_hour < DATE_FORMAT(NOW() + INTERVAL 2 DAY, '%Y-%m-%d 00:00:00')
                   AND energy_type = 'electricity'
                 ORDER BY price_hour
             """)
             data["prices"] = [
                 {
-                    "hour":      row["price_hour"].strftime("%H:%M"),
+                    "hour":      row["price_hour"].strftime("%d-%m %H:%M"),
+                    "hour_only": row["price_hour"].strftime("%H:%M"),
+                    "day":       row["price_hour"].strftime("%Y-%m-%d"),
                     "price":     float(row["price_per_kwh"]),
                     "incl_tax":  bool(row["price_incl_tax"]),
                 }
