@@ -113,10 +113,18 @@ class OptimizerEngine:
 
     def run(self) -> None:
         """
-        Hourly run — calculates and saves the 24-hour schedule.
-        Uurlijkse run — berekent en slaat het 24-uurs schema op.
+        Hourly run — rolling horizon recalculation using actual battery SoC.
+        Uurlijkse run — rolling horizon herberekening met werkelijke batterij-SoC.
+
+        Each run reads the current actual SoC from battery_status and uses it
+        as the starting point, correcting for any deviation from the previous
+        plan. Already-executed slots are preserved in the database.
+
+        Elke run leest de actuele SoC uit battery_status en gebruikt die als
+        startpunt, waarmee afwijkingen van het vorige plan worden gecorrigeerd.
+        Al uitgevoerde slots blijven bewaard in de database.
         """
-        logger.info("[optimizer] Starting optimization run / Optimalisatierun gestart")
+        logger.info("[optimizer] Starting rolling-horizon run / Rolling-horizon run gestart")
         try:
             strategy, day_stats, solar_outlook = build_strategy_from_db(self._db)
 
@@ -130,7 +138,17 @@ class OptimizerEngine:
 
             self._log_day_stats(day_stats, strategy)
 
-            forecasts = self._build_forecasts()
+            # ── Rolling horizon: read actual SoC ─────────────────────────────
+            # Lees werkelijke SoC als startpunt voor herberekening
+            battery = self._battery_repo.get_latest()
+            actual_soc = battery.soc_pct if battery else None
+
+            # Compare actual vs planned SoC and log if significant deviation
+            # Vergelijk werkelijk vs gepland SoC en log bij grote afwijking
+            if actual_soc is not None:
+                self._check_soc_deviation(actual_soc, strategy)
+
+            forecasts = self._build_forecasts(actual_soc=actual_soc)
             if not forecasts:
                 self._reporter.warning(
                     "No hourly forecasts available — optimizer skipped. / "
@@ -143,7 +161,8 @@ class OptimizerEngine:
                 forecasts, strategy, day_stats, solar_outlook
             )
 
-            # Save schedule to database / Sla schema op in database
+            # Save only future (unexecuted) slots — preserve executed history
+            # Sla alleen toekomstige (niet-uitgevoerde) slots op — bewaar uitgevoerde geschiedenis
             self._optimizer_repo.save_schedule(self._to_db_slots(slots))
 
             # Send any notifications to Home Assistant / Stuur meldingen naar HA
@@ -160,10 +179,14 @@ class OptimizerEngine:
 
     # ── Forecast building / Prognose-opbouw ──────────────────────────────────
 
-    def _build_forecasts(self) -> list[HourForecast]:
+    def _build_forecasts(
+        self, actual_soc: Decimal | None = None
+    ) -> list[HourForecast]:
         """
-        Build 24-hour forecasts combining price, weather and battery data.
-        Bouw 24-uurs prognoses op basis van prijs-, weer- en batterijgegevens.
+        Build 48-hour forecasts combining price, weather and battery data.
+        Uses actual_soc as starting point when provided (rolling horizon).
+        Bouw 48-uurs prognoses op basis van prijs-, weer- en batterijgegevens.
+        Gebruikt actual_soc als startpunt indien opgegeven (rolling horizon).
         """
         now = datetime.now().replace(minute=0, second=0, microsecond=0)
 
@@ -182,12 +205,24 @@ class OptimizerEngine:
         # Load weather forecasts / Laad weersvoorspellingen
         weather = {
             w.forecast_for: w
-            for w in self._weather_repo.get_forecast(now, hours=24)
+            for w in self._weather_repo.get_forecast(now, hours=48)
         }
 
-        # Current battery state / Huidige batterijstatus
-        battery = self._battery_repo.get_latest()
-        current_soc = battery.soc_pct if battery else Decimal("50")
+        # Rolling horizon: use actual SoC if available, otherwise fall back to DB
+        # Rolling horizon: gebruik werkelijke SoC indien beschikbaar, anders DB
+        if actual_soc is not None:
+            current_soc = actual_soc
+            logger.debug(
+                f"[optimizer] Rolling horizon: using actual SoC {current_soc:.1f}% / "
+                f"Werkelijke SoC {current_soc:.1f}% gebruikt als startpunt"
+            )
+        else:
+            battery = self._battery_repo.get_latest()
+            current_soc = battery.soc_pct if battery else Decimal("50")
+            logger.debug(
+                f"[optimizer] No actual SoC available, using DB value "
+                f"{current_soc:.1f}% / Geen werkelijke SoC, DB-waarde gebruikt"
+            )
 
         # Load solar profile for this month / Laad zonprofiel voor deze maand
         # Profile gives average kW per hour based on historical measurements
@@ -281,6 +316,55 @@ class OptimizerEngine:
             (row["price_hour"], strategy._to_excl(Decimal(str(row["price_per_kwh"]))))
             for row in rows
         ]
+
+    def _check_soc_deviation(
+        self, actual_soc: Decimal, strategy: Strategy
+    ) -> None:
+        """
+        Compare actual SoC with the planned SoC for this hour.
+        Log a warning if the deviation exceeds the threshold.
+
+        Vergelijk werkelijke SoC met de geplande SoC voor dit uur.
+        Log een waarschuwing als de afwijking de drempel overschrijdt.
+        """
+        _DEVIATION_THRESHOLD_PCT = Decimal("10")  # warn above 10% deviation
+
+        try:
+            now = datetime.now().replace(minute=0, second=0, microsecond=0)
+            with self._db.cursor() as cur:
+                cur.execute("""
+                    SELECT target_soc_pct FROM optimizer_schedule
+                    WHERE schedule_for = %(hour)s
+                    LIMIT 1
+                """, {"hour": now})
+                row = cur.fetchone()
+
+            if row and row["target_soc_pct"] is not None:
+                planned_soc = Decimal(str(row["target_soc_pct"]))
+                deviation = abs(actual_soc - planned_soc)
+                logger.info(
+                    f"[optimizer] Rolling horizon: actual SoC {actual_soc:.1f}% vs "
+                    f"planned {planned_soc:.1f}% (deviation {deviation:.1f}%) / "
+                    f"Werkelijke SoC {actual_soc:.1f}% vs gepland {planned_soc:.1f}% "
+                    f"(afwijking {deviation:.1f}%)"
+                )
+                if deviation >= _DEVIATION_THRESHOLD_PCT:
+                    self._reporter.warning(
+                        f"Rolling horizon: SoC deviation {deviation:.1f}% — "
+                        f"actual {actual_soc:.1f}% vs planned {planned_soc:.1f}%. "
+                        f"Schedule recalculated from actual SoC. / "
+                        f"Rolling horizon: SoC-afwijking {deviation:.1f}% — "
+                        f"werkelijk {actual_soc:.1f}% vs gepland {planned_soc:.1f}%. "
+                        f"Schema herberekend vanuit werkelijke SoC.",
+                        category="optimizer",
+                    )
+            else:
+                logger.debug(
+                    f"[optimizer] No planned SoC for {now} — "
+                    f"first run or fresh install / Eerste run of nieuwe installatie"
+                )
+        except Exception as e:
+            logger.debug(f"[optimizer] SoC deviation check failed (non-critical): {e}")
 
     # ── Optimization loop / Optimalisatielus ─────────────────────────────────
 

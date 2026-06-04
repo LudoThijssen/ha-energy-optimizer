@@ -1,7 +1,11 @@
-# database/repository.py — v0.2.5
+# database/repository.py
+# /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
+# v0.2.7 — 2026-04-13
 #
 # Repository classes for all database operations.
+# Exact column names match the SQL migrations 001-004.
 # Repository-klassen voor alle databasebewerkingen.
+# Kolomnamen komen exact overeen met SQL-migraties 001-004.
 
 from datetime import datetime, date
 from decimal import Decimal
@@ -15,9 +19,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# ── Battery ──────────────────────────────────────────────────────────────────
+# ── Battery ───────────────────────────────────────────────────────────────────
 
 class BatteryRepository:
+    """
+    battery_status columns:
+    id, created_at, measured_at, soc_pct, power_kw, voltage_v,
+    temperature_c, energy_charged_kwh, energy_discharged_kwh, cycle_count
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
@@ -29,18 +38,19 @@ class BatteryRepository:
                     (measured_at, soc_pct, power_kw, voltage_v,
                      temperature_c, energy_charged_kwh,
                      energy_discharged_kwh, cycle_count)
-                VALUES (%(measured_at)s, %(soc_pct)s, %(power_kw)s, %(voltage_v)s,
-                        %(temperature_c)s, %(energy_charged_kwh)s,
-                        %(energy_discharged_kwh)s, %(cycle_count)s)
+                VALUES (%(measured_at)s, %(soc_pct)s, %(power_kw)s,
+                        %(voltage_v)s, %(temperature_c)s,
+                        %(energy_charged_kwh)s, %(energy_discharged_kwh)s,
+                        %(cycle_count)s)
             """, {
                 "measured_at":           status.measured_at,
                 "soc_pct":               status.soc_pct,
                 "power_kw":              status.power_kw,
-                "voltage_v":             status.voltage_v,
-                "temperature_c":         status.temperature_c,
-                "energy_charged_kwh":    status.energy_charged_kwh,
-                "energy_discharged_kwh": status.energy_discharged_kwh,
-                "cycle_count":           status.cycle_count,
+                "voltage_v":             getattr(status, "voltage_v", None),
+                "temperature_c":         getattr(status, "temperature_c", None),
+                "energy_charged_kwh":    getattr(status, "energy_charged_kwh", None),
+                "energy_discharged_kwh": getattr(status, "energy_discharged_kwh", None),
+                "cycle_count":           getattr(status, "cycle_count", None),
             })
 
     def get_latest(self) -> BatteryStatus | None:
@@ -69,9 +79,13 @@ class BatteryRepository:
             return cur.fetchone() or {}
 
 
-# ── Solar ─────────────────────────────────────────────────────────────────────
+# ── Solar production ──────────────────────────────────────────────────────────
 
 class SolarRepository:
+    """
+    solar_production columns:
+    id, created_at, measured_at, power_kw, energy_kwh
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
@@ -80,30 +94,56 @@ class SolarRepository:
         with self._db.cursor() as cur:
             cur.execute("""
                 INSERT INTO solar_production
-                    (measured_at, power_kw, energy_today_kwh, source)
-                VALUES (%(measured_at)s, %(power_kw)s,
-                        %(energy_today_kwh)s, %(source)s)
+                    (measured_at, power_kw, energy_kwh)
+                VALUES (%(measured_at)s, %(power_kw)s, %(energy_kwh)s)
             """, {
-                "measured_at":      production.measured_at,
-                "power_kw":         production.power_kw,
-                "energy_today_kwh": production.energy_today_kwh,
-                "source":           production.source,
+                "measured_at": production.measured_at,
+                "power_kw":    production.power_kw,
+                "energy_kwh":  getattr(production, "energy_kwh", None),
             })
 
     def get_today_total(self) -> Decimal:
+        """
+        Calculate today's total solar production using hourly averages.
+        Bereken de totale zonopbrengst van vandaag via uurgemiddelden.
+
+        Uses AVG per hour × 1h to avoid errors from irregular measurement intervals.
+        Gebruikt AVG per uur × 1u om fouten door onregelmatige meetintervallen te vermijden.
+        """
         with self._db.cursor() as cur:
+            # Try energy counter first / Probeer energieteller eerst
             cur.execute("""
-                SELECT COALESCE(MAX(energy_today_kwh), 0) AS total
+                SELECT MAX(energy_kwh) - MIN(energy_kwh) AS total
                 FROM solar_production
                 WHERE DATE(measured_at) = CURDATE()
+                  AND energy_kwh IS NOT NULL
             """)
             row = cur.fetchone()
-            return Decimal(str(row["total"])) if row else Decimal("0")
+            if row and row["total"] is not None and row["total"] > 0:
+                return Decimal(str(row["total"])).quantize(Decimal("0.001"))
+
+            # Calculate from hourly averages / Bereken uit uurgemiddelden
+            cur.execute("""
+                SELECT COALESCE(SUM(avg_kw), 0) AS total
+                FROM (
+                    SELECT AVG(power_kw) AS avg_kw
+                    FROM solar_production
+                    WHERE DATE(measured_at) = CURDATE()
+                    GROUP BY HOUR(measured_at)
+                ) per_hour
+            """)
+            row = cur.fetchone()
+            return Decimal(str(row["total"])).quantize(Decimal("0.001")) if row else Decimal("0")
 
 
 # ── Home consumption ──────────────────────────────────────────────────────────
 
-class ConsumptionRepository:
+class HomeConsumptionRepository:
+    """
+    home_consumption columns:
+    id, created_at, measured_at, grid_import_kw, grid_export_kw,
+    total_consumption_kw, gas_m3
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
@@ -112,23 +152,38 @@ class ConsumptionRepository:
         with self._db.cursor() as cur:
             cur.execute("""
                 INSERT INTO home_consumption
-                    (measured_at, power_kw, grid_import_kw,
-                     grid_export_kw, source)
-                VALUES (%(measured_at)s, %(power_kw)s, %(grid_import_kw)s,
-                        %(grid_export_kw)s, %(source)s)
+                    (measured_at, grid_import_kw, grid_export_kw,
+                     total_consumption_kw, gas_m3)
+                VALUES (%(measured_at)s, %(grid_import_kw)s, %(grid_export_kw)s,
+                        %(total_consumption_kw)s, %(gas_m3)s)
             """, {
-                "measured_at":    consumption.measured_at,
-                "power_kw":       consumption.power_kw,
-                "grid_import_kw": consumption.grid_import_kw,
-                "grid_export_kw": consumption.grid_export_kw,
-                "source":         consumption.source,
+                "measured_at":         consumption.measured_at,
+                "grid_import_kw":      getattr(consumption, "grid_import_kw", None),
+                "grid_export_kw":      getattr(consumption, "grid_export_kw", None),
+                "total_consumption_kw":getattr(consumption, "total_consumption_kw", None),
+                "gas_m3":              getattr(consumption, "gas_m3", None),
             })
 
-    def get_average_hourly_kwh(self) -> Decimal:
-        """Return average hourly consumption based on last 30 days."""
+    def get_today_summary(self) -> dict:
+        """
+        Return today's grid import, export and consumption totals.
+        Geef de dagelijkse netafname, teruglevering en verbruikstotalen.
+        """
         with self._db.cursor() as cur:
             cur.execute("""
-                SELECT COALESCE(AVG(power_kw), 0.5) AS avg_kw
+                SELECT
+                    ROUND(SUM(GREATEST(grid_import_kw, 0)) / 12.0, 3)  AS import_kwh,
+                    ROUND(SUM(GREATEST(grid_export_kw, 0)) / 12.0, 3)  AS export_kwh,
+                    ROUND(SUM(GREATEST(total_consumption_kw, 0)) / 12.0, 3) AS verbruik_kwh
+                FROM home_consumption
+                WHERE DATE(measured_at) = CURDATE()
+            """)
+            return cur.fetchone() or {}
+
+    def get_average_hourly_kwh(self) -> Decimal:
+        with self._db.cursor() as cur:
+            cur.execute("""
+                SELECT COALESCE(AVG(total_consumption_kw), 0.5) AS avg_kw
                 FROM home_consumption
                 WHERE measured_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
             """)
@@ -139,15 +194,29 @@ class ConsumptionRepository:
 # ── Energy prices ─────────────────────────────────────────────────────────────
 
 class PriceRepository:
+    """
+    energy_prices columns:
+    id, created_at, price_hour, energy_type, price_per_kwh,
+    price_incl_tax, source
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
+    def save(self, price) -> None:
+        """Save a single price — accepts dict or EnergyPrice object."""
+        if hasattr(price, '__dict__'):
+            d = {k: v for k, v in price.__dict__.items() if not k.startswith('_')}
+        else:
+            d = dict(price)
+        self.save_many([d])
+
     def save_many(self, prices: list[dict]) -> int:
-        """Save a list of hourly prices, skip duplicates."""
         count = 0
         with self._db.cursor() as cur:
             for p in prices:
+                if hasattr(p, '__dict__'):
+                    p = {k: v for k, v in p.__dict__.items() if not k.startswith('_')}
                 cur.execute("""
                     INSERT INTO energy_prices
                         (price_hour, energy_type, price_per_kwh,
@@ -190,13 +259,34 @@ class PriceRepository:
 # ── Weather ───────────────────────────────────────────────────────────────────
 
 class WeatherRepository:
+    """
+    weather_forecast columns:
+    id, created_at, forecast_for, sun_rise, sun_set, sunshine_pct,
+    cloud_cover_pct, rain_mm, wind_speed_ms, wind_direction_deg,
+    temperature_c, solar_irradiance_wm2, source
+    UNIQUE KEY: forecast_for
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
-    def save_many(self, forecasts: list[dict]) -> None:
+    def save(self, forecast) -> None:
+        """Save a single WeatherForecast object."""
+        if hasattr(forecast, '__dict__'):
+            d = {k: v for k, v in forecast.__dict__.items()
+                 if not k.startswith('_')}
+        else:
+            d = dict(forecast)
+        self.save_many([d])
+
+    def save_many(self, forecasts: list) -> None:
         with self._db.cursor() as cur:
             for f in forecasts:
+                if hasattr(f, '__dict__'):
+                    d = {k: v for k, v in f.__dict__.items()
+                         if not k.startswith('_')}
+                else:
+                    d = dict(f)
                 cur.execute("""
                     INSERT INTO weather_forecast
                         (forecast_for, sun_rise, sun_set,
@@ -207,15 +297,28 @@ class WeatherRepository:
                         (%(forecast_for)s, %(sun_rise)s, %(sun_set)s,
                          %(sunshine_pct)s, %(cloud_cover_pct)s, %(rain_mm)s,
                          %(wind_speed_ms)s, %(wind_direction_deg)s,
-                         %(temperature_c)s, %(solar_irradiance_wm2)s, %(source)s)
+                         %(temperature_c)s, %(solar_irradiance_wm2)s,
+                         %(source)s)
                     ON DUPLICATE KEY UPDATE
-                        sunshine_pct       = VALUES(sunshine_pct),
-                        cloud_cover_pct    = VALUES(cloud_cover_pct),
-                        rain_mm            = VALUES(rain_mm),
-                        temperature_c      = VALUES(temperature_c),
-                        solar_irradiance_wm2 = VALUES(solar_irradiance_wm2),
-                        source             = VALUES(source)
-                """, f)
+                        sunshine_pct        = VALUES(sunshine_pct),
+                        cloud_cover_pct     = VALUES(cloud_cover_pct),
+                        rain_mm             = VALUES(rain_mm),
+                        temperature_c       = VALUES(temperature_c),
+                        solar_irradiance_wm2= VALUES(solar_irradiance_wm2),
+                        source              = VALUES(source)
+                """, {
+                    "forecast_for":        d.get("forecast_for"),
+                    "sun_rise":            d.get("sun_rise"),
+                    "sun_set":             d.get("sun_set"),
+                    "sunshine_pct":        d.get("sunshine_pct"),
+                    "cloud_cover_pct":     d.get("cloud_cover_pct"),
+                    "rain_mm":             d.get("rain_mm"),
+                    "wind_speed_ms":       d.get("wind_speed_ms"),
+                    "wind_direction_deg":  d.get("wind_direction_deg"),
+                    "temperature_c":       d.get("temperature_c"),
+                    "solar_irradiance_wm2":d.get("solar_irradiance_wm2"),
+                    "source":              d.get("source", "open-meteo"),
+                })
 
     def get_forecast(self, from_dt: datetime, hours: int = 24) -> list[WeatherForecast]:
         with self._db.cursor() as cur:
@@ -235,9 +338,9 @@ class WeatherRepository:
         with self._db.cursor() as cur:
             cur.execute("""
                 SELECT
-                    AVG(sunshine_pct)        AS avg_sunshine,
+                    AVG(sunshine_pct)         AS avg_sunshine,
                     AVG(solar_irradiance_wm2) AS avg_irradiance,
-                    AVG(temperature_c)       AS avg_temp
+                    AVG(temperature_c)        AS avg_temp
                 FROM weather_forecast
                 WHERE DATE(forecast_for) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
             """)
@@ -247,11 +350,29 @@ class WeatherRepository:
 # ── Optimizer schedule ────────────────────────────────────────────────────────
 
 class OptimizerRepository:
+    """
+    optimizer_schedule columns:
+    id, created_at, schedule_for, action, target_power_kw, target_soc_pct,
+    expected_price, expected_solar_kw, expected_consumption_kw,
+    expected_saving, reason, executed, executed_at
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
+    def save_schedule(self, slots: list) -> None:
+        """Save a list of slots / Sla een lijst slots op."""
+        for slot in slots:
+            self.save_slot(slot)
+
     def save_slot(self, slot: OptimizerSlot) -> None:
+        """
+        Save a single optimizer slot. Slots already marked as executed are
+        preserved — rolling horizon only updates future/unexecuted slots.
+
+        Sla één optimizer-slot op. Al uitgevoerde slots worden bewaard —
+        rolling horizon werkt alleen toekomstige/niet-uitgevoerde slots bij.
+        """
         with self._db.cursor() as cur:
             cur.execute("""
                 INSERT INTO optimizer_schedule
@@ -260,29 +381,29 @@ class OptimizerRepository:
                      expected_saving, reason)
                 VALUES
                     (%(schedule_for)s, %(action)s, %(target_power_kw)s,
-                     %(target_soc_pct)s, %(expected_price)s, %(expected_solar_kw)s,
-                     %(expected_consumption_kw)s, %(expected_saving)s, %(reason)s)
+                     %(target_soc_pct)s, %(expected_price)s,
+                     %(expected_solar_kw)s, %(expected_consumption_kw)s,
+                     %(expected_saving)s, %(reason)s)
                 ON DUPLICATE KEY UPDATE
-                    action               = VALUES(action),
-                    target_power_kw      = VALUES(target_power_kw),
-                    target_soc_pct       = VALUES(target_soc_pct),
-                    expected_price       = VALUES(expected_price),
-                    expected_solar_kw    = VALUES(expected_solar_kw),
-                    expected_consumption_kw = VALUES(expected_consumption_kw),
-                    expected_saving      = VALUES(expected_saving),
-                    reason               = VALUES(reason),
-                    executed             = 0,
-                    executed_at          = NULL
+                    -- Only update if not yet executed / Alleen bijwerken als nog niet uitgevoerd
+                    action                  = IF(executed = 0, VALUES(action),                  action),
+                    target_power_kw         = IF(executed = 0, VALUES(target_power_kw),         target_power_kw),
+                    target_soc_pct          = IF(executed = 0, VALUES(target_soc_pct),          target_soc_pct),
+                    expected_price          = IF(executed = 0, VALUES(expected_price),          expected_price),
+                    expected_solar_kw       = IF(executed = 0, VALUES(expected_solar_kw),       expected_solar_kw),
+                    expected_consumption_kw = IF(executed = 0, VALUES(expected_consumption_kw), expected_consumption_kw),
+                    expected_saving         = IF(executed = 0, VALUES(expected_saving),         expected_saving),
+                    reason                  = IF(executed = 0, VALUES(reason),                  reason)
             """, {
-                "schedule_for":          slot.schedule_for,
-                "action":                slot.action,
-                "target_power_kw":       slot.target_power_kw,
-                "target_soc_pct":        slot.target_soc_pct,
-                "expected_price":        slot.expected_price,
-                "expected_solar_kw":     slot.expected_solar_kw,
-                "expected_consumption_kw": slot.expected_consumption_kw,
-                "expected_saving":       slot.expected_saving,
-                "reason":                slot.reason,
+                "schedule_for":           slot.schedule_for,
+                "action":                 slot.action,
+                "target_power_kw":        getattr(slot, "target_power_kw", None),
+                "target_soc_pct":         getattr(slot, "target_soc_pct", None),
+                "expected_price":         getattr(slot, "expected_price", None),
+                "expected_solar_kw":      getattr(slot, "expected_solar_kw", None),
+                "expected_consumption_kw":getattr(slot, "expected_consumption_kw", None),
+                "expected_saving":        getattr(slot, "expected_saving", None),
+                "reason":                 getattr(slot, "reason", None),
             })
 
     def get_current_slot(self) -> OptimizerSlot | None:
@@ -302,7 +423,8 @@ class OptimizerRepository:
     def mark_executed(self, slot_id: int) -> None:
         with self._db.cursor() as cur:
             cur.execute(
-                "UPDATE optimizer_schedule SET executed=1, executed_at=NOW() WHERE id=%(id)s",
+                "UPDATE optimizer_schedule "
+                "SET executed=1, executed_at=NOW() WHERE id=%(id)s",
                 {"id": slot_id}
             )
 
@@ -321,14 +443,20 @@ class OptimizerRepository:
 # ── HA entity map ─────────────────────────────────────────────────────────────
 
 class EntityMapRepository:
+    """
+    ha_entity_map columns:
+    id, created_at, updated_at, internal_name, entity_id,
+    source, unit, description
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
     def get_all(self) -> dict[str, str]:
-        """Return {internal_name: entity_id} mapping."""
         with self._db.cursor() as cur:
-            cur.execute("SELECT internal_name, entity_id FROM ha_entity_map")
+            cur.execute(
+                "SELECT internal_name, entity_id FROM ha_entity_map"
+            )
             return {row["internal_name"]: row["entity_id"]
                     for row in cur.fetchall()}
 
@@ -336,6 +464,10 @@ class EntityMapRepository:
 # ── Report log ────────────────────────────────────────────────────────────────
 
 class ReportRepository:
+    """
+    report_log columns:
+    id, created_at, report_type, category, message, notified, notified_at
+    """
 
     def __init__(self, db: DatabaseConnection):
         self._db = db
@@ -366,6 +498,7 @@ class ReportRepository:
     def mark_notified(self, entry_id: int) -> None:
         with self._db.cursor() as cur:
             cur.execute(
-                "UPDATE report_log SET notified=1, notified_at=NOW() WHERE id=%(id)s",
+                "UPDATE report_log "
+                "SET notified=1, notified_at=NOW() WHERE id=%(id)s",
                 {"id": entry_id}
             )
