@@ -127,10 +127,12 @@
   </div>
 </div>
 
-<!-- Debug (hidden) -->
-<div id="debug-data" style="display:none;">
-  <pre id="debug-prices"></pre>
-  <pre id="debug-schedule"></pre>
+<!-- Schedule tabel 48h / Schedule table 48h -->
+<div class="card">
+  <h2>Optimizer schema — 48 uur / Optimizer schedule — 48 hours</h2>
+  <div id="schedule-table-wrap">
+    <p style="font-size:13px; color:#6b7280;">Laden...</p>
+  </div>
 </div>
 
 <script>
@@ -150,13 +152,10 @@
       const d = await resp.json();
       if (d.error) { document.getElementById('status-bar').textContent = 'Fout: ' + d.error; return; }
 
-      // Debug
-      document.getElementById('debug-prices').textContent   = 'PRICES:\n'   + JSON.stringify(d.prices, null, 2);
-      document.getElementById('debug-schedule').textContent = 'SCHEDULE:\n' + JSON.stringify(d.schedule, null, 2);
-
       updateLive(d.live   || {});
       updateToday(d.today || {});
       build48hCharts(d.prices || [], d.schedule || [], d.measured || []);
+      updateScheduleTable(d.schedule || []);
       remaining = REFRESH_S;
       const now = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
       document.getElementById('status-bar').textContent = 'Bijgewerkt om ' + now;
@@ -197,6 +196,59 @@
       el.style.color = s >= 0 ? '#16a34a' : '#ef4444';
       document.getElementById('today-saving').textContent = (s >= 0 ? '+' : '') + s.toFixed(4) + ' €';
     }
+  }
+
+  // ── Schedule tabel / Schedule table ───────────────────────────────────────
+  function updateScheduleTable(schedule) {
+    const wrap = document.getElementById('schedule-table-wrap');
+    if (!schedule.length) {
+      wrap.innerHTML = '<p style="font-size:13px; color:#6b7280;">Geen schema beschikbaar / No schedule available.</p>';
+      return;
+    }
+
+    const actionLabel = {
+      charge:       '<span style="color:#16a34a; font-weight:600;">&#8593; Laden</span>',
+      discharge:    '<span style="color:#dc2626; font-weight:600;">&#8595; Ontladen</span>',
+      self_consume: '<span style="color:#f59e0b; font-weight:600;">&#9728; Zelf verbruik</span>',
+      idle:         '<span style="color:#6b7280;">&#8212; Rust</span>',
+    };
+
+    let html = '<table><thead><tr>'
+      + '<th style="width:110px">Tijdstip / Time</th>'
+      + '<th style="width:130px">Actie / Action</th>'
+      + '<th style="width:80px">Vermogen / Power</th>'
+      + '<th style="width:80px">Prijs / Price</th>'
+      + '<th style="width:70px">SoC %</th>'
+      + '<th style="width:70px">Zon / Solar</th>'
+      + '<th>Besparing / Saving</th>'
+      + '</tr></thead><tbody>';
+
+    let lastDay = null;
+    schedule.forEach(s => {
+      if (s.day !== lastDay) {
+        const dayLabel = s.day === schedule[0].day ? 'Vandaag / Today' : 'Morgen / Tomorrow';
+        html += '<tr><td colspan="7" style="background:#f1f5f9; font-size:11px; font-weight:700;'
+              + ' color:#475569; padding:6px 12px; text-transform:uppercase; letter-spacing:.05em;">'
+              + dayLabel + ' — ' + s.day + '</td></tr>';
+        lastDay = s.day;
+      }
+      const rowBg = s.action === 'charge' ? 'background:#f0fdf4;'
+                  : s.action === 'discharge' ? 'background:#fef2f2;'
+                  : s.action === 'self_consume' ? 'background:#fffbeb;' : '';
+      const saving = s.saving !== 0 ? (s.saving >= 0 ? '+' : '') + s.saving.toFixed(4) + ' €' : '—';
+      html += '<tr style="' + rowBg + '">'
+            + '<td style="font-size:13px; font-weight:500;">' + s.hour_only + '</td>'
+            + '<td>' + (actionLabel[s.action] || s.action) + '</td>'
+            + '<td style="font-size:13px;">' + (s.power_kw ? s.power_kw.toFixed(2) + ' kW' : '—') + '</td>'
+            + '<td style="font-size:13px;">' + s.price.toFixed(4) + ' €</td>'
+            + '<td style="font-size:13px;">' + s.soc_pct.toFixed(0) + '%</td>'
+            + '<td style="font-size:13px;">' + s.solar_kw.toFixed(2) + ' kW</td>'
+            + '<td style="font-size:13px; color:' + (s.saving > 0 ? '#16a34a' : '#6b7280') + ';">' + saving + '</td>'
+            + '</tr>';
+    });
+
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
   }
 
   // ── Build 48h aligned charts ────────────────────────────────────────────────

@@ -212,7 +212,7 @@ class OptimizerEngine:
                 consumption_profile[row["hour_of_day"]] = Decimal(str(row["avg_kw"]))
 
         forecasts = []
-        for offset in range(24):
+        for offset in range(48):
             hour      = now + timedelta(hours=offset)
             price     = prices.get(hour)
             weather_h = weather.get(hour)
@@ -362,6 +362,8 @@ class OptimizerEngine:
         elif action == "discharge":
             delta = power_kw / strategy.efficiency / kwh * 100
             return max(current_soc - delta, strategy.min_soc)
+        # self_consume = battery full, surplus exported — SoC unchanged
+        # self_consume = batterij vol, overschot teruggeleverd — SoC ongewijzigd
         return current_soc
 
     # ── Persistence / Persistentie ────────────────────────────────────────────
@@ -472,13 +474,16 @@ class OptimizerEngine:
         )
 
     def _report_summary(self, slots: list[ScheduleSlot]) -> None:
-        charges    = sum(1 for s in slots if s.action == "charge")
-        discharges = sum(1 for s in slots if s.action == "discharge")
-        idles      = sum(1 for s in slots if s.action == "idle")
-        saving     = sum(s.expected_saving for s in slots)
+        charges       = sum(1 for s in slots if s.action == "charge")
+        discharges    = sum(1 for s in slots if s.action == "discharge")
+        idles         = sum(1 for s in slots if s.action == "idle")
+        self_consumes = sum(1 for s in slots if s.action == "self_consume")
+        saving        = sum(s.expected_saving for s in slots)
+        sc_part = f", {self_consumes} self_consume/zelf-verbruik" if self_consumes else ""
         msg = (
             f"Schedule: {len(slots)}h — "
-            f"{charges} charge/laden, {discharges} discharge/ontladen, {idles} idle. "
+            f"{charges} charge/laden, {discharges} discharge/ontladen, "
+            f"{idles} idle{sc_part}. "
             f"Expected saving / Verwachte besparing: €{saving:.2f}"
         )
         self._reporter.info(msg, category="optimizer")
