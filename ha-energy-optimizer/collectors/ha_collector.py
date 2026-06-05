@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime
 from decimal import Decimal
-from .base import BaseCollector, CollectorTemporaryError, CollectorConfigError
+from .base import BaseCollector, CollectorTemporaryError, CollectorConfigError, validate_reading
 from database.connection import DatabaseConnection
 from database.models import HomeConsumption, BatteryStatus, SolarProduction
 from database.repository import BatteryRepository, SolarRepository, HomeConsumptionRepository
@@ -37,10 +37,82 @@ class HaCollector(BaseCollector):
             return {row["internal_name"]: row["entity_id"] for row in cur.fetchall()}
 
     def _fetch_all(self, entity_map: dict[str, str]) -> dict[str, Decimal | None]:
+        """
+        Fetch all mapped sensors, validate each reading, and apply fallback
+        to the last known value when a reading is missing or out of bounds.
+
+        Lees alle gekoppelde sensoren, valideer elke waarde, en gebruik de
+        laatste bekende waarde als fallback bij ontbrekende of ongeldige data.
+        """
+        import logging
+        log = logging.getLogger(__name__)
         readings: dict[str, Decimal | None] = {}
+
         for internal_name, entity_id in entity_map.items():
-            readings[internal_name] = self._fetch_entity(entity_id)
+            raw = self._fetch_entity(entity_id)
+            validated = validate_reading(internal_name, raw, log)
+
+            if validated is None and raw is not None:
+                # Value was out of bounds — already logged by validate_reading
+                # Waarde buiten bereik — al gelogd door validate_reading
+                readings[internal_name] = self._get_last_known(internal_name)
+
+            elif validated is None:
+                # Sensor unavailable — try fallback
+                # Sensor niet beschikbaar — probeer fallback
+                fallback = self._get_last_known(internal_name)
+                if fallback is not None:
+                    log.info(
+                        f"[ha_collector] {internal_name} unavailable — "
+                        f"using last known value {fallback} / "
+                        f"niet beschikbaar — laatste bekende waarde {fallback} gebruikt"
+                    )
+                readings[internal_name] = fallback
+
+            else:
+                readings[internal_name] = validated
+
         return readings
+
+    def _get_last_known(self, internal_name: str) -> "Decimal | None":
+        """
+        Retrieve the most recent stored value for a sensor from the database.
+        Used as fallback when live reading is unavailable or invalid.
+
+        Haal de meest recente opgeslagen waarde op voor een sensor uit de database.
+        Gebruikt als fallback als de live waarde niet beschikbaar of ongeldig is.
+        """
+        column_map = {
+            "solar_power":             ("solar_production",  "power_kw"),
+            "solar_energy_total":      ("solar_production",  "energy_kwh"),
+            "grid_import_power":       ("home_consumption",  "grid_import_kw"),
+            "grid_export_power":       ("home_consumption",  "grid_export_kw"),
+            "total_consumption_power": ("home_consumption",  "total_consumption_kw"),
+            "battery_soc":             ("battery_status",    "soc_pct"),
+            "battery_power":           ("battery_status",    "power_kw"),
+            "battery_temperature":     ("battery_status",    "temperature_c"),
+            "battery_voltage":         ("battery_status",    "voltage_v"),
+        }
+        mapping = column_map.get(internal_name)
+        if not mapping:
+            return None
+
+        table, column = mapping
+        try:
+            with self._db.cursor() as cur:
+                cur.execute(
+                    f"SELECT {column} AS val FROM {table} "
+                    f"ORDER BY measured_at DESC LIMIT 1"
+                )
+                row = cur.fetchone()
+                if row and row["val"] is not None:
+                    return Decimal(str(row["val"]))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(
+                f"[ha_collector] Fallback lookup failed for {internal_name}: {e}"
+            )
+        return None
 
     def _fetch_entity(self, entity_id: str) -> Decimal | None:
         url = f"{self._base_url}/api/states/{entity_id}"

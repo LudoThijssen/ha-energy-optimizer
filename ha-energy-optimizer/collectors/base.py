@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
+from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,55 @@ class CollectorTemporaryError(Exception):
 class CollectorConfigError(Exception):
     """Configuratiefout — ontbrekende sleutel, ongeldige instelling."""
     pass
+
+
+# Sensor validation bounds per internal name.
+# Validatiebereiken per interne sensornaam.
+# Format: internal_name -> (min_value, max_value, allow_negative)
+SENSOR_BOUNDS: dict[str, tuple[float, float]] = {
+    "solar_power":          (0.0,    20.0),   # kW
+    "solar_energy_total":   (0.0,    999999.0),
+    "grid_import_power":    (0.0,    25.0),    # kW
+    "grid_export_power":    (0.0,    25.0),    # kW
+    "total_consumption_power": (0.0, 25.0),   # kW
+    "battery_soc":          (0.0,    100.0),   # %
+    "battery_power":        (-20.0,  20.0),   # kW, can be negative (discharge)
+    "battery_temperature":  (-20.0,  80.0),   # °C
+    "battery_voltage":      (0.0,    1000.0),  # V
+    "gas_consumption":      (0.0,    100.0),   # m³/h
+}
+
+
+def validate_reading(
+    internal_name: str,
+    value: Decimal | None,
+    logger: logging.Logger,
+) -> Decimal | None:
+    """
+    Validate a sensor reading against known bounds.
+    Returns None (with a warning) if the value is out of range or suspicious.
+
+    Valideer een sensorwaarde tegen bekende grenzen.
+    Geeft None terug (met waarschuwing) als de waarde buiten bereik of verdacht is.
+    """
+    if value is None:
+        return None
+
+    bounds = SENSOR_BOUNDS.get(internal_name)
+    if bounds is None:
+        return value  # Unknown sensor — pass through / Onbekende sensor — doorlaten
+
+    min_val, max_val = bounds
+    fval = float(value)
+
+    if fval < min_val or fval > max_val:
+        logger.warning(
+            f"[sensor_validation] {internal_name} value {fval} "
+            f"out of bounds [{min_val}, {max_val}] — discarded / buiten bereik — verworpen"
+        )
+        return None
+
+    return value
 
 
 class BaseCollector(ABC):
