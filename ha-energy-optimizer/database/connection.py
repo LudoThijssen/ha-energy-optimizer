@@ -28,20 +28,47 @@ class DatabaseConnection:
             connection_timeout=10,
             connect_timeout=10,
         )
-        logger.info(f"Database pool created — {config.host}:{config.port}/{config.name}")
+        # Read timezone from config — default Europe/Amsterdam
+        # Tijdzone uit config lezen — standaard Europe/Amsterdam
+        self._timezone = getattr(config, "timezone", "Europe/Amsterdam")
+        logger.info(
+            f"Database pool created — {config.host}:{config.port}/{config.name} "
+            f"(timezone: {self._timezone})"
+        )
 
     @contextmanager
     def cursor(self, dictionary=True):
+        """
+        Yield a cursor with the session timezone set to the configured local timezone.
+        This ensures NOW(), CURDATE() and all datetime comparisons use local time,
+        regardless of the MariaDB server timezone setting.
+
+        Geeft een cursor terug met de sessietijdzone ingesteld op de geconfigureerde
+        lokale tijdzone. Dit zorgt ervoor dat NOW(), CURDATE() en alle
+        datetime-vergelijkingen lokale tijd gebruiken, ongeacht de MariaDB-servertijdzone.
+        """
         conn = None
         cur = None
         try:
             conn = self._pool.get_connection()
+            # Set session timezone before yielding cursor
+            # Sessietijdzone instellen vóór het teruggeven van de cursor
+            tz_cur = conn.cursor()
+            try:
+                tz_cur.execute(f"SET time_zone = '{self._timezone}'")
+            finally:
+                tz_cur.close()
             cur = conn.cursor(dictionary=dictionary)
             yield cur
         except mysql.connector.errors.PoolError:
             import time
             time.sleep(0.5)
             conn = self._pool.get_connection()
+            tz_cur = conn.cursor()
+            try:
+                tz_cur.execute(f"SET time_zone = '{self._timezone}'")
+            finally:
+                tz_cur.close()
             cur = conn.cursor(dictionary=dictionary)
             yield cur
         finally:
