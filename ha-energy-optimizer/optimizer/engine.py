@@ -148,6 +148,10 @@ class OptimizerEngine:
             if actual_soc is not None:
                 self._check_soc_deviation(actual_soc, strategy)
 
+            # Compare last hour's forecast vs measured reality
+            # Vergelijk prognose vorig uur met gemeten werkelijkheid
+            self._check_forecast_deviation(strategy)
+
             forecasts = self._build_forecasts(actual_soc=actual_soc)
             if not forecasts:
                 self._reporter.warning(
@@ -365,6 +369,87 @@ class OptimizerEngine:
                 )
         except Exception as e:
             logger.debug(f"[optimizer] SoC deviation check failed (non-critical): {e}")
+
+    def _check_forecast_deviation(self, strategy: Strategy) -> None:
+        """
+        Compare last hour planned values with actual measured values.
+        Send warning if solar or consumption deviates significantly.
+
+        Vergelijk geplande waarden vorig uur met werkelijk gemeten waarden.
+        Stuur waarschuwing als zon of verbruik significant afwijkt.
+        """
+        _SOLAR_DEVIATION_KW       = Decimal("0.5")
+        _CONSUMPTION_DEVIATION_KW = Decimal("0.5")
+
+        try:
+            from datetime import timedelta
+            last_hour = datetime.now().replace(
+                minute=0, second=0, microsecond=0
+            ) - timedelta(hours=1)
+
+            with self._db.cursor() as cur:
+                cur.execute(
+                    "SELECT expected_solar_kw, expected_consumption_kw "
+                    "FROM optimizer_schedule "
+                    "WHERE schedule_for = %(hour)s LIMIT 1",
+                    {"hour": last_hour}
+                )
+                planned = cur.fetchone()
+
+            if not planned:
+                return
+
+            planned_solar = Decimal(str(planned["expected_solar_kw"] or 0))
+            planned_cons  = Decimal(str(planned["expected_consumption_kw"] or 0))
+
+            solar_actual = self._solar_repo.get_average_power_for_hour(last_hour)
+            cons_actual  = self._consumption_repo.get_average_power_for_hour(last_hour)
+
+            deviations = []
+
+            if solar_actual is not None and planned_solar > Decimal("0.1"):
+                solar_dev = abs(solar_actual - planned_solar)
+                if solar_dev >= _SOLAR_DEVIATION_KW:
+                    pct = (solar_dev / planned_solar * 100).quantize(Decimal("1"))
+                    dir_nl = "lager" if solar_actual < planned_solar else "hoger"
+                    dir_en = "lower" if solar_actual < planned_solar else "higher"
+                    deviations.append(
+                        f"Zonopbrengst {last_hour.strftime('%H:%M')}: "
+                        f"verwacht {planned_solar:.2f} kW, "
+                        f"gemeten {solar_actual:.2f} kW ({pct}% {dir_nl}). "
+                        f"Solar: expected {planned_solar:.2f} kW, "
+                        f"actual {solar_actual:.2f} kW ({pct}% {dir_en})."
+                    )
+
+            if cons_actual is not None and planned_cons > Decimal("0.1"):
+                cons_dev = abs(cons_actual - planned_cons)
+                if cons_dev >= _CONSUMPTION_DEVIATION_KW:
+                    pct = (cons_dev / planned_cons * 100).quantize(Decimal("1"))
+                    dir_nl = "lager" if cons_actual < planned_cons else "hoger"
+                    dir_en = "lower" if cons_actual < planned_cons else "higher"
+                    deviations.append(
+                        f"Verbruik {last_hour.strftime('%H:%M')}: "
+                        f"verwacht {planned_cons:.2f} kW, "
+                        f"gemeten {cons_actual:.2f} kW ({pct}% {dir_nl}). "
+                        f"Consumption: expected {planned_cons:.2f} kW, "
+                        f"actual {cons_actual:.2f} kW ({pct}% {dir_en})."
+                    )
+
+            if deviations:
+                msg = (
+                    "Afwijking verwachting vs werkelijkheid / Forecast deviation:\n"
+                    + "\n".join(deviations)
+                )
+                self._reporter.warning(msg, category="deviation")
+                logger.info(f"[optimizer] Forecast deviation: {msg}")
+            else:
+                logger.debug(
+                    f"[optimizer] Forecast check {last_hour.strftime('%H:%M')}: "
+                    "no significant deviation / geen significante afwijking"
+                )
+
+        except Exception as e:
+            logger.debug(f"[optimizer] Forecast deviation check failed (non-critical): {e}")
 
     # ── Optimization loop / Optimalisatielus ─────────────────────────────────
 

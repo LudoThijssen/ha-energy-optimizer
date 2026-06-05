@@ -136,6 +136,28 @@ class SolarRepository:
             return Decimal(str(row["total"])).quantize(Decimal("0.001")) if row else Decimal("0")
 
 
+    def get_average_power_for_hour(self, hour: "datetime") -> "Decimal | None":
+        """
+        Return average solar power (kW) measured during the given hour.
+        Returns None if no measurements exist for that hour.
+
+        Geeft gemiddeld zonnestroom (kW) gemeten tijdens het opgegeven uur.
+        Geeft None terug als er geen metingen zijn voor dat uur.
+        """
+        with self._db.cursor() as cur:
+            cur.execute(
+                "SELECT AVG(power_kw) AS avg_kw "
+                "FROM solar_production "
+                "WHERE measured_at >= %(start)s AND measured_at < %(end)s",
+                {"start": hour, "end": hour.replace(minute=59, second=59)}
+            )
+            row = cur.fetchone()
+            if row and row["avg_kw"] is not None:
+                from decimal import Decimal
+                return Decimal(str(row["avg_kw"])).quantize(Decimal("0.001"))
+            return None
+
+
 # ── Home consumption ──────────────────────────────────────────────────────────
 
 class HomeConsumptionRepository:
@@ -189,6 +211,28 @@ class HomeConsumptionRepository:
             """)
             row = cur.fetchone()
             return Decimal(str(row["avg_kw"])) if row else Decimal("0.5")
+
+
+    def get_average_power_for_hour(self, hour: "datetime") -> "Decimal | None":
+        """
+        Return average total consumption power (kW) during the given hour.
+        Returns None if no measurements exist for that hour.
+
+        Geeft gemiddeld totaal verbruiksvermogen (kW) tijdens het opgegeven uur.
+        Geeft None terug als er geen metingen zijn voor dat uur.
+        """
+        with self._db.cursor() as cur:
+            cur.execute(
+                "SELECT AVG(total_consumption_kw) AS avg_kw "
+                "FROM home_consumption "
+                "WHERE measured_at >= %(start)s AND measured_at < %(end)s",
+                {"start": hour, "end": hour.replace(minute=59, second=59)}
+            )
+            row = cur.fetchone()
+            if row and row["avg_kw"] is not None:
+                from decimal import Decimal
+                return Decimal(str(row["avg_kw"])).quantize(Decimal("0.001"))
+            return None
 
 
 # ── Energy prices ─────────────────────────────────────────────────────────────
