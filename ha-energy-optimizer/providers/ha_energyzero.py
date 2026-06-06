@@ -97,11 +97,6 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
             except ValueError:
                 continue
 
-            # Only keep prices for target_date in local time
-            # Bewaar alleen prijzen voor target_date in lokale tijd
-            if ts_naive.date() != target_date:
-                continue
-
             results.append(EnergyPrice(
                 price_hour    = ts_naive,
                 energy_type   = "electricity",
@@ -112,7 +107,7 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
 
         if not results:
             raise CollectorTemporaryError(
-                f"Geen prijzen gevonden voor {target_date} in HA sensor"
+                f"Geen prijzen gevonden in HA sensor"
             )
 
         return sorted(results, key=lambda p: p.price_hour)
