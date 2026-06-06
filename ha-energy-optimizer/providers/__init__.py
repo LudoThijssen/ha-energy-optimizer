@@ -47,6 +47,11 @@ def get_provider(config: AppConfig) -> BaseEnergyProvider:
     else:
          driver_cfg = _raw_cfg
 
+    # Inject timezone into driver_cfg so providers don't need to hardcode it
+    # Tijdzone injecteren in driver_cfg zodat providers die niet hardcoded hoeven
+    tz_name = getattr(getattr(config, "location", None), "timezone", "Europe/Amsterdam")
+    driver_cfg.setdefault("timezone", tz_name)
+
     # Registry of available providers / Register van beschikbare providers
     registry = {
         "anwb":          lambda: _load("providers.anwb",          "AnwbProvider",          driver_cfg),

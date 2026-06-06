@@ -1,7 +1,5 @@
 from datetime import date, timedelta, datetime, timezone
 from zoneinfo import ZoneInfo
-
-_LOCAL_TZ = ZoneInfo("Europe/Amsterdam")
 from .base import BaseCollector, CollectorTemporaryError
 from database.connection import DatabaseConnection
 from database.repository import PriceRepository
@@ -21,9 +19,11 @@ class PriceCollector(BaseCollector):
     def collect(self) -> None:
         from providers import get_provider
         provider = get_provider(self._config)
-        # Use local date — container may run in UTC
-        # Lokale datum gebruiken — container kan in UTC draaien
-        today    = datetime.now(tz=_LOCAL_TZ).date()
+        # Use local date from config — container may run in UTC
+        # Lokale datum uit config gebruiken — container kan in UTC draaien
+        tz_name  = getattr(self._config.location, "timezone", "Europe/Amsterdam")
+        local_tz = ZoneInfo(tz_name)
+        today    = datetime.now(tz=local_tz).date()
         tomorrow = today + timedelta(days=1)
 
         for target_date in [today, tomorrow]:

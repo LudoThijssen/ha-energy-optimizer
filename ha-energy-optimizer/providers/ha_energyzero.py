@@ -16,8 +16,7 @@ from .base import BaseEnergyProvider
 from database.models import EnergyPrice
 from collectors.base import CollectorTemporaryError
 
-_LOCAL_TZ = ZoneInfo("Europe/Amsterdam")
-_UTC_TZ   = ZoneInfo("UTC")
+_UTC_TZ = ZoneInfo("UTC")
 
 
 class HaEnergyZeroProvider(BaseEnergyProvider):
@@ -31,6 +30,7 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
         ha_token:  str  — Long-lived access token
         entity_id: str  — Sensor entity ID
                           (default: sensor.energy_prices_today)
+        timezone:  str  — Local timezone (default: Europe/Amsterdam)
     """
 
     energy_type = "electricity"
@@ -39,6 +39,9 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
         self._ha_url   = f"http://{cfg.get('ha_host', 'homeassistant')}:{cfg.get('ha_port', 8123)}"
         self._token    = cfg.get("ha_token", "")
         self._entity   = cfg.get("entity_id", "sensor.energy_prices_today")
+        # Timezone from config — not hardcoded / Tijdzone uit config — niet hardcoded
+        tz_name        = cfg.get("timezone", "Europe/Amsterdam")
+        self._local_tz = ZoneInfo(tz_name)
 
     def get_hourly_prices(self, target_date: date) -> list[EnergyPrice]:
         """
@@ -84,7 +87,7 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
                 if parsed.tzinfo is not None:
                     # Aware datetime — convert to local regardless of source offset
                     # Aware datetime — omzetten naar lokaal ongeacht bronoffset
-                    ts_local = parsed.astimezone(_LOCAL_TZ)
+                    ts_local = parsed.astimezone(self._local_tz)
                     ts_naive = ts_local.replace(tzinfo=None)
                 else:
                     # Naive datetime — assume already local (HA sensor local mode)
