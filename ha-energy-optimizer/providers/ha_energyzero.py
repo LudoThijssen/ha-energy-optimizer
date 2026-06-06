@@ -71,16 +71,25 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
             if price is None or not ts_str:
                 continue
 
-            # Parse UTC timestamp / Parseer UTC tijdstempel
+            # Parse timestamp — handle all formats the HA sensor may return:
+            # Parseer tijdstempel — verwerk alle formaten die de HA sensor kan teruggeven:
+            #   "2026-06-07T21:00:00+00:00"  → UTC aware    → convert to local
+            #   "2026-06-07T21:00:00Z"        → UTC aware    → convert to local
+            #   "2026-06-07T23:00:00+02:00"   → local aware  → convert to local
+            #   "2026-06-07T23:00:00"         → naive        → assume local, use as-is
             try:
-                if ts_str.endswith("+00:00"):
-                    ts_utc = datetime.fromisoformat(ts_str)
-                else:
-                    ts_utc = datetime.fromisoformat(ts_str).replace(tzinfo=_UTC_TZ)
+                ts_str_clean = ts_str.replace("Z", "+00:00")
+                parsed = datetime.fromisoformat(ts_str_clean)
 
-                # Convert to local time / Omzetten naar lokale tijd
-                ts_local = ts_utc.astimezone(_LOCAL_TZ)
-                ts_naive = ts_local.replace(tzinfo=None)
+                if parsed.tzinfo is not None:
+                    # Aware datetime — convert to local regardless of source offset
+                    # Aware datetime — omzetten naar lokaal ongeacht bronoffset
+                    ts_local = parsed.astimezone(_LOCAL_TZ)
+                    ts_naive = ts_local.replace(tzinfo=None)
+                else:
+                    # Naive datetime — assume already local (HA sensor local mode)
+                    # Naive datetime — aannemen dat het al lokaal is (HA sensor lokale modus)
+                    ts_naive = parsed
 
             except ValueError:
                 continue
