@@ -52,18 +52,15 @@ def get_provider(config: AppConfig) -> BaseEnergyProvider:
     tz_name = getattr(getattr(config, "location", None), "timezone", "Europe/Amsterdam")
     driver_cfg.setdefault("timezone", tz_name)
 
-    # Registry of available providers / Register van beschikbare providers
-    # Also inject HA connection settings for ha_price_sensor if not already set
-    # HA-verbindingsinstellingen injecteren voor ha_price_sensor indien niet aanwezig
-    ha_cfg = getattr(getattr(config, "homeassistant", None), None, None)
-    if ha_cfg is None:
-        try:
-            ha_cfg = config.homeassistant
-            driver_cfg.setdefault("ha_host",  getattr(ha_cfg, "host",  "homeassistant"))
-            driver_cfg.setdefault("ha_port",  getattr(ha_cfg, "port",  8123))
-            driver_cfg.setdefault("ha_token", getattr(ha_cfg, "token", ""))
-        except AttributeError:
-            pass
+    # Inject HA connection settings for ha_energyzero provider if not already set
+    # HA-verbindingsinstellingen injecteren voor ha_energyzero provider indien niet aanwezig
+    try:
+        ha_cfg = config.homeassistant
+        driver_cfg.setdefault("ha_host",  getattr(ha_cfg, "host",  "homeassistant"))
+        driver_cfg.setdefault("ha_port",  getattr(ha_cfg, "port",  8123))
+        driver_cfg.setdefault("ha_token", getattr(ha_cfg, "token", ""))
+    except AttributeError:
+        pass
 
     registry = {
         "anwb":             lambda: _load("providers.anwb",             "AnwbProvider",           driver_cfg),
