@@ -16,10 +16,15 @@ logger = logging.getLogger(__name__)
 
 class DatabaseConnection:
     def __init__(self, config: DatabaseConfig):
+        # Compute timezone offset before creating pool
+        # Tijdzone-offset berekenen voor aanmaken van de pool
+        tz_name = getattr(config, "timezone", "Europe/Amsterdam")
+        self._tz_offset = self._compute_utc_offset(tz_name)
+
         self._pool = pooling.MySQLConnectionPool(
             pool_name="energy_pool",
             pool_size=10,           # Increased from 5 / Verhoogd van 5
-            pool_reset_session=True,
+            pool_reset_session=False,  # True would reset SET time_zone — keep False / True wist SET time_zone — False houden
             host=config.host,
             port=config.port,
             database=config.name,
@@ -29,11 +34,8 @@ class DatabaseConnection:
             autocommit=True,        # Simpler — each statement commits immediately
             connection_timeout=10,
             connect_timeout=10,
+            init_command=f"SET time_zone = '{self._compute_utc_offset(tz_name)}'",
         )
-        # Compute UTC offset for session timezone (avoids missing tzinfo tables)
-        # UTC-offset berekenen voor sessietijdzone (vermijdt ontbrekende tzinfo-tabellen)
-        tz_name = getattr(config, "timezone", "Europe/Amsterdam")
-        self._tz_offset = self._compute_utc_offset(tz_name)
         logger.info(
             f"Database pool created — {config.host}:{config.port}/{config.name} "
             f"(timezone: {tz_name}, offset: {self._tz_offset})"
@@ -69,36 +71,20 @@ class DatabaseConnection:
     @contextmanager
     def cursor(self, dictionary=True):
         """
-        Yield a cursor with the session timezone set to the configured local timezone.
-        This ensures NOW(), CURDATE() and all datetime comparisons use local time,
-        regardless of the MariaDB server timezone setting.
-
-        Geeft een cursor terug met de sessietijdzone ingesteld op de geconfigureerde
-        lokale tijdzone. Dit zorgt ervoor dat NOW(), CURDATE() en alle
-        datetime-vergelijkingen lokale tijd gebruiken, ongeacht de MariaDB-servertijdzone.
+        Yield a cursor from the pool.
+        The session timezone is set via init_command on every new connection.
+        Geeft een cursor terug uit de pool.
+        De sessietijdzone wordt ingesteld via init_command op elke nieuwe verbinding.
         """
         conn = None
-        cur = None
+        cur  = None
         try:
-            conn = self._pool.get_connection()
-            # Set session timezone before yielding cursor
-            # Sessietijdzone instellen vóór het teruggeven van de cursor
-            tz_cur = conn.cursor()
             try:
-                tz_cur.execute(f"SET time_zone = '{self._tz_offset}'")
-            finally:
-                tz_cur.close()
-            cur = conn.cursor(dictionary=dictionary)
-            yield cur
-        except mysql.connector.errors.PoolError:
-            import time
-            time.sleep(0.5)
-            conn = self._pool.get_connection()
-            tz_cur = conn.cursor()
-            try:
-                tz_cur.execute(f"SET time_zone = '{self._tz_offset}'")
-            finally:
-                tz_cur.close()
+                conn = self._pool.get_connection()
+            except mysql.connector.errors.PoolError:
+                import time
+                time.sleep(0.5)
+                conn = self._pool.get_connection()
             cur = conn.cursor(dictionary=dictionary)
             yield cur
         finally:
