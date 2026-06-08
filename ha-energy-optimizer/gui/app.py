@@ -263,7 +263,8 @@ def action_fetch_prices():
 def action_test_entities():
     """Read all mapped HA entities and return their current values."""
     try:
-        config = AppConfig.load()
+        options = _load_options()
+        ha_cfg  = options.get("homeassistant", {})
         db = _get_db()
 
         if not db:
@@ -281,8 +282,8 @@ def action_test_entities():
             })
 
         import requests as req
-        ha_url = f"http://{config.ha.host}:{config.ha.port}"
-        headers = {"Authorization": f"Bearer {config.ha.token}"}
+        ha_url  = f"http://{ha_cfg.get('host', 'homeassistant')}:{ha_cfg.get('port', 8123)}"
+        headers = {"Authorization": f"Bearer {ha_cfg.get('token', '')}"}
 
         results = []
         for m in mappings:
@@ -672,42 +673,55 @@ def entities():
             cur.execute("SELECT * FROM ha_entity_map ORDER BY internal_name")
             entity_rows = cur.fetchall()
 
-    if request.method == "POST" and db:
-        action = request.form.get("action", "add")
+    if request.method == "POST":
+        if not db:
+            return render_template("entities.html",
+                                   entities=entity_rows,
+                                   error="Database niet beschikbaar / Database unavailable",
+                                   saved=None)
+        try:
+            action = request.form.get("action", "add")
 
-        if action == "update":
-            # Update existing entity mapping / Bestaande koppeling bijwerken
-            internal_name = request.form.get("internal_name_custom", "").strip()
-            entity_id = request.form.get("entity_id", "").strip()
-            unit = request.form.get("unit", "")
-            description = request.form.get("description", "")
-            if internal_name and entity_id:
-                with db.cursor() as cur:
-                    cur.execute("""INSERT INTO ha_entity_map
-                        (internal_name, entity_id, unit, description)
-                        VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
-                        ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
-                        unit=VALUES(unit), description=VALUES(description)""",
-                        {"n": internal_name, "e": entity_id,
-                         "u": unit, "d": description})
+            if action == "update":
+                # Update existing entity mapping / Bestaande koppeling bijwerken
+                internal_name = request.form.get("internal_name_custom", "").strip()
+                entity_id     = request.form.get("entity_id", "").strip()
+                unit          = request.form.get("unit", "")
+                description   = request.form.get("description", "")
+                if internal_name and entity_id:
+                    with db.cursor() as cur:
+                        cur.execute("""INSERT INTO ha_entity_map
+                            (internal_name, entity_id, unit, description)
+                            VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
+                            ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
+                            unit=VALUES(unit), description=VALUES(description)""",
+                            {"n": internal_name, "e": entity_id,
+                             "u": unit, "d": description})
+            else:
+                # Add new entity mapping / Nieuwe koppeling toevoegen
+                internal_name = (request.form.get("internal_name_custom") or
+                                request.form.get("internal_name", "")).strip()
+                if internal_name:
+                    with db.cursor() as cur:
+                        cur.execute("""INSERT INTO ha_entity_map
+                            (internal_name, entity_id, unit, description)
+                            VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
+                            ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
+                            unit=VALUES(unit), description=VALUES(description)""",
+                            {"n": internal_name,
+                             "e": request.form.get("entity_id"),
+                             "u": request.form.get("unit", ""),
+                             "d": request.form.get("description", "")})
 
-        else:
-            # Add new entity mapping / Nieuwe koppeling toevoegen
-            internal_name = (request.form.get("internal_name_custom") or
-                            request.form.get("internal_name", "")).strip()
-            if internal_name:
-                with db.cursor() as cur:
-                    cur.execute("""INSERT INTO ha_entity_map
-                        (internal_name, entity_id, unit, description)
-                        VALUES (%(n)s, %(e)s, %(u)s, %(d)s)
-                        ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id),
-                        unit=VALUES(unit), description=VALUES(description)""",
-                        {"n": internal_name,
-                         "e": request.form.get("entity_id"),
-                         "u": request.form.get("unit", ""),
-                         "d": request.form.get("description", "")})
+            return redirect(_url("entities") + "?saved=1")
 
-        return redirect(_url("entities") + "?saved=1")
+        except Exception as e:
+            import logging as _log
+            _log.getLogger(__name__).exception("[entities] Save failed")
+            return render_template("entities.html",
+                                   entities=entity_rows,
+                                   error=f"Opslaan mislukt / Save failed: {str(e)[:120]}",
+                                   saved=None)
 
     # Load known sensors from JSON
     # Laad bekende sensoren uit JSON
@@ -783,10 +797,11 @@ def validate_entity():
     if not entity_id:
         return jsonify({"ok": False, "message": "No entity ID provided"})
     try:
-        config = AppConfig.load()
+        options = _load_options()
+        ha_cfg  = options.get("homeassistant", {})
         resp = req.get(
-            f"http://{config.ha.host}:{config.ha.port}/api/states/{entity_id}",
-            headers={"Authorization": f"Bearer {config.ha.token}"},
+            f"http://{ha_cfg.get('host', 'homeassistant')}:{ha_cfg.get('port', 8123)}/api/states/{entity_id}",
+            headers={"Authorization": f"Bearer {ha_cfg.get('token', '')}"},
             timeout=5,
         )
         if resp.status_code == 200:
@@ -996,11 +1011,12 @@ def api_dashboard_data():
         return jsonify(data)
 
     try:
-        config = AppConfig.load()
+        options    = _load_options()
+        ha_cfg     = options.get("homeassistant", {})
         import requests as _req
 
-        ha_url     = f"http://{config.ha.host}:{config.ha.port}"
-        ha_headers = {"Authorization": f"Bearer {config.ha.token}"}
+        ha_url     = f"http://{ha_cfg.get('host', 'homeassistant')}:{ha_cfg.get('port', 8123)}"
+        ha_headers = {"Authorization": f"Bearer {ha_cfg.get('token', '')}"}
 
         # ── Live sensor readings / Live sensorwaarden ─────────────────────
         with db.cursor() as cur:
