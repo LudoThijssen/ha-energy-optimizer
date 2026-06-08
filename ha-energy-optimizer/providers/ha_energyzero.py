@@ -9,7 +9,6 @@
 
 from datetime import datetime, date
 from decimal import Decimal
-from zoneinfo import ZoneInfo
 import requests
 
 from .base import BaseEnergyProvider
@@ -36,12 +35,10 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
     energy_type = "electricity"
 
     def __init__(self, cfg: dict):
+        super().__init__(cfg)  # Sets self._local_tz via BaseEnergyProvider
         self._ha_url   = f"http://{cfg.get('ha_host', 'homeassistant')}:{cfg.get('ha_port', 8123)}"
         self._token    = cfg.get("ha_token", "")
         self._entity   = cfg.get("entity_id", "sensor.energy_prices_today")
-        # Timezone from config — not hardcoded / Tijdzone uit config — niet hardcoded
-        tz_name        = cfg.get("timezone", "Europe/Amsterdam")
-        self._local_tz = ZoneInfo(tz_name)
 
     def get_hourly_prices(self, target_date: date) -> list[EnergyPrice]:
         """

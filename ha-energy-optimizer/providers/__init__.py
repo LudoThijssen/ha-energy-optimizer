@@ -53,13 +53,26 @@ def get_provider(config: AppConfig) -> BaseEnergyProvider:
     driver_cfg.setdefault("timezone", tz_name)
 
     # Registry of available providers / Register van beschikbare providers
+    # Also inject HA connection settings for ha_price_sensor if not already set
+    # HA-verbindingsinstellingen injecteren voor ha_price_sensor indien niet aanwezig
+    ha_cfg = getattr(getattr(config, "homeassistant", None), None, None)
+    if ha_cfg is None:
+        try:
+            ha_cfg = config.homeassistant
+            driver_cfg.setdefault("ha_host",  getattr(ha_cfg, "host",  "homeassistant"))
+            driver_cfg.setdefault("ha_port",  getattr(ha_cfg, "port",  8123))
+            driver_cfg.setdefault("ha_token", getattr(ha_cfg, "token", ""))
+        except AttributeError:
+            pass
+
     registry = {
-        "anwb":          lambda: _load("providers.anwb",          "AnwbProvider",          driver_cfg),
-        "energyzero":    lambda: _load("providers.energyzero",    "EnergyZeroProvider",    driver_cfg),
-        "ha_energyzero": lambda: _load("providers.ha_energyzero", "HaEnergyZeroProvider",  driver_cfg),
-        "entsoe":        lambda: _load("providers.entsoe",        "EntsoEProvider",        driver_cfg),
-        "tibber":        lambda: _load("providers.tibber",        "TibberProvider",        driver_cfg),
-        "frank":         lambda: _load("providers.frank",         "FrankProvider",         driver_cfg),
+        "anwb":             lambda: _load("providers.anwb",             "AnwbProvider",           driver_cfg),
+        "energyzero":       lambda: _load("providers.energyzero",       "EnergyZeroProvider",     driver_cfg),
+        "ha_energyzero":    lambda: _load("providers.ha_energyzero",    "HaEnergyZeroProvider",   driver_cfg),
+        "ha_price_sensor":  lambda: _load("providers.ha_price_sensor",  "HaPriceSensorProvider",  driver_cfg),
+        "entsoe":           lambda: _load("providers.entsoe",           "EntsoEProvider",         driver_cfg),
+        "tibber":           lambda: _load("providers.tibber",           "TibberProvider",         driver_cfg),
+        "frank":            lambda: _load("providers.frank",            "FrankProvider",          driver_cfg),
     }
 
     if driver_name not in registry:
