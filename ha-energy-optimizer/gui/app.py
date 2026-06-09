@@ -1162,15 +1162,32 @@ def api_dashboard_data():
                 for r in cur.fetchall()
             }
 
+            # Battery SoC per hour / Batterij SoC per uur
+            cur.execute("""
+                SELECT
+                    DATE_FORMAT(measured_at, '%H:00') AS hour,
+                    ROUND(AVG(soc_pct), 1)            AS battery_soc
+                FROM battery_status
+                WHERE DATE(measured_at) = CURDATE()
+                GROUP BY DATE_FORMAT(measured_at, '%H:00')
+                ORDER BY hour
+            """)
+            soc_measured = {
+                r["hour"]: float(r["battery_soc"])
+                for r in cur.fetchall()
+            }
+
         all_hours = sorted(set(list(solar_measured.keys()) +
-                               list(consumption_measured.keys())))
+                               list(consumption_measured.keys()) +
+                               list(soc_measured.keys())))
         data["measured"] = [
             {
                 "hour":           h,
-                "solar_kw":       solar_measured.get(h, 0),
-                "import_kw":      consumption_measured.get(h, {}).get("import_kw", 0),
-                "export_kw":      consumption_measured.get(h, {}).get("export_kw", 0),
-                "consumption_kw": consumption_measured.get(h, {}).get("consumption_kw", 0),
+                "solar_kw":       solar_measured.get(h),
+                "import_kw":      consumption_measured.get(h, {}).get("import_kw"),
+                "export_kw":      consumption_measured.get(h, {}).get("export_kw"),
+                "consumption_kw": consumption_measured.get(h, {}).get("consumption_kw"),
+                "battery_soc":    soc_measured.get(h),
             }
             for h in all_hours
         ]
