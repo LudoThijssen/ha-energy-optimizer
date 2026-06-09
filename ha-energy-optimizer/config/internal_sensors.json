@@ -18,6 +18,24 @@
     "description_en": "Battery power (kW, + = charge, - = discharge)"
   },
   {
+    "internal_name": "battery_charge_kw",
+    "unit": "kW",
+    "category": "battery",
+    "required": false,
+    "requires_component": "has_battery",
+    "description_nl": "Batterij laadvermogen (kW) — gebruikt als battery_power niet gesigneerd is",
+    "description_en": "Battery charge power (kW) — used when battery_power is not signed"
+  },
+  {
+    "internal_name": "battery_discharge_kw",
+    "unit": "kW",
+    "category": "battery",
+    "required": false,
+    "requires_component": "has_battery",
+    "description_nl": "Batterij ontlaadvermogen (kW) — gebruikt als battery_power niet gesigneerd is",
+    "description_en": "Battery discharge power (kW) — used when battery_power is not signed"
+  },
+  {
     "internal_name": "battery_temperature",
     "unit": "°C",
     "category": "battery",

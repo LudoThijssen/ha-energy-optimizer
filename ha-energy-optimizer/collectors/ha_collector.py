@@ -72,6 +72,21 @@ class HaCollector(BaseCollector):
             else:
                 readings[internal_name] = validated
 
+        # Derive battery_power from charge/discharge if not directly available
+        # battery_power berekenen uit laden/ontladen als niet direct beschikbaar
+        if readings.get("battery_power") is None:
+            charge    = readings.get("battery_charge_kw")
+            discharge = readings.get("battery_discharge_kw")
+            if charge is not None and discharge is not None:
+                # Positive = charging, negative = discharging
+                # Positief = laden, negatief = ontladen
+                readings["battery_power"] = charge - discharge
+                import logging as _log
+                _log.getLogger(__name__).debug(
+                    f"[ha_collector] battery_power derived: "
+                    f"charge {charge} - discharge {discharge} = {readings['battery_power']}"
+                )
+
         return readings
 
     def _get_last_known(self, internal_name: str) -> "Decimal | None":

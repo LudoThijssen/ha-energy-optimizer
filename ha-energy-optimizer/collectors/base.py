@@ -28,6 +28,8 @@ SENSOR_BOUNDS: dict[str, tuple[float, float]] = {
     "total_consumption_power": (0.0, 25.0),   # kW
     "battery_soc":          (0.0,    100.0),   # %
     "battery_power":        (-20.0,  20.0),   # kW, can be negative (discharge)
+    "battery_charge_kw":    (0.0,    20.0),   # kW, always positive
+    "battery_discharge_kw": (0.0,    20.0),   # kW, always positive
     "battery_temperature":  (-20.0,  80.0),   # °C
     "battery_voltage":      (0.0,    1000.0),  # V
     "gas_consumption":      (0.0,    100.0),   # m³/h
