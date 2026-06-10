@@ -153,6 +153,15 @@
 </div>
 {% endif %}
 
+<style>
+button:disabled {
+  background: #cbd5e1 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
+  opacity: 1 !important;
+}
+</style>
+
 <script>
 async function validateEntity(inputId, resultId) {
   const input = document.getElementById(inputId);
