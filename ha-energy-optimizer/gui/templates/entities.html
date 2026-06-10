@@ -13,9 +13,6 @@
 {% if saved %}
 <div class="alert alert-success">&#10003; Saved / Opgeslagen</div>
 {% endif %}
-{% if error %}
-<div class="alert alert-error">&#9888; {{ error }}</div>
-{% endif %}
 
 <!-- Add entity -->
 <div class="card">
@@ -72,7 +69,8 @@
              placeholder="What does this sensor measure?">
     </div>
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary">Add / Toevoegen</button>
+      <button type="submit" id="btn-add-save" class="btn btn-primary" disabled>Add / Toevoegen</button>
+      <span style="font-size:12px; color:#6b7280;">Test de entiteit eerst / Test the entity first</span>
     </div>
   </form>
 </div>
@@ -121,7 +119,7 @@
                     onclick="validateEntity('eid-{{ e.id }}', 'val-{{ e.id }}')">
               Test
             </button>
-            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            <button type="submit" class="btn btn-primary btn-sm btn-save-entity" disabled>Save</button>
           </form>
           <div id="val-{{ e.id }}" style="font-size:12px; margin-top:3px;"></div>
         </td>
@@ -156,6 +154,8 @@
 {% endif %}
 
 <script>
+const BASE_URL = "{{ ingress_path }}";
+
 async function validateEntity(inputId, resultId) {
   const input = document.getElementById(inputId);
   const result = document.getElementById(resultId);
@@ -177,6 +177,27 @@ async function validateEntity(inputId, resultId) {
     const data = await resp.json();
     result.textContent = data.message;
     result.style.color = data.ok ? '#16a34a' : '#dc2626';
+
+    // Enable or disable the nearest Save button based on test result
+    // Dichtstbijzijnde Save knop in-/uitschakelen op basis van testresultaat
+    const inputEl = document.getElementById(inputId);
+    if (inputEl) {
+      // Find the save button in the same form
+      const form = inputEl.closest('form');
+      if (form) {
+        const saveBtn = form.querySelector('button[type="submit"]');
+        if (saveBtn) {
+          saveBtn.disabled = !data.ok;
+          saveBtn.style.opacity = data.ok ? '1' : '0.4';
+        }
+      }
+    }
+    // Also handle the add form specifically
+    const addBtn = document.getElementById('btn-add-save');
+    if (addBtn && inputId === 'add-entity-id') {
+      addBtn.disabled = !data.ok;
+      addBtn.style.opacity = data.ok ? '1' : '0.4';
+    }
   } catch(e) {
     result.textContent = '✗ Request failed: ' + e.message;
     result.style.color = '#dc2626';
@@ -186,6 +207,25 @@ async function validateEntity(inputId, resultId) {
 function clearValidation(resultId) {
   const el = document.getElementById(resultId);
   if (el) { el.textContent = ''; }
+  // Disable save button when input changes — re-test required
+  // Save knop uitschakelen als input verandert — opnieuw testen vereist
+  if (resultId === 'add-validation') {
+    const btn = document.getElementById('btn-add-save');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
+  } else {
+    // Find result div's form and disable its save button
+    const resultEl = document.getElementById(resultId);
+    if (resultEl) {
+      const row = resultEl.closest('td');
+      if (row) {
+        const form = row.querySelector('form') || row.closest('tr').querySelector('form');
+        if (form) {
+          const saveBtn = form.querySelector('button[type="submit"]');
+          if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; }
+        }
+      }
+    }
+  }
 }
 
 function fillFromSelect() {
