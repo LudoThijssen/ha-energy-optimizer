@@ -148,11 +148,11 @@ class Strategy:
         # Minimale spreidingsverhouding om bij piekprijs te ontladen.
         # 2.0 = cheapest must be < half of most expensive.
         # 2,0 = goedkoopste moet < helft van duurste zijn.
-        min_spread_ratio_for_discharge: Decimal = Decimal("2.0"),
+        min_spread_ratio_for_discharge: Decimal = Decimal("1.5"),
 
         # Current price must be within this fraction of today's peak.
         # Huidige prijs moet binnen deze fractie van het dagmaximum liggen.
-        discharge_near_peak_fraction: Decimal = Decimal("0.85"),
+        discharge_near_peak_fraction: Decimal = Decimal("0.75"),
 
         # Price is "extremely high" at this multiple of today's average.
         # Prijs is "extreem hoog" bij dit veelvoud van het daggemiddelde.
@@ -170,7 +170,7 @@ class Strategy:
         # ── Charging thresholds / Laaddrempelwaarden ─────────────────────────
         # Current price must be within this fraction of today's cheapest.
         # Huidige prijs moet binnen deze fractie van het dagminimum liggen.
-        charge_near_cheapest_fraction: Decimal = Decimal("1.05"),
+        charge_near_cheapest_fraction: Decimal = Decimal("1.15"),
 
         # Minimum sunshine % tomorrow to consider battery refillable by solar.
         # Minimaal zonpercentage morgen om batterij hervulbaar via zon te beschouwen.
@@ -282,12 +282,23 @@ class Strategy:
             current_soc_pct - discharge_pct
         ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
-        # Select the best hours for discharging tonight (highest price first).
-        # Selecteer de beste uren voor ontladen vanavond (hoogste prijs eerst).
+        # Select the best hours for discharging tonight (after 18:00, highest price first).
+        # Only use evening hours — avoid discharging during the day when solar may charge.
+        # Selecteer de beste avonduren voor ontladen (na 18:00, hoogste prijs eerst).
+        # Alleen avonduren — voorkom ontladen overdag als zon kan laden.
+        from datetime import time as _time
         available = [
             (dt, p) for dt, p in today_prices_excl
             if p >= self.hard_min_discharge
+            and dt.hour >= 18
         ]
+        if not available:
+            # Fallback: use all hours if no evening hours available
+            # Terugval: gebruik alle uren als er geen avonduren zijn
+            available = [
+                (dt, p) for dt, p in today_prices_excl
+                if p >= self.hard_min_discharge
+            ]
         best_hours = sorted(available, key=lambda x: x[1], reverse=True)
 
         reason = (
@@ -546,8 +557,18 @@ class Strategy:
                                f"discharging / + zon morgen — ontladen",
                     )
                 else:
-                    # Not enough sun to refill — keep charge.
-                    # Niet genoeg zon om bij te vullen — lading behouden.
+                    # Not enough sun to refill — only discharge if SoC is high enough
+                    # to cover tomorrow's needs from remaining charge.
+                    # Niet genoeg zon — alleen ontladen als SoC hoog genoeg is
+                    # om morgen nog voldoende lading over te hebben.
+                    min_reserve = self.min_soc + Decimal("20")  # keep 20% above min
+                    if soc_pct > min_reserve + Decimal("15"):
+                        return (
+                            True,
+                            base + f" (low sun {solar_outlook.sunshine_pct:.0f}%, "
+                                   f"but SoC {soc_pct:.0f}% allows discharge) / "
+                                   f"(weinig zon maar SoC {soc_pct:.0f}% laat ontladen toe)",
+                        )
                     return False, ""
             else:
                 return True, base + " (no solar outlook) — discharging / ontladen"
@@ -736,14 +757,14 @@ def build_strategy_from_db(db) -> tuple["Strategy", "DayPriceStats | None", "Sol
         temp_derating_threshold_c     = Decimal(str(cfg.get("temp_derating_threshold_c") or "35")),
         temp_derating_factor          = Decimal(str(cfg.get("temp_derating_factor") or "0.7")),
         hard_min_discharge_price_excl = Decimal(str(cfg.get("hard_min_discharge_price_excl") or "0.05")),
-        min_spread_ratio_for_discharge= Decimal(str(cfg.get("min_spread_ratio_for_discharge") or "2.0")),
-        discharge_near_peak_fraction  = Decimal(str(cfg.get("discharge_near_peak_fraction") or "0.85")),
+        min_spread_ratio_for_discharge= Decimal(str(cfg.get("min_spread_ratio_for_discharge") or "1.5")),
+        discharge_near_peak_fraction  = Decimal(str(cfg.get("discharge_near_peak_fraction") or "0.75")),
         extreme_price_multiplier      = Decimal(str(cfg.get("extreme_price_multiplier") or "2.5")),
         negative_export_threshold_excl= Decimal(str(cfg.get("negative_export_threshold_excl") or "0.00")),
         notify_export_threshold_excl  = Decimal(str(cfg.get("notify_export_threshold_excl") or "0.02")),
-        charge_near_cheapest_fraction = Decimal(str(cfg.get("charge_near_cheapest_fraction") or "1.05")),
+        charge_near_cheapest_fraction = Decimal(str(cfg.get("charge_near_cheapest_fraction") or "1.15")),
         min_sunshine_pct_for_refill   = Decimal(str(cfg.get("min_sunshine_pct_for_refill") or "40")),
-        avg_consumption_kwh           = Decimal(str(cfg.get("avg_consumption_kwh") or "0.5")),
+        avg_consumption_kwh           = Decimal(str(cfg.get("avg_consumption_kwh") or "1.0")),
         sunrise_buffer_pct            = Decimal(str(cfg.get("sunrise_buffer_pct") or "10")),
         price_incl_tax                = price_incl_tax,
         vat_pct                       = vat_pct,
