@@ -154,8 +154,6 @@
 {% endif %}
 
 <script>
-const BASE_URL = "{{ ingress_path }}";
-
 async function validateEntity(inputId, resultId) {
   const input = document.getElementById(inputId);
   const result = document.getElementById(resultId);
@@ -169,7 +167,7 @@ async function validateEntity(inputId, resultId) {
   result.textContent = 'Checking... / Controleren...';
   result.style.color = '#6b7280';
   try {
-    const resp = await fetch(BASE_URL + '/entities/validate', {
+    const resp = await fetch(apiUrl('/entities/validate'), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({entity_id}),
