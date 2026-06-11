@@ -865,14 +865,36 @@ def schedule():
 @app.route("/optimizer", methods=["GET", "POST"])
 def optimizer():
     db = _get_db()
-    config_row  = None
-    battery_row = None
+    config_row   = None
+    battery_row  = None
+    provider_row = None
     if db:
         with db.cursor() as cur:
             cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
             config_row = cur.fetchone()
             cur.execute("SELECT * FROM battery_info ORDER BY id DESC LIMIT 1")
             battery_row = cur.fetchone()
+            cur.execute("SELECT provider_driver, driver_config FROM provider_config ORDER BY id DESC LIMIT 1")
+            provider_row = cur.fetchone()
+
+    # Determine price_incl_tax from provider — override config if mismatch
+    # price_incl_tax bepalen vanuit provider — config overschrijven bij mismatch
+    import json as _json
+    provider_incl_tax = None
+    if provider_row:
+        driver = provider_row.get("provider_driver", "")
+        drv_cfg = {}
+        if provider_row.get("driver_config"):
+            try:
+                drv_cfg = _json.loads(provider_row["driver_config"]) if isinstance(provider_row["driver_config"], str) else provider_row["driver_config"]
+            except Exception:
+                pass
+        # ha_energyzero and energyzero always excl. VAT
+        # ha_energyzero en energyzero altijd excl. BTW
+        if driver in ("ha_energyzero", "energyzero", "anwb"):
+            provider_incl_tax = False
+        elif driver in ("tibber", "entsoe", "frank"):
+            provider_incl_tax = bool(drv_cfg.get("incl_tax", False))
 
     if request.method == "POST" and db:
         with db.cursor() as cur:
@@ -889,7 +911,7 @@ def optimizer():
                      "max_chg":   request.form.get("max_charge_price"),
                      "hard_min":  request.form.get("hard_min_discharge_price"),
                      "eff":       request.form.get("battery_efficiency"),
-                     "incl":      1 if "price_incl_tax" in request.form else 0,
+                     "incl":      1 if (provider_incl_tax if provider_incl_tax is not None else "price_incl_tax" in request.form) else 0,
                      "solar_thr": request.form.get("solar_charge_threshold", "0.80"),
                      "id":        config_row["id"]})
             if battery_row:
@@ -901,8 +923,15 @@ def optimizer():
                      "id":      battery_row["id"]})
         return redirect(_url("optimizer") + "?saved=1")
 
+    # Sync price_incl_tax with provider if known
+    # price_incl_tax synchroniseren met provider indien bekend
+    if provider_incl_tax is not None and config_row:
+        config_row = dict(config_row)
+        config_row["price_incl_tax"] = provider_incl_tax
+
     return render_template("optimizer.html", config=config_row,
                            battery=battery_row,
+                           provider_incl_tax=provider_incl_tax,
                            saved=request.args.get("saved"))
 
 

@@ -45,19 +45,30 @@
     <div class="field">
       <label class="check-label">
         <input type="checkbox" name="price_incl_tax"
-               {% if config and config.price_incl_tax %}checked{% endif %}>
+               {% if config and config.price_incl_tax %}checked{% endif %}
+               {% if provider_incl_tax is not none %}disabled{% endif %}>
         Prices include VAT / Prijzen zijn inclusief belasting
       </label>
+      {% if provider_incl_tax is not none %}
+      <div class="alert alert-info" style="margin-top:6px; font-size:12.5px;">
+        {% if provider_incl_tax %}
+          &#128279; Automatisch ingesteld op <strong>incl. BTW</strong> op basis van uw provider.
+          Wijzig dit op de <a href="{{ nav_url('provider') }}">Provider-pagina</a>. /
+          Automatically set to <strong>incl. VAT</strong> based on your provider.
+          Change this on the <a href="{{ nav_url('provider') }}">Provider page</a>.
+        {% else %}
+          &#128279; Automatisch ingesteld op <strong>excl. BTW</strong> op basis van uw provider ({{ config and 'ANWB/EnergyZero' or 'provider' }}).
+          Wijzig dit op de <a href="{{ nav_url('provider') }}">Provider-pagina</a>. /
+          Automatically set to <strong>excl. VAT</strong> based on your provider.
+          Change this on the <a href="{{ nav_url('provider') }}">Provider page</a>.
+        {% endif %}
+      </div>
+      {% else %}
       <div class="hint" style="margin-top:4px">
         Must match your energy provider setting (Provider page).<br>
-        Moet overeenkomen met de instelling op de Provider-pagina.<br>
-        <strong style="color:#dc2626;">
-          ⚠ ANWB / EnergyZero via HA sensor: prijzen zijn <u>excl.</u> BTW en opslag —
-          laat dit vinkje <u>uit</u>. /
-          ANWB / EnergyZero via HA sensor: prices are <u>excl.</u> VAT and surcharge —
-          leave this <u>unchecked</u>.
-        </strong>
+        Moet overeenkomen met de instelling op de Provider-pagina.
       </div>
+      {% endif %}
     </div>
   </div>
 
