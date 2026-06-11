@@ -202,6 +202,7 @@ class Strategy:
         # Block grid charging when expected solar >= this fraction of capacity.
         # Blokkeer nettoladen als verwachte zon >= deze fractie van capaciteit.
         solar_charge_threshold: Decimal = Decimal("0.80"),
+        max_price_to_charge_excl: Decimal = Decimal("0.10"),
     ):
         self.efficiency                    = battery_efficiency_pct / 100
         self.min_soc                       = min_soc_pct
@@ -224,6 +225,7 @@ class Strategy:
         self.sunrise_buffer_pct            = sunrise_buffer_pct
         self.price_incl_tax                = price_incl_tax
         self.solar_charge_threshold        = solar_charge_threshold
+        self.max_price_to_charge_excl      = max_price_to_charge_excl
         self.vat_multiplier                = Decimal("1") + vat_pct / 100
         self.depreciation_per_kwh          = depreciation_per_kwh
         self.usable_capacity_kwh           = usable_capacity_kwh
@@ -287,14 +289,26 @@ class Strategy:
         # Selecteer de beste avonduren voor ontladen (na 18:00, hoogste prijs eerst).
         # Alleen avonduren — voorkom ontladen overdag als zon kan laden.
         from datetime import time as _time
-        available = [
+        # Evening hours (18:00-23:00) preferred for discharge
+        # Early morning hours (00:00-06:00) as secondary option
+        # Avonduren (18:00-23:00) hebben voorkeur voor ontladen
+        # Vroege ochtenduren (00:00-06:00) als tweede keuze
+        evening_hours = [
             (dt, p) for dt, p in today_prices_excl
             if p >= self.hard_min_discharge
             and dt.hour >= 18
         ]
+        morning_hours = [
+            (dt, p) for dt, p in today_prices_excl
+            if p >= self.hard_min_discharge
+            and 0 <= dt.hour <= 6
+        ]
+        # Use evening hours; supplement with morning hours if not enough
+        # Gebruik avonduren; vul aan met ochtenduren als er niet genoeg zijn
+        available = evening_hours
+        if len(available) < 3:
+            available = available + morning_hours
         if not available:
-            # Fallback: use all hours if no evening hours available
-            # Terugval: gebruik alle uren als er geen avonduren zijn
             available = [
                 (dt, p) for dt, p in today_prices_excl
                 if p >= self.hard_min_discharge
@@ -609,10 +623,15 @@ class Strategy:
         else:
             spread_ok = most_expensive >= self.required_spread_factor * Decimal("0.05")
         near_cheapest = price_excl <= cheapest * self.charge_near_cheapest
+        # Also allow charging when price is absolutely low (below max_price_to_charge)
+        # and spread is sufficient — catches cases where cheapest is already moderate
+        # Laden ook toestaan als prijs absoluut laag is en spread voldoende —
+        # vangt gevallen op waarbij de goedkoopste prijs al matig is
+        near_cheapest_abs = price_excl <= self.max_price_to_charge_excl
         effective_cost = (price_excl / self.efficiency) + self.depreciation_per_kwh
         revenue_ok    = most_expensive >= effective_cost
 
-        if spread_ok and near_cheapest and revenue_ok:
+        if spread_ok and (near_cheapest or near_cheapest_abs) and revenue_ok:
             dep = (
                 f" + dep {self.depreciation_per_kwh:.4f} €/kWh"
                 if self.depreciation_per_kwh > 0 else ""
@@ -770,6 +789,12 @@ def build_strategy_from_db(db) -> tuple["Strategy", "DayPriceStats | None", "Sol
         vat_pct                       = vat_pct,
         depreciation_per_kwh          = dep_per_kwh,
         solar_charge_threshold        = Decimal(str(cfg.get("solar_charge_threshold") or "0.80")),
+        max_price_to_charge_excl      = (
+            Decimal(str(cfg.get("max_price_to_charge") or "0.10"))
+            / (Decimal("1") + Decimal(str(cfg.get("vat_pct") or "0")) / 100)
+            if cfg.get("price_incl_tax") else
+            Decimal(str(cfg.get("max_price_to_charge") or "0.10"))
+        ),
         usable_capacity_kwh           = usable_kwh,
     )
 
