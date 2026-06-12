@@ -122,7 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function changeDay(delta) {
   if (!availableDates.length) return;
   const idx = availableDates.indexOf(currentDate);
-  const newIdx = idx + delta;  // dates are DESC, so +1 = older
+  // availableDates is DESC (newest first)
+  // delta -1 = newer (lower index), delta +1 = older (higher index)
+  const newIdx = idx + delta;
   if (newIdx >= 0 && newIdx < availableDates.length) {
     loadDate(availableDates[newIdx]);
   }
@@ -165,8 +167,10 @@ function loadDate(dateStr) {
 
 function updateNavButtons() {
   const idx = availableDates.indexOf(currentDate);
-  document.getElementById('btn-prev').disabled = idx >= availableDates.length - 1;
-  document.getElementById('btn-next').disabled = idx <= 0 || currentDate >= todayStr();
+  // btn-prev = vorige dag (older = higher index in DESC array)
+  // btn-next = volgende dag (newer = lower index in DESC array)
+  document.getElementById('btn-prev').disabled = idx < 0 || idx >= availableDates.length - 1;
+  document.getElementById('btn-next').disabled = idx <= 0;
 }
 
 // ── Render all / Alles renderen ────────────────────────────────────────────

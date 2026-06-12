@@ -1150,11 +1150,18 @@ def api_history_data():
                 for h in all_hours
             ]
 
-            # Available dates for navigation / Beschikbare datums voor navigatie
+            # Available dates — union of all data sources
+            # Beschikbare datums — unie van alle databronnen
             cur.execute("""
-                SELECT DISTINCT DATE(price_hour) AS d
-                FROM energy_prices
-                WHERE energy_type = 'electricity'
+                SELECT DISTINCT d FROM (
+                    SELECT DATE(price_hour)  AS d FROM energy_prices
+                     WHERE energy_type = 'electricity'
+                    UNION
+                    SELECT DATE(measured_at) AS d FROM solar_production
+                    UNION
+                    SELECT DATE(measured_at) AS d FROM home_consumption
+                ) AS all_dates
+                WHERE d <= CURDATE()
                 ORDER BY d DESC
                 LIMIT 90
             """)
