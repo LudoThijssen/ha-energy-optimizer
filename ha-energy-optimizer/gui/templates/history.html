@@ -11,11 +11,11 @@
 <!-- Date navigation / Datumnavigatie -->
 <div class="card" style="padding:16px;">
   <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-    <button class="btn btn-secondary" id="btn-prev" onclick="changeDay(-1)">&#8592; Vorige dag</button>
+    <button class="btn btn-secondary" id="btn-prev" onclick="changeDay(+1)">&#8592; Vorige dag</button>
     <input type="date" id="date-picker"
            style="padding:8px 11px; border:1px solid #d1d5db; border-radius:6px; font-size:14px;"
            onchange="loadDate(this.value)">
-    <button class="btn btn-secondary" id="btn-next" onclick="changeDay(1)">Volgende dag &#8594;</button>
+    <button class="btn btn-secondary" id="btn-next" onclick="changeDay(-1)">Volgende dag &#8594;</button>
     <button class="btn btn-secondary" onclick="loadDate(todayStr())">Vandaag / Today</button>
     <span id="date-label" style="font-size:13px; color:#6b7280; margin-left:8px;"></span>
   </div>
@@ -115,6 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const picker = document.getElementById('date-picker');
   picker.max = todayStr();
   picker.value = currentDate;
+  // Disable nav buttons until dates are loaded
+  // Navigatieknoppen uitschakelen totdat datums geladen zijn
+  document.getElementById('btn-prev').disabled = true;
+  document.getElementById('btn-next').disabled = true;
   loadDate(currentDate);
 });
 
