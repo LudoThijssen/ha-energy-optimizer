@@ -1022,6 +1022,153 @@ def dashboard():
                            options=options)
 
 
+@app.route("/history")
+def history():
+    """Historical data page with date selector."""
+    options = _load_options()
+    return render_template("history.html", options=options)
+
+
+@app.route("/api/history-data")
+def api_history_data():
+    """
+    JSON endpoint for historical data for a given date.
+    JSON-endpoint voor historische gegevens voor een opgegeven datum.
+    """
+    from datetime import date as _date
+    db = _get_db()
+    if not db:
+        return jsonify({"ok": False, "message": "Database niet verbonden"})
+
+    date_str = request.args.get("date", str(_date.today()))
+    try:
+        _date.fromisoformat(date_str)
+    except ValueError:
+        return jsonify({"ok": False, "message": "Ongeldige datum"})
+
+    data = {"date": date_str, "prices": [], "schedule": [], "measured": []}
+
+    try:
+        with db.cursor() as cur:
+            # Prices / Prijzen
+            cur.execute("""
+                SELECT DATE_FORMAT(price_hour, '%H:00') AS hour,
+                       CAST(price_per_kwh AS DECIMAL(10,5)) AS price
+                FROM energy_prices
+                WHERE DATE(price_hour) = %(d)s AND energy_type = 'electricity'
+                ORDER BY price_hour
+            """, {"d": date_str})
+            data["prices"] = [
+                {"hour": r["hour"], "price": float(r["price"])}
+                for r in cur.fetchall()
+            ]
+
+            # Schedule / Schema
+            cur.execute("""
+                SELECT DATE_FORMAT(schedule_for, '%H:00') AS hour,
+                       action,
+                       CAST(target_power_kw AS DECIMAL(10,3))     AS power_kw,
+                       CAST(target_soc_pct AS DECIMAL(10,1))      AS soc_pct,
+                       CAST(expected_solar_kw AS DECIMAL(10,3))   AS solar_kw,
+                       CAST(expected_price AS DECIMAL(10,5))      AS price,
+                       CAST(expected_saving AS DECIMAL(10,5))     AS saving,
+                       reason
+                FROM optimizer_schedule
+                WHERE DATE(schedule_for) = %(d)s
+                ORDER BY schedule_for
+            """, {"d": date_str})
+            data["schedule"] = [
+                {
+                    "hour":    r["hour"],
+                    "action":  r["action"],
+                    "power_kw": float(r["power_kw"] or 0),
+                    "soc_pct":  float(r["soc_pct"] or 0),
+                    "solar_kw": float(r["solar_kw"] or 0),
+                    "price":    float(r["price"] or 0),
+                    "saving":   float(r["saving"] or 0),
+                    "reason":   r["reason"] or "",
+                }
+                for r in cur.fetchall()
+            ]
+
+            # Solar production / Zonproductie
+            cur.execute("""
+                SELECT DATE_FORMAT(measured_at, '%H:00') AS hour,
+                       ROUND(AVG(power_kw), 3) AS solar_kw
+                FROM solar_production
+                WHERE DATE(measured_at) = %(d)s
+                GROUP BY DATE_FORMAT(measured_at, '%H:00')
+                ORDER BY hour
+            """, {"d": date_str})
+            solar = {r["hour"]: float(r["solar_kw"]) for r in cur.fetchall()}
+
+            # Consumption / Verbruik
+            cur.execute("""
+                SELECT DATE_FORMAT(measured_at, '%H:00') AS hour,
+                       ROUND(AVG(grid_import_kw), 3)       AS import_kw,
+                       ROUND(AVG(grid_export_kw), 3)       AS export_kw,
+                       ROUND(AVG(total_consumption_kw), 3) AS consumption_kw
+                FROM home_consumption
+                WHERE DATE(measured_at) = %(d)s
+                GROUP BY DATE_FORMAT(measured_at, '%H:00')
+                ORDER BY hour
+            """, {"d": date_str})
+            consumption = {
+                r["hour"]: {
+                    "import_kw":      float(r["import_kw"] or 0),
+                    "export_kw":      float(r["export_kw"] or 0),
+                    "consumption_kw": float(r["consumption_kw"] or 0),
+                }
+                for r in cur.fetchall()
+            }
+
+            # Battery SoC / Batterij SoC
+            cur.execute("""
+                SELECT DATE_FORMAT(measured_at, '%H:00') AS hour,
+                       ROUND(AVG(soc_pct), 1) AS battery_soc
+                FROM battery_status
+                WHERE DATE(measured_at) = %(d)s
+                GROUP BY DATE_FORMAT(measured_at, '%H:00')
+                ORDER BY hour
+            """, {"d": date_str})
+            soc = {r["hour"]: float(r["battery_soc"]) for r in cur.fetchall()}
+
+            all_hours = sorted(set(
+                list(solar.keys()) +
+                list(consumption.keys()) +
+                list(soc.keys())
+            ))
+            data["measured"] = [
+                {
+                    "hour":           h,
+                    "solar_kw":       solar.get(h),
+                    "import_kw":      consumption.get(h, {}).get("import_kw"),
+                    "export_kw":      consumption.get(h, {}).get("export_kw"),
+                    "consumption_kw": consumption.get(h, {}).get("consumption_kw"),
+                    "battery_soc":    soc.get(h),
+                }
+                for h in all_hours
+            ]
+
+            # Available dates for navigation / Beschikbare datums voor navigatie
+            cur.execute("""
+                SELECT DISTINCT DATE(price_hour) AS d
+                FROM energy_prices
+                WHERE energy_type = 'electricity'
+                ORDER BY d DESC
+                LIMIT 90
+            """)
+            data["available_dates"] = [str(r["d"]) for r in cur.fetchall()]
+
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).exception("[history] Data fetch failed")
+        return jsonify({"ok": False, "message": str(e)})
+
+    data["ok"] = True
+    return jsonify(data)
+
+
 @app.route("/api/dashboard-data")
 def api_dashboard_data():
     """
