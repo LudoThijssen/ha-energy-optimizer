@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+<!-- gui/templates/colors.html -->
+<!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/colors.html -->
+<!-- v0.2.12 — 2026-06-13 -->
+{% block title %}Kleuren / Colors — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Dashboard kleuren / Dashboard colors</h1>
+<p class="subtitle">Pas de grafiekkleuren aan naar uw voorkeur / Customize chart colors to your preference</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Kleuren opgeslagen / Colors saved</div>
+{% endif %}
+
+{% set c = options.get('colors', {}) %}
+
+<form method="POST">
+  <div class="card">
+    <h2>Grafiek 1 & 2 — Energie / Energy</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Zon / Solar</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="solar" value="{{ c.get('solar', '#f59e0b') }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;">
+          <input type="text" id="txt-solar" value="{{ c.get('solar', '#f59e0b') }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('solar', this.value)">
+        </div>
+      </div>
+      <div class="field">
+        <label>Verbruik / Consumption</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="consume" value="{{ c.get('consume', '#6366f1') }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('consume', this.value)">
+          <input type="text" id="txt-consume" value="{{ c.get('consume', '#6366f1') }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('consume', this.value)">
+        </div>
+      </div>
+      <div class="field">
+        <label>Netafname / Grid import</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="import_kw" value="{{ c.get('import_kw', '#3b82f6') }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('import_kw', this.value)">
+          <input type="text" id="txt-import_kw" value="{{ c.get('import_kw', '#3b82f6') }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('import_kw', this.value)">
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Teruglevering / Grid export</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="export_kw" value="{{ c.get('export_kw', '#10b981') }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('export_kw', this.value)">
+          <input type="text" id="txt-export_kw" value="{{ c.get('export_kw', '#10b981') }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('export_kw', this.value)">
+        </div>
+      </div>
+      <div class="field">
+        <label>Batterij SoC / Battery SoC</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="soc" value="{{ c.get('soc', '#8b5cf6') }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('soc', this.value)">
+          <input type="text" id="txt-soc" value="{{ c.get('soc', '#8b5cf6') }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('soc', this.value)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Grafiek 1 — Optimizer acties / Optimizer actions</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Ontladen / Discharge</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="discharge" value="{{ c.get('discharge', '#ef4444') }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('discharge', this.value)">
+          <input type="text" id="txt-discharge" value="{{ c.get('discharge', '#ef4444') }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('discharge', this.value)">
+        </div>
+        <div class="hint">Nettoladen / Grid charge gebruikt dezelfde kleur als Netafname</div>
+      </div>
+      <div class="field">
+        <label>Zonne-lading / Solar charge</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="solar_charge" value="{{ c.get('solar_charge', '#f59e0b') }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('solar_charge', this.value)">
+          <input type="text" id="txt-solar_charge" value="{{ c.get('solar_charge', '#f59e0b') }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('solar_charge', this.value)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview / Voorbeeld -->
+  <div class="card">
+    <h2>Voorbeeld / Preview</h2>
+    <div id="preview" style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; padding:8px 0;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-solar" style="width:16px; height:16px; border-radius:3px; background:#f59e0b;"></div>
+        <span style="font-size:12px;">Zon</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-consume" style="width:16px; height:16px; border-radius:3px; background:#6366f1;"></div>
+        <span style="font-size:12px;">Verbruik</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-import_kw" style="width:16px; height:16px; border-radius:3px; background:#3b82f6;"></div>
+        <span style="font-size:12px;">Netafname / Nettoladen</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-export_kw" style="width:16px; height:16px; border-radius:3px; background:#10b981;"></div>
+        <span style="font-size:12px;">Teruglevering</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-soc" style="width:16px; height:4px; border-radius:2px; background:#8b5cf6;"></div>
+        <span style="font-size:12px;">Batterij SoC</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-discharge" style="width:16px; height:16px; border-radius:3px; background:#ef4444;"></div>
+        <span style="font-size:12px;">Ontladen</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-solar_charge" style="width:16px; height:16px; border-radius:3px; background:#f59e0b;"></div>
+        <span style="font-size:12px;">Zonne-lading</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Opslaan / Save</button>
+    <button type="button" class="btn btn-secondary" onclick="resetDefaults()">
+      Standaard / Reset defaults
+    </button>
+  </div>
+</form>
+
+<script>
+const DEFAULTS = {
+  solar:        '#f59e0b',
+  consume:      '#6366f1',
+  import_kw:    '#3b82f6',
+  export_kw:    '#10b981',
+  soc:          '#8b5cf6',
+  discharge:    '#ef4444',
+  solar_charge: '#f59e0b',
+};
+
+function syncText(name, value) {
+  const txt = document.getElementById('txt-' + name);
+  if (txt) txt.value = value;
+  updatePreview(name, value);
+}
+
+function syncColor(name, value) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(value)) return;
+  const col = document.querySelector(`input[type="color"][name="${name}"]`);
+  if (col) col.value = value;
+  updatePreview(name, value);
+}
+
+function updatePreview(name, value) {
+  const el = document.getElementById('prev-' + name);
+  if (el) el.style.background = value;
+}
+
+function resetDefaults() {
+  Object.entries(DEFAULTS).forEach(([name, value]) => {
+    const col = document.querySelector(`input[type="color"][name="${name}"]`);
+    const txt = document.getElementById('txt-' + name);
+    if (col) col.value = value;
+    if (txt) txt.value = value;
+    updatePreview(name, value);
+  });
+}
+
+// Init color inputs to sync text on change
+document.querySelectorAll('input[type="color"]').forEach(inp => {
+  inp.addEventListener('input', () => syncText(inp.name, inp.value));
+});
+</script>
+{% endblock %}

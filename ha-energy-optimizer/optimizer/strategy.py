@@ -622,12 +622,35 @@ class Strategy:
             spread_ok = most_expensive >= cheapest * self.required_spread_factor
         else:
             spread_ok = most_expensive >= self.required_spread_factor * Decimal("0.05")
-        near_cheapest = price_excl <= cheapest * self.charge_near_cheapest
-        # Also allow charging when price is absolutely low (below max_price_to_charge)
-        # and spread is sufficient — catches cases where cheapest is already moderate
-        # Laden ook toestaan als prijs absoluut laag is en spread voldoende —
-        # vangt gevallen op waarbij de goedkoopste prijs al matig is
+        # Negative prices: ALWAYS charge — free or paid electricity
+        # Negatieve prijzen: ALTIJD laden — gratis of betaalde stroom
+        if price_excl < 0:
+            dep = (
+                f" + dep {self.depreciation_per_kwh:.4f} €/kWh"
+                if self.depreciation_per_kwh > 0 else ""
+            )
+            return (
+                True,
+                f"Negative price {price_excl:.4f} €/kWh excl. — "
+                f"charging from grid is free or paid{dep} / "
+                f"Negatieve prijs — laden van net is gratis of wordt betaald",
+            )
+
+        # near_cheapest: price is close to cheapest of the day
+        # When cheapest < 0: multiply makes it more negative — use range-based check
+        # near_cheapest: prijs ligt dicht bij de goedkoopste van de dag
+        # Als goedkoopste < 0: vermenigvuldigen maakt het negatiever — gebruik bereikcheck
+        if cheapest < 0:
+            price_range  = most_expensive - cheapest
+            cheap_cutoff = cheapest + price_range * Decimal("0.30")
+            near_cheapest = price_excl <= cheap_cutoff
+        else:
+            near_cheapest = price_excl <= cheapest * self.charge_near_cheapest
+
+        # Absolute fallback: always charge when price is below max threshold
+        # Absolute terugval: altijd laden als prijs onder maximale drempel ligt
         near_cheapest_abs = price_excl <= self.max_price_to_charge_excl
+
         effective_cost = (price_excl / self.efficiency) + self.depreciation_per_kwh
         revenue_ok    = most_expensive >= effective_cost
 
@@ -639,9 +662,7 @@ class Strategy:
             return (
                 True,
                 f"Cheap price {price_excl:.4f} €/kWh excl., "
-                f"spread {most_expensive:.4f}/{cheapest:.4f} = "
-                f"{(most_expensive/cheapest if cheapest != 0 else Decimal('99')):.2f}× "
-                f"(≥{self.required_spread_factor}×){dep} — "
+                f"spread {most_expensive:.4f}/{cheapest:.4f}{dep} — "
                 f"charging from grid / Goedkope prijs, spread voldoende — laden vanaf net",
             )
 

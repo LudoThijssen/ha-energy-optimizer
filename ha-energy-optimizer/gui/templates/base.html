@@ -82,6 +82,7 @@
     <a href="{{ nav_url('optimizer') }}" {% if request.endpoint == 'optimizer' %}class="active"{% endif %}>Thresholds / Drempelwaarden</a>
     <a href="{{ nav_url('reportlog') }}" {% if request.endpoint == 'reportlog' %}class="active"{% endif %}>Report log</a>
     <a href="{{ nav_url('history') }}" {% if request.endpoint == 'history' %}class="active"{% endif %}>Geschiedenis / History</a>
+    <a href="{{ nav_url('colors') }}" {% if request.endpoint == 'colors' %}class="active"{% endif %}>Kleuren / Colors</a>
   </nav>
   <main>
     {% block content %}{% endblock %}

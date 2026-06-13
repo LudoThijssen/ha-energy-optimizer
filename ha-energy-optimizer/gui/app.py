@@ -1014,12 +1014,45 @@ def reportlog():
 
 @app.route("/dashboard")
 def dashboard():
-    # gui/app.py — dashboard route — v0.2.11
+    # gui/app.py — dashboard route — v0.2.12
     options = _load_options()
     refresh = options.get("reporting", {}).get("dashboard_refresh_seconds", 300)
+    # Default colors / Standaard kleuren
+    default_colors = {
+        "solar":        "#f59e0b",
+        "consume":      "#6366f1",
+        "import_kw":    "#3b82f6",
+        "export_kw":    "#10b981",
+        "soc":          "#8b5cf6",
+        "discharge":    "#ef4444",
+        "solar_charge": "#f59e0b",
+    }
+    colors = {**default_colors, **options.get("colors", {})}
     return render_template("dashboard.html",
                            refresh_seconds=refresh,
-                           options=options)
+                           options=options,
+                           colors=colors)
+
+
+@app.route("/colors", methods=["GET", "POST"])
+def colors():
+    """Dashboard color settings / Dashboard kleurinstellingen."""
+    options = _load_options()
+    if request.method == "POST":
+        options["colors"] = {
+            "solar":        request.form.get("solar",        "#f59e0b"),
+            "consume":      request.form.get("consume",      "#6366f1"),
+            "import_kw":    request.form.get("import_kw",    "#3b82f6"),
+            "export_kw":    request.form.get("export_kw",    "#10b981"),
+            "soc":          request.form.get("soc",          "#8b5cf6"),
+            "discharge":    request.form.get("discharge",    "#ef4444"),
+            "solar_charge": request.form.get("solar_charge", "#f59e0b"),
+        }
+        _save_options(options)
+        return redirect(_url("colors") + "?saved=1")
+    return render_template("colors.html",
+                           options=options,
+                           saved=request.args.get("saved"))
 
 
 @app.route("/history")
