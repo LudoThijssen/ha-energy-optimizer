@@ -4,6 +4,32 @@
 <!-- v0.2.11 — 2026-05-29 -->
 {% block title %}Dashboard — HA Energy Optimizer{% endblock %}
 {% block content %}
+<style>
+  :root {
+    --c-solar:        {{ colors.solar }};
+    --c-consume:      {{ colors.consume }};
+    --c-import:       {{ colors.import_kw }};
+    --c-export:       {{ colors.export_kw }};
+    --c-soc:          {{ colors.soc }};
+    --c-charge:       {{ colors.import_kw }};
+    --c-discharge:    {{ colors.discharge }};
+    --c-solar-charge: {{ colors.solar_charge }};
+  }
+</style>
+<script>
+  // Expose colors to JavaScript for Chart.js datasets
+  // Kleuren beschikbaar stellen aan JavaScript voor Chart.js datasets
+  const COLORS = {
+    solar:       "{{ colors.solar }}",
+    consume:     "{{ colors.consume }}",
+    import_kw:   "{{ colors.import_kw }}",
+    export_kw:   "{{ colors.export_kw }}",
+    soc:         "{{ colors.soc }}",
+    charge:      "{{ colors.import_kw }}",
+    discharge:   "{{ colors.discharge }}",
+    solarCharge: "{{ colors.solar_charge }}",
+  };
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
@@ -27,25 +53,25 @@
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;
     {% if system_config and not system_config.has_solar_panels %}opacity:0.35; filter:grayscale(1);{% endif %}">
     <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Zonne-energie</div>
-    <div id="val-solar" style="font-size:24px; font-weight:700; color:#f59e0b; margin:4px 0;">
+    <div id="val-solar" style="font-size:24px; font-weight:700; color:var(--c-solar); margin:4px 0;">
       {% if system_config and not system_config.has_solar_panels %}n/a{% else %}—{% endif %}
     </div>
     <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
     <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Netafname</div>
-    <div id="val-import" style="font-size:24px; font-weight:700; color:#3b82f6; margin:4px 0;">—</div>
+    <div id="val-import" style="font-size:24px; font-weight:700; color:var(--c-import); margin:4px 0;">—</div>
     <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
     <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Teruglevering</div>
-    <div id="val-export" style="font-size:24px; font-weight:700; color:#10b981; margin:4px 0;">—</div>
+    <div id="val-export" style="font-size:24px; font-weight:700; color:var(--c-export); margin:4px 0;">—</div>
     <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;
     {% if system_config and not system_config.has_battery %}opacity:0.35; filter:grayscale(1);{% endif %}">
     <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Batterij SoC</div>
-    <div id="val-soc" style="font-size:24px; font-weight:700; color:#8b5cf6; margin:4px 0;">
+    <div id="val-soc" style="font-size:24px; font-weight:700; color:var(--c-soc); margin:4px 0;">
       {% if system_config and not system_config.has_battery %}n/a{% else %}—{% endif %}
     </div>
     <div style="font-size:10px; color:#6b7280;">%</div>
@@ -84,12 +110,12 @@
   <div style="position:relative; height:200px; overflow-x:auto;">
     <canvas id="chart-forecast"></canvas>
   </div>
-  <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
-    <span style="color:#f59e0b;">&#9646; Zon (kW)</span>
-    <span style="color:#6366f1;">&#9646; Verbruik (kW)</span>
-    <span style="color:#3b82f6;">&#9646; Nettoladen (kW)</span>
+  <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap; align-items:center;">
+    <span style="color:var(--c-solar);">&#9646; Zon (kW)</span>
+    <span style="color:var(--c-consume);">&#9646; Verbruik (kW)</span>
+    <span style="color:var(--c-import);">&#9646; Nettoladen (kW)</span>
     <span style="color:#ef4444;">&#9646; Ontladen (kW)</span>
-    <span style="color:#8b5cf6;">&#9644; Batterij SoC (%)</span>
+    <span style="color:var(--c-soc);">&#9644; Batterij SoC (%)</span>
   </div>
 </div>
 
@@ -103,11 +129,10 @@
     <canvas id="chart-measured"></canvas>
   </div>
   <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
-    <span style="color:#f59e0b;">&#9646; Zon gemeten (kW)</span>
+    <span style="color:var(--c-solar);">&#9646; Zon gemeten (kW)</span>
     <span style="color:#6366f1;">&#9646; Verbruik gemeten (kW)</span>
-    <span style="color:#3b82f6;">&#9646; Netafname (kW)</span>
-    <span style="color:#10b981;">&#9646; Teruglevering (kW)</span>
-    <span style="color:#8b5cf6;">&#9644; Batterij SoC (%)</span>
+    <span style="color:var(--c-import);">&#9646; Netafname (kW)</span>
+    <span style="color:var(--c-export);">&#9646; Teruglevering (kW)</span>
   </div>
 </div>
 
@@ -121,9 +146,9 @@
     <canvas id="chart-prices"></canvas>
   </div>
   <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
-    <span style="color:#3b82f6;">&#9646; Nettoladen</span>
+    <span style="color:var(--c-charge);">&#9646; Nettoladen</span>
     <span style="color:#ef4444;">&#9646; Ontladen</span>
-    <span style="color:#f59e0b;">&#9646; Zonne-lading</span>
+    <span style="color:var(--c-solar-charge);">&#9646; Zonne-lading</span>
     <span style="color:#6b7280;">&#9646; Rust / idle</span>
   </div>
 </div>
@@ -289,12 +314,12 @@
 
     // Build datasets for each index
     const solar48    = [], consume48 = [], charge48 = [], disch48 = [], soc48 = [];
-    const mSolar48   = [], mConsume48= [], mImport48= [], mExport48= [], mSoc48= [];
+    const mSolar48   = [], mConsume48= [], mImport48= [], mExport48= [];
     const price48    = [], priceColors = [];
     const actionColors = {
-      charge:       'rgba(59,130,246,0.8)',
-      discharge:    'rgba(239,68,68,0.8)',
-      self_consume: 'rgba(245,158,11,0.7)',
+      charge:       hexToRgba(COLORS.charge, 0.8),
+      discharge:    hexToRgba(COLORS.discharge, 0.8),
+      self_consume: hexToRgba(COLORS.solarCharge, 0.7),
       idle:         'rgba(156,163,175,0.4)',
     };
 
@@ -311,20 +336,17 @@
       disch48.push(s  && s.action === 'discharge' ? -s.power_kw : 0);
       soc48.push(s ? s.soc_pct : null);
 
-      // Measured chart data (only past hours) — null for future = not plotted
-      // Gemeten grafiekdata (alleen verleden uren) — null voor toekomst = niet geplot
+      // Measured chart data (only past hours)
       if (i <= nowHour && m) {
-        mSolar48.push(m.solar_kw   != null ? m.solar_kw   : null);
-        mConsume48.push(m.consumption_kw != null ? m.consumption_kw : null);
-        mImport48.push(m.import_kw != null ? m.import_kw  : null);
-        mExport48.push(m.export_kw != null ? -m.export_kw : null);
-        mSoc48.push(m.battery_soc  != null ? m.battery_soc : null);
+        mSolar48.push(m.solar_kw);
+        mConsume48.push(m.consumption_kw);
+        mImport48.push(m.import_kw);
+        mExport48.push(-m.export_kw);
       } else {
         mSolar48.push(null);
         mConsume48.push(null);
         mImport48.push(null);
         mExport48.push(null);
-        mSoc48.push(null);
       }
 
       // Price chart
@@ -345,7 +367,7 @@
         ctx.moveTo(x, yAxis.top);
         ctx.lineTo(x, yAxis.bottom);
         ctx.lineWidth   = 2;
-        ctx.strokeStyle = 'rgba(239,68,68,0.7)';
+        ctx.strokeStyle = hexToRgba(COLORS.discharge, 0.7);
         ctx.setLineDash([4, 4]);
         ctx.stroke();
         ctx.restore();
@@ -361,19 +383,11 @@
           grid: { display: false },
           ticks: {
             font: { size: 9 },
-            maxTicksLimit: 48,
+            maxTicksLimit: 24,
             callback: function(val, idx) {
-              // Show date at midnight transitions and every 6 hours
-              // Datum tonen bij middernacht-overgangen en elke 6 uur
-              const hour = parseInt(labels48[idx]);
-              if (hour === 0) {
-                // Midnight — show date
-                const d = new Date(today.getTime() + idx * 3600000);
-                const dd = String(d.getDate()).padStart(2, '0');
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                return dd + '-' + mm;
-              }
-              if (idx % 6 === 0) return labels48[idx];
+              // Show label every 2 hours, show day transition
+              if (idx === 24) return '→ morgen';
+              if (idx % 2 === 0) return labels48[idx];
               return '';
             }
           }
@@ -387,12 +401,12 @@
       data: {
         labels: labels48,
         datasets: [
-          { type: 'bar',  label: 'Zon',      data: solar48,   backgroundColor: 'rgba(245,158,11,0.7)', yAxisID: 'y' },
-          { type: 'bar',  label: 'Verbruik', data: consume48, backgroundColor: 'rgba(99,102,241,0.5)', yAxisID: 'y' },
-          { type: 'bar',  label: 'Laden',    data: charge48,  backgroundColor: 'rgba(59,130,246,0.8)', yAxisID: 'y' },
-          { type: 'bar',  label: 'Ontladen', data: disch48,   backgroundColor: 'rgba(239,68,68,0.8)',  yAxisID: 'y' },
+          { type: 'bar',  label: 'Zon',      data: solar48,   backgroundColor: hexToRgba(COLORS.solar, 0.7), yAxisID: 'y' },
+          { type: 'bar',  label: 'Verbruik', data: consume48, backgroundColor: hexToRgba(COLORS.consume, 0.5), yAxisID: 'y' },
+          { type: 'bar',  label: 'Laden',    data: charge48,  backgroundColor: hexToRgba(COLORS.charge, 0.8), yAxisID: 'y' },
+          { type: 'bar',  label: 'Ontladen', data: disch48,   backgroundColor: hexToRgba(COLORS.discharge, 0.8),  yAxisID: 'y' },
           { type: 'line', label: 'SoC %',    data: soc48,
-            borderColor: '#8b5cf6', backgroundColor: 'transparent',
+            borderColor: COLORS.soc, backgroundColor: 'transparent',
             borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2', tension: 0.3,
             spanGaps: true },
         ]
@@ -414,27 +428,20 @@
         labels: labels48,
         datasets: [
           { type: 'line', label: 'Zon',          data: mSolar48,
-            borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)',
+            borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.1),
             fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
           { type: 'line', label: 'Verbruik',      data: mConsume48,
-            borderColor: '#6366f1', backgroundColor: 'transparent',
+            borderColor: COLORS.consume, backgroundColor: 'transparent',
             tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
           { type: 'bar',  label: 'Netafname',     data: mImport48,
-            backgroundColor: 'rgba(59,130,246,0.6)' },
+            backgroundColor: hexToRgba(COLORS.import_kw, 0.6) },
           { type: 'bar',  label: 'Teruglevering', data: mExport48,
-            backgroundColor: 'rgba(16,185,129,0.6)' },
-          { type: 'line', label: 'Batterij SoC',  data: mSoc48,
-            borderColor: '#8b5cf6', backgroundColor: 'transparent',
-            borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2',
-            tension: 0.3, spanGaps: false },
+            backgroundColor: hexToRgba(COLORS.export_kw, 0.6) },
         ]
       },
       options: { ...commonOpts,
         scales: { ...commonOpts.scales,
-          y:  { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
-          y2: { position: 'right', min: 0, max: 100,
-                title: { display: true, text: '%', font: { size: 10 } },
-                grid: { display: false } }
+          y: { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
         }
       },
       plugins: [nowLinePlugin]

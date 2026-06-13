@@ -188,9 +188,14 @@ function resetDefaults() {
   });
 }
 
-// Init color inputs to sync text on change
-document.querySelectorAll('input[type="color"]').forEach(inp => {
-  inp.addEventListener('input', () => syncText(inp.name, inp.value));
+// Init: sync previews from saved values on page load
+// Preview initialiseren vanuit opgeslagen waarden bij paginaladen
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[type="color"]').forEach(inp => {
+    inp.addEventListener('input', () => syncText(inp.name, inp.value));
+    // Initialize preview from current value
+    updatePreview(inp.name, inp.value);
+  });
 });
 </script>
 {% endblock %}
