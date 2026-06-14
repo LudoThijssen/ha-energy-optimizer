@@ -35,6 +35,28 @@ SENSOR_BOUNDS: dict[str, tuple[float, float]] = {
     "gas_consumption":      (0.0,    100.0),   # m³/h
 }
 
+# Sensors where small negative readings should be clamped to 0 instead of
+# rejected — caused by measurement timing differences between separate
+# CT sensors (e.g. FoxESS calculated Load Power can dip slightly negative
+# near zero-consumption moments). Physically these values cannot be negative.
+#
+# Sensoren waarbij kleine negatieve waarden naar 0 geclamped worden in plaats
+# van verworpen — veroorzaakt door timingverschillen tussen losse CT-sensoren
+# (bijv. FoxESS berekend Load Power kan licht negatief worden rond
+# bijna-nul-verbruik). Fysiek kunnen deze waarden niet negatief zijn.
+CLAMP_TO_ZERO = {
+    "total_consumption_power",
+    "solar_power",
+    "grid_import_power",
+    "grid_export_power",
+}
+
+# Maximum magnitude of negative value that gets clamped — larger negative
+# values are still considered invalid (real sensor error) and rejected.
+# Maximale grootte van negatieve waarde die geclamped wordt — grotere
+# negatieve waarden worden nog steeds als ongeldig (echte sensorfout) verworpen.
+CLAMP_TOLERANCE_KW = 0.5
+
 
 def validate_reading(
     internal_name: str,
@@ -57,6 +79,22 @@ def validate_reading(
 
     min_val, max_val = bounds
     fval = float(value)
+
+    # Clamp small negative readings to 0 for sensors that can't physically
+    # be negative — measurement timing artifact, not an error.
+    # Clamp kleine negatieve waarden naar 0 voor sensoren die fysiek niet
+    # negatief kunnen zijn — meettimingartefact, geen fout.
+    if (
+        internal_name in CLAMP_TO_ZERO
+        and min_val == 0.0
+        and -CLAMP_TOLERANCE_KW <= fval < 0.0
+    ):
+        logger.debug(
+            f"[sensor_validation] {internal_name} value {fval} "
+            f"clamped to 0 (measurement timing artifact) / "
+            f"naar 0 geclamped (meettimingartefact)"
+        )
+        return Decimal("0")
 
     if fval < min_val or fval > max_val:
         logger.warning(
