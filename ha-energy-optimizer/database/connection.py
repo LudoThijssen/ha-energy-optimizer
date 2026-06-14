@@ -73,8 +73,13 @@ class DatabaseConnection:
         """
         Yield a cursor from the pool.
         The session timezone is set via init_command on every new connection.
+        Connections are pinged and reconnected if stale (e.g. closed by
+        MariaDB's wait_timeout while idle in the pool).
+
         Geeft een cursor terug uit de pool.
         De sessietijdzone wordt ingesteld via init_command op elke nieuwe verbinding.
+        Verbindingen worden gepingd en hersteld indien verouderd (bijv. gesloten
+        door MariaDB's wait_timeout terwijl ze idle in de pool stonden).
         """
         conn = None
         cur  = None
@@ -85,6 +90,21 @@ class DatabaseConnection:
                 import time
                 time.sleep(0.5)
                 conn = self._pool.get_connection()
+
+            # Detect and recover from stale connections
+            # Verouderde verbindingen detecteren en herstellen
+            try:
+                conn.ping(reconnect=True, attempts=2, delay=0.5)
+            except mysql.connector.errors.Error:
+                # Connection beyond recovery — release and get a fresh one
+                # Verbinding niet meer te herstellen — vrijgeven en nieuwe ophalen
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                conn = self._pool.get_connection()
+                conn.ping(reconnect=True, attempts=2, delay=0.5)
+
             cur = conn.cursor(dictionary=dictionary)
             yield cur
         finally:
