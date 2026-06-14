@@ -1059,7 +1059,17 @@ def colors():
 def history():
     """Historical data page with date selector."""
     options = _load_options()
-    return render_template("history.html", options=options)
+    default_colors = {
+        "solar":        "#f59e0b",
+        "consume":      "#6366f1",
+        "import_kw":    "#3b82f6",
+        "export_kw":    "#10b981",
+        "soc":          "#8b5cf6",
+        "discharge":    "#ef4444",
+        "solar_charge": "#f59e0b",
+    }
+    colors = {**default_colors, **options.get("colors", {})}
+    return render_template("history.html", options=options, colors=colors)
 
 
 @app.route("/api/history-data")
