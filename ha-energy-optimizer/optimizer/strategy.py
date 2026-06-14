@@ -346,6 +346,7 @@ class Strategy:
         battery_temp_c: Optional[Decimal] = None,
         solar_outlook: Optional[SolarOutlook] = None,
         day_balance_plan: Optional[DayBalancePlan] = None,
+        last_charge_price_excl: Optional[Decimal] = None,
     ) -> tuple[str, Decimal, str, list[str]]:
         """
         Decide the battery action for this hour.
@@ -442,7 +443,7 @@ class Strategy:
         # ── Step 4: Price-based discharge ────────────────────────────────────
         # Stap 4: Prijsgebaseerd ontladen
         should_dis, dis_reason = self._should_discharge(
-            price_excl, soc_pct, day_stats, solar_outlook
+            price_excl, soc_pct, day_stats, solar_outlook, last_charge_price_excl
         )
         if should_dis:
             power = power_limits.discharge_kw
@@ -516,6 +517,7 @@ class Strategy:
         soc_pct: Decimal,
         day_stats: Optional[DayPriceStats],
         solar_outlook: Optional[SolarOutlook],
+        last_charge_price_excl: Optional[Decimal] = None,
     ) -> tuple[bool, str]:
         if not day_stats:
             return False, ""
@@ -527,6 +529,31 @@ class Strategy:
         # SoC protection / SoC-bescherming
         if soc_pct <= self.min_soc + Decimal("2"):
             return False, ""
+
+        # Anti-cycling: don't discharge if the energy in the battery was
+        # just charged at a price too close to the current price — the
+        # round-trip efficiency loss would exceed any gain.
+        # Anti-cycling: niet ontladen als de energie in de batterij net
+        # geladen is tegen een prijs te dicht bij de huidige prijs — het
+        # rendementsverlies zou elke winst overstijgen.
+        if last_charge_price_excl is not None:
+            # Minimum price needed to break even on a charge/discharge cycle,
+            # plus a small margin for it to be worthwhile.
+            # Minimale prijs nodig om break-even te draaien op een laad/ontlaad-
+            # cyclus, plus een kleine marge om het de moeite waard te maken.
+            break_even = (
+                last_charge_price_excl / self.efficiency
+                + self.depreciation_per_kwh
+            )
+            min_worthwhile = break_even * Decimal("1.10")  # require 10% margin
+            if price_excl < min_worthwhile:
+                return (
+                    False,
+                    f"Anti-cycling: price {price_excl:.4f} too close to recent "
+                    f"charge price {last_charge_price_excl:.4f} "
+                    f"(break-even {break_even:.4f}) — idle / "
+                    f"Anti-cycling: prijs te dicht bij recente laadprijs — rust",
+                )
 
         cheapest       = day_stats.cheapest_today
         most_expensive = day_stats.most_expensive_today

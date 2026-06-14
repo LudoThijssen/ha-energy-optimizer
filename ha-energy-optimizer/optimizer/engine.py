@@ -468,6 +468,14 @@ class OptimizerEngine:
         all_notifications = []
         soc               = forecasts[0].soc_pct if forecasts else Decimal("50")
 
+        # Track the price of the most recent charge action, so the
+        # anti-cycling check can avoid discharging energy that was
+        # just charged at a similar price.
+        # Houd de prijs van de meest recente laadactie bij, zodat de
+        # anti-cycling-check vermijdt dat energie wordt ontladen die
+        # net tegen een vergelijkbare prijs geladen is.
+        last_charge_price_excl = None
+
         # Get latest battery temperature for derating.
         # Haal laatste batterijtemperatuur op voor vermogensverlaging.
         battery = self._battery_repo.get_latest()
@@ -486,6 +494,7 @@ class OptimizerEngine:
                 battery_temp_c=battery_temp,
                 solar_outlook=solar_outlook,
                 day_balance_plan=self._day_balance_plan,
+                last_charge_price_excl=last_charge_price_excl,
             )
 
             saving = strategy.calc_saving(
@@ -507,6 +516,19 @@ class OptimizerEngine:
             all_notifications.extend(
                 (forecast.hour, msg) for msg in notifications
             )
+
+            # Track last charge price for anti-cycling check
+            # Laatste laadprijs bijhouden voor anti-cycling-check
+            if action == "charge":
+                last_charge_price_excl = strategy._to_excl(forecast.price_per_kwh)
+            elif action == "discharge":
+                # After discharging, the battery is no longer holding
+                # energy from that charge — reset so future hours can
+                # discharge based on their own merits.
+                # Na ontladen bevat de batterij niet meer de energie van
+                # die lading — resetten zodat toekomstige uren op eigen
+                # merites kunnen ontladen.
+                last_charge_price_excl = None
 
             # Update SoC for next hour / Werk laadtoestand bij voor volgend uur
             soc = self._estimate_next_soc(soc, action, power, strategy)
