@@ -5,6 +5,7 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json
+import json as _json
 import os
 import threading
 from pathlib import Path
@@ -1012,12 +1013,14 @@ def reportlog():
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
-@app.route("/dashboard")
-def dashboard():
-    # gui/app.py — dashboard route — v0.2.12
-    options = _load_options()
-    refresh = options.get("reporting", {}).get("dashboard_refresh_seconds", 300)
-    # Default colors / Standaard kleuren
+def _get_colors(options: dict) -> dict:
+    """
+    Get dashboard colors, preferring system_config (persistent) over
+    options.json, falling back to defaults.
+
+    Haal dashboard-kleuren op, system_config (persistent) heeft voorrang
+    op options.json, terugval op standaardwaarden.
+    """
     default_colors = {
         "solar":        "#f59e0b",
         "consume":      "#6366f1",
@@ -1028,6 +1031,30 @@ def dashboard():
         "solar_charge": "#f59e0b",
     }
     colors = {**default_colors, **options.get("colors", {})}
+
+    db = _get_db()
+    if db:
+        try:
+            with db.cursor() as cur:
+                cur.execute("SELECT dashboard_colors FROM system_config ORDER BY id DESC LIMIT 1")
+                row = cur.fetchone()
+                if row and row.get("dashboard_colors"):
+                    stored = row["dashboard_colors"]
+                    if isinstance(stored, str):
+                        stored = _json.loads(stored)
+                    colors = {**colors, **stored}
+        except Exception:
+            pass
+
+    return colors
+
+
+@app.route("/dashboard")
+def dashboard():
+    # gui/app.py — dashboard route — v0.2.12
+    options = _load_options()
+    refresh = options.get("reporting", {}).get("dashboard_refresh_seconds", 300)
+    colors = _get_colors(options)
     return render_template("dashboard.html",
                            refresh_seconds=refresh,
                            options=options,
@@ -1036,10 +1063,19 @@ def dashboard():
 
 @app.route("/colors", methods=["GET", "POST"])
 def colors():
-    """Dashboard color settings / Dashboard kleurinstellingen."""
+    """Dashboard color settings / Dashboard kleurinstellingen.
+
+    Stored in system_config.dashboard_colors (database) so they survive
+    add-on reinstalls — options.json does not persist across reinstalls.
+
+    Opgeslagen in system_config.dashboard_colors (database) zodat ze
+    herinstallaties overleven — options.json overleeft dit niet.
+    """
     options = _load_options()
+    db = _get_db()
+
     if request.method == "POST":
-        options["colors"] = {
+        color_data = {
             "solar":        request.form.get("solar",        "#f59e0b"),
             "consume":      request.form.get("consume",      "#6366f1"),
             "import_kw":    request.form.get("import_kw",    "#3b82f6"),
@@ -1048,8 +1084,24 @@ def colors():
             "discharge":    request.form.get("discharge",    "#ef4444"),
             "solar_charge": request.form.get("solar_charge", "#f59e0b"),
         }
+        # Save to options.json (fast access) and system_config (persistent)
+        # Opslaan in options.json (snelle toegang) en system_config (persistent)
+        options["colors"] = color_data
         _save_options(options)
+        if db:
+            with db.cursor() as cur:
+                cur.execute("SELECT id FROM system_config ORDER BY id DESC LIMIT 1")
+                row = cur.fetchone()
+                if row:
+                    cur.execute(
+                        "UPDATE system_config SET dashboard_colors = %(c)s WHERE id = %(id)s",
+                        {"c": _json.dumps(color_data), "id": row["id"]}
+                    )
         return redirect(_url("colors") + "?saved=1")
+
+    # Use system_config as source of truth / system_config is bron van waarheid
+    options["colors"] = _get_colors(options)
+
     return render_template("colors.html",
                            options=options,
                            saved=request.args.get("saved"))
@@ -1059,16 +1111,7 @@ def colors():
 def history():
     """Historical data page with date selector."""
     options = _load_options()
-    default_colors = {
-        "solar":        "#f59e0b",
-        "consume":      "#6366f1",
-        "import_kw":    "#3b82f6",
-        "export_kw":    "#10b981",
-        "soc":          "#8b5cf6",
-        "discharge":    "#ef4444",
-        "solar_charge": "#f59e0b",
-    }
-    colors = {**default_colors, **options.get("colors", {})}
+    colors = _get_colors(options)
     return render_template("history.html", options=options, colors=colors)
 
 

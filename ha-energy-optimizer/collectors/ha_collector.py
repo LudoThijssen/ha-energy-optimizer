@@ -183,16 +183,53 @@ class HaCollector(BaseCollector):
     def _store_consumption(self, readings: dict) -> None:
         grid_import = readings.get("grid_import_power")
         grid_export = readings.get("grid_export_power")
-        total = readings.get("total_consumption_power")
-        solar = readings.get("solar_power")
-        gas = readings.get("gas_consumption")
+        total       = readings.get("total_consumption_power")
+        solar       = readings.get("solar_power")
+        gas         = readings.get("gas_consumption")
+        bat_charge  = readings.get("battery_charge_kw")
+        bat_disch   = readings.get("battery_discharge_kw")
 
         if all(v is None for v in [grid_import, grid_export, total, gas]):
             return
 
-        # Calculate total consumption if not directly measured
-        # Bereken totaal verbruik als het niet direct gemeten wordt
-        if total is None and grid_import is not None:
+        # Calculate actual household consumption from the full energy balance:
+        # consumption = solar + battery_discharge - battery_charge
+        #               - grid_export + grid_import
+        #
+        # This is preferred over an inverter-reported "load power" value,
+        # which is itself a calculated estimate and can show small negative
+        # readings due to measurement timing between separate CT sensors
+        # (PV micro-inverters feed the grid directly and are not visible
+        # to the main inverter).
+        #
+        # Bereken werkelijk huishoudverbruik uit de volledige energiebalans:
+        # verbruik = zon + batterij_ontladen - batterij_laden
+        #            - net_export + net_import
+        #
+        # Dit heeft de voorkeur boven een door de inverter gerapporteerde
+        # "load power" waarde, die zelf een schatting is en licht negatief
+        # kan uitvallen door timingverschillen tussen losse CT-sensoren
+        # (PV-micro-omvormers leveren direct aan het net, onzichtbaar voor
+        # de hoofdinverter).
+        if grid_import is not None and grid_export is not None:
+            from decimal import Decimal
+            calculated = (
+                Decimal(str(solar or 0))
+                + Decimal(str(bat_disch or 0))
+                - Decimal(str(bat_charge or 0))
+                - Decimal(str(grid_export))
+                + Decimal(str(grid_import))
+            )
+            # Clamp small negative results to 0 — consumption can't be
+            # negative; tiny negatives come from sensor timing differences.
+            # Clamp kleine negatieve resultaten naar 0 — verbruik kan niet
+            # negatief zijn; kleine negatieve waarden komen door sensortiming.
+            if Decimal("-0.5") <= calculated < 0:
+                calculated = Decimal("0")
+            total = calculated
+        elif total is None and grid_import is not None:
+            # Fallback if battery sensors not available
+            # Terugval als batterijsensoren niet beschikbaar zijn
             from decimal import Decimal
             total = (
                 Decimal(str(grid_import))
