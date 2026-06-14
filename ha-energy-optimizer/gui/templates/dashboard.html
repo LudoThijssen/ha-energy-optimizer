@@ -322,7 +322,7 @@
 
     // Build datasets for each index
     const solar48    = [], consume48 = [], charge48 = [], disch48 = [], soc48 = [];
-    const mSolar48   = [], mConsume48= [], mImport48= [], mExport48= [];
+    const mSolar48   = [], mConsume48= [], mImport48= [], mExport48= [], mSoc48= [];
     const price48    = [], priceColors = [];
     const actionColors = {
       charge:       hexToRgba(COLORS.charge, 0.8),
@@ -344,17 +344,20 @@
       disch48.push(s  && s.action === 'discharge' ? -s.power_kw : 0);
       soc48.push(s ? s.soc_pct : null);
 
-      // Measured chart data (only past hours)
+      // Measured chart data (only past hours) — null for future = not plotted
+      // Gemeten grafiekdata (alleen verleden uren) — null voor toekomst = niet geplot
       if (i <= nowHour && m) {
-        mSolar48.push(m.solar_kw);
-        mConsume48.push(m.consumption_kw);
-        mImport48.push(m.import_kw);
-        mExport48.push(-m.export_kw);
+        mSolar48.push(m.solar_kw   != null ? m.solar_kw   : null);
+        mConsume48.push(m.consumption_kw != null ? m.consumption_kw : null);
+        mImport48.push(m.import_kw != null ? m.import_kw  : null);
+        mExport48.push(m.export_kw != null ? -m.export_kw : null);
+        mSoc48.push(m.battery_soc  != null ? m.battery_soc : null);
       } else {
         mSolar48.push(null);
         mConsume48.push(null);
         mImport48.push(null);
         mExport48.push(null);
+        mSoc48.push(null);
       }
 
       // Price chart
@@ -446,11 +449,18 @@
             backgroundColor: hexToRgba(COLORS.import_kw, 0.6) },
           { type: 'bar',  label: 'Teruglevering', data: mExport48,
             backgroundColor: hexToRgba(COLORS.export_kw, 0.6) },
+          { type: 'line', label: 'Batterij SoC',  data: mSoc48,
+            borderColor: COLORS.soc, backgroundColor: 'transparent',
+            borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2',
+            tension: 0.3, spanGaps: false },
         ]
       },
       options: { ...commonOpts,
         scales: { ...commonOpts.scales,
-          y: { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+          y:  { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+          y2: { position: 'right', min: 0, max: 100,
+                title: { display: true, text: '%', font: { size: 10 } },
+                grid: { display: false } }
         }
       },
       plugins: [nowLinePlugin]
