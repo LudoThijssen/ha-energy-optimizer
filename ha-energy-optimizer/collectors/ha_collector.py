@@ -244,3 +244,5 @@ class HaCollector(BaseCollector):
             total_consumption_kw=total,
             gas_m3=gas,
         ))
+
+
