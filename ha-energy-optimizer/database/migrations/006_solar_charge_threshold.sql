@@ -12,9 +12,7 @@
 
 ALTER TABLE system_config
     ADD COLUMN IF NOT EXISTS `solar_charge_threshold` DECIMAL(4,2) NOT NULL DEFAULT 0.80
-        COMMENT 'Block grid charging when expected solar >= this fraction of usable capacity. '
-                '0.80 = block when solar >= 80% of usable kWh. / '
-                'Blokkeer nettoladen als verwachte zon >= deze fractie van bruikbare capaciteit.';
+        COMMENT 'Block grid charging when expected solar >= this fraction of usable capacity. 0.80 = block when solar >= 80% of usable kWh. Blokkeer nettoladen als verwachte zon >= deze fractie van bruikbare capaciteit.';
 
 -- Update existing rows to default value if NULL (should not happen, but safe).
 -- Bestaande rijen bijwerken naar standaardwaarde als NULL (zou niet voor moeten komen, maar veilig).
