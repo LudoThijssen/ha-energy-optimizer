@@ -49,6 +49,17 @@ class HaCollector(BaseCollector):
         readings: dict[str, Decimal | None] = {}
 
         for internal_name, entity_id in entity_map.items():
+            # Skip total_consumption_power — we calculate it ourselves from
+            # the energy balance (solar + battery - grid). The inverter's
+            # calculated Load Power can be negative due to CT timing and is
+            # not used anywhere in the collector.
+            # total_consumption_power overslaan — we berekenen het zelf uit
+            # de energiebalans (zon + batterij - net). De berekende Load Power
+            # van de inverter kan negatief zijn door CT-timing en wordt nergens
+            # gebruikt in de collector.
+            if internal_name == "total_consumption_power":
+                continue
+
             raw = self._fetch_entity(entity_id)
             validated = validate_reading(internal_name, raw, log)
 
