@@ -43,6 +43,14 @@
     <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Besparing / Saving</div>
     <div id="sum-saving" style="font-size:20px; font-weight:600; color:#16a34a;">—</div>
   </div>
+  <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Laadkosten / Charging cost</div>
+    <div id="sum-cost" style="font-size:20px; font-weight:600; color:#dc2626;">—</div>
+  </div>
+  <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Netto / Net</div>
+    <div id="sum-net" style="font-size:20px; font-weight:600; color:#0f172a;">—</div>
+  </div>
 </div>
 
 <!-- Loading indicator -->
@@ -253,6 +261,16 @@ function renderSummary(d) {
   document.getElementById('sum-saving').textContent = saving >= 0
     ? '+' + saving.toFixed(2) + ' €'
     : saving.toFixed(2) + ' €';
+
+  const cost = d.schedule.reduce((s, sl) => s + (sl.cost || 0), 0);
+  document.getElementById('sum-cost').textContent = '-' + cost.toFixed(2) + ' €';
+
+  // Net result: saving from discharge minus cost of grid charging
+  // Netto resultaat: besparing van ontladen minus kosten van netladen
+  const net = saving - cost;
+  const netEl = document.getElementById('sum-net');
+  netEl.textContent = (net >= 0 ? '+' : '') + net.toFixed(2) + ' €';
+  netEl.style.color = net >= 0 ? '#16a34a' : '#dc2626';
 }
 
 // ── Chart helpers / Grafiekhulpfuncties ────────────────────────────────────
@@ -400,34 +418,66 @@ function renderScheduleTable(schedule) {
     idle:         '<span style="color:#6b7280;">&#8212; Rust</span>',
   };
 
-  let html = '<table><thead><tr>'
+  let html = '<table><thead>'
+    + '<tr>'
     + '<th style="width:80px">Tijd</th>'
     + '<th style="width:130px">Actie</th>'
     + '<th style="width:80px">Vermogen</th>'
     + '<th style="width:70px">Prijs</th>'
-    + '<th style="width:60px">SoC %</th>'
+    + '<th style="width:60px">SoC</th>'
     + '<th style="width:70px">Zon</th>'
-    + '<th style="width:80px">Besparing</th>'
+    + '<th style="width:90px">Kosten laden</th>'
+    + '<th style="width:90px">Besparing</th>'
     + '<th>Reden</th>'
-    + '</tr></thead><tbody>';
+    + '</tr>'
+    + '<tr style="font-size:10px; color:#94a3b8; background:#f9fafb;">'
+    + '<th></th>'
+    + '<th></th>'
+    + '<th>kW</th>'
+    + '<th>€</th>'
+    + '<th>%</th>'
+    + '<th>kW</th>'
+    + '<th>€</th>'
+    + '<th>€</th>'
+    + '<th></th>'
+    + '</tr>'
+    + '</thead><tbody>';
+
+  let totalCost = 0, totalSaving = 0;
 
   schedule.forEach(s => {
     const rowBg = s.action === 'charge'    ? 'background:#f0fdf4;' :
                   s.action === 'discharge' ? 'background:#fef2f2;' :
                   s.action === 'self_consume' ? 'background:#fffbeb;' : '';
     const saving = s.saving ? (s.saving >= 0 ? '+' : '') + s.saving.toFixed(4) + ' €' : '—';
+    const cost   = s.cost   ? '-' + s.cost.toFixed(4) + ' €' : '—';
+    totalCost   += s.cost   || 0;
+    totalSaving += s.saving || 0;
     html += `<tr style="${rowBg}">
       <td style="font-size:13px;font-weight:500;">${s.hour}</td>
       <td>${actionLabel[s.action] || s.action}</td>
       <td style="font-size:13px;">${s.power_kw ? s.power_kw.toFixed(2) + ' kW' : '—'}</td>
-      <td style="font-size:13px;">${(s.price * 100).toFixed(1)} ct</td>
-      <td style="font-size:13px;">${s.soc_pct ? s.soc_pct.toFixed(0) + '%' : '—'}</td>
+      <td style="font-size:13px;">${s.price ? s.price.toFixed(4) + ' €' : '—'}</td>
+      <td style="font-size:13px;">${s.soc_pct ? s.soc_pct.toFixed(0) : '—'}</td>
       <td style="font-size:13px;">${s.solar_kw ? s.solar_kw.toFixed(2) + ' kW' : '—'}</td>
+      <td style="font-size:13px;color:${s.cost > 0 ? '#dc2626' : '#6b7280'};">${cost}</td>
       <td style="font-size:13px;color:${s.saving > 0 ? '#16a34a' : '#6b7280'};">${saving}</td>
       <td style="font-size:11px;color:#6b7280;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
           title="${s.reason}">${(s.reason || '').slice(0, 60)}</td>
     </tr>`;
   });
+
+  // Day total row / Dagtotaal rij
+  const netTotal = totalSaving - totalCost;
+  html += `<tr style="background:#f1f5f9; font-weight:700; border-top:2px solid #cbd5e1;">
+    <td colspan="6" style="font-size:12px; text-align:right; padding-right:12px;">
+      Dagtotaal / Day total — Netto: <span style="color:${netTotal >= 0 ? '#16a34a' : '#dc2626'};">
+        ${netTotal >= 0 ? '+' : ''}${netTotal.toFixed(4)} €</span>
+    </td>
+    <td style="font-size:13px; color:#dc2626;">-${totalCost.toFixed(4)} €</td>
+    <td style="font-size:13px; color:#16a34a;">+${totalSaving.toFixed(4)} €</td>
+    <td></td>
+  </tr>`;
 
   html += '</tbody></table>';
   wrap.innerHTML = html;
