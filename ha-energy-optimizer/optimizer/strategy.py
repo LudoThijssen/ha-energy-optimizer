@@ -347,16 +347,21 @@ class Strategy:
         solar_outlook: Optional[SolarOutlook] = None,
         day_balance_plan: Optional[DayBalancePlan] = None,
         last_charge_price_excl: Optional[Decimal] = None,
-    ) -> tuple[str, Decimal, str, list[str]]:
+    ) -> tuple[str, Decimal, str, list[str], bool]:
         """
         Decide the battery action for this hour.
         Bepaal de batterijactie voor dit uur.
 
-        Returns (action, target_power_kw, reason, notifications).
-        Geeft (actie, doelvermogen_kw, reden, meldingen) terug.
+        Returns (action, target_power_kw, reason, notifications, is_solar_charge).
+        Geeft (actie, doelvermogen_kw, reden, meldingen, is_zonne_lading) terug.
 
         notifications is a list of user-facing messages (may be empty).
         notifications is een lijst van gebruikersmeldingen (kan leeg zijn).
+
+        is_solar_charge is True only when action == 'charge' and the energy
+        comes from solar surplus (free) rather than the grid (paid).
+        is_solar_charge is alleen True als action == 'charge' en de energie
+        van zonne-overschot komt (gratis) i.p.v. van het net (betaald).
         """
         price_excl      = self._to_excl(current_price)
         export_excl     = self._to_excl(export_price)
@@ -383,7 +388,7 @@ class Strategy:
                     f"(priority 2){power_limits.reason} / "
                     f"Zonne-overschot {surplus_kw:.2f} kW — batterij laden (prioriteit 2)"
                 )
-                return "charge", power, reason, notifications
+                return "charge", power, reason, notifications, True
 
             # Battery full — must export. Is it profitable?
             # Batterij vol — moet terugleveren. Is het winstgevend?
@@ -402,6 +407,7 @@ class Strategy:
                     f"Battery full, export price {export_excl:.4f} €/kWh — limiting export / "
                     f"Batterij vol, terugleverprijs {export_excl:.4f} €/kWh — export beperken",
                     notifications,
+                    False,
                 )
 
             # Profitable export — allow it (priority 3).
@@ -414,6 +420,7 @@ class Strategy:
                 f"Batterij vol, overschot {surplus_kw:.2f} kW teruggeleverd "
                 f"(prioriteit 3)",
                 notifications,
+                False,
             )
 
         # ── Step 3: Day balance discharge (evening planning) ──────────────────
@@ -438,6 +445,7 @@ class Strategy:
                     f"Dagbalans: ruimte maken voor zonopbrengst morgen — "
                     f"doel {day_balance_plan.target_soc_pct:.0f}%",
                     notifications,
+                    False,
                 )
 
         # ── Step 4: Price-based discharge ────────────────────────────────────
@@ -447,7 +455,7 @@ class Strategy:
         )
         if should_dis:
             power = power_limits.discharge_kw
-            return "discharge", power, dis_reason, notifications
+            return "discharge", power, dis_reason, notifications, False
 
         # ── Step 5: Price-based grid charging ────────────────────────────────
         # Stap 5: Prijsgebaseerd laden vanaf net
@@ -456,7 +464,7 @@ class Strategy:
         )
         if should_chg:
             power = power_limits.charge_kw
-            return "charge", power, chg_reason, notifications
+            return "charge", power, chg_reason, notifications, False
 
         # ── Step 6: Idle ─────────────────────────────────────────────────────
         return (
@@ -464,6 +472,7 @@ class Strategy:
             Decimal("0"),
             "No profitable action this hour / Geen voordelige actie dit uur",
             notifications,
+            False,
         )
 
     # ── Power limits with temperature derating ───────────────────────────────
@@ -736,24 +745,70 @@ class Strategy:
         action: str,
         power_kw: Decimal,
         price_excl: Decimal,
+        is_solar_charge: bool = False,
     ) -> Decimal:
         """
         Calculate expected financial saving for this action.
         Bereken verwachte financiële besparing voor deze actie.
+
+        For 'charge', this is only the future round-trip loss that is
+        avoided compared to a worse alternative — it is NOT the cost of
+        the electricity itself. See calc_cost() for that.
+
+        Voor 'laden' is dit alleen het toekomstige rendementsverlies dat
+        vermeden wordt t.o.v. een slechter alternatief — NIET de kosten
+        van de elektriciteit zelf. Zie calc_cost() daarvoor.
         """
         if action == "discharge":
             energy_out = power_kw * self.efficiency
             saving = (energy_out * price_excl) - (self.depreciation_per_kwh * power_kw)
         elif action == "charge":
-            saving = max(
-                (power_kw * price_excl * (Decimal("1") - Decimal("1") / self.efficiency)
-                 - self.depreciation_per_kwh * power_kw),
-                Decimal("0"),
-            )
+            if is_solar_charge:
+                # Solar charging is free — no cost, so no "saving" framing needed.
+                # Zonne-lading is gratis — geen kosten, dus geen "besparing" nodig.
+                saving = Decimal("0")
+            else:
+                saving = max(
+                    (power_kw * price_excl * (Decimal("1") - Decimal("1") / self.efficiency)
+                     - self.depreciation_per_kwh * power_kw),
+                    Decimal("0"),
+                )
         else:
             saving = Decimal("0")
 
         return saving.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP)
+
+    def calc_cost(
+        self,
+        action: str,
+        power_kw: Decimal,
+        price_excl: Decimal,
+        is_solar_charge: bool = False,
+    ) -> Decimal:
+        """
+        Calculate the actual cost incurred this hour for the given action.
+        Bereken de werkelijke kosten voor deze actie dit uur.
+
+        - 'charge' from grid: cost = power × price (money spent now, excl. VAT)
+        - 'charge' from solar surplus: cost = 0 (already-produced free energy)
+        - 'discharge' / 'idle' / 'self_consume': cost = 0 (no purchase this hour)
+
+        - 'laden' vanaf net: kosten = vermogen × prijs (nu uitgegeven geld, excl. BTW)
+        - 'laden' van zonne-overschot: kosten = 0 (al geproduceerde gratis energie)
+        - 'ontladen' / 'rust' / 'zelf verbruik': kosten = 0 (geen aankoop dit uur)
+
+        Note: this is cost EXCL. VAT, consistent with price_excl throughout
+        the strategy. The GUI may add VAT for display if desired.
+
+        Let op: dit zijn kosten EXCL. BTW, consistent met price_excl door de
+        hele strategie. De GUI kan voor weergave BTW toevoegen indien gewenst.
+        """
+        if action == "charge" and not is_solar_charge:
+            cost = power_kw * price_excl
+        else:
+            cost = Decimal("0")
+
+        return cost.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP)
 
     # ── Helper / Hulpfunctie ─────────────────────────────────────────────────
 

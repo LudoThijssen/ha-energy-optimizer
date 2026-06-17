@@ -484,7 +484,7 @@ class OptimizerEngine:
         for forecast in forecasts:
             forecast.soc_pct = soc
 
-            action, power, reason, notifications = strategy.decide(
+            action, power, reason, notifications, is_solar_charge = strategy.decide(
                 current_price=forecast.price_per_kwh,
                 export_price=forecast.price_per_kwh,   # TODO: separate export price feed
                 solar_kw=forecast.solar_kw,
@@ -497,9 +497,9 @@ class OptimizerEngine:
                 last_charge_price_excl=last_charge_price_excl,
             )
 
-            saving = strategy.calc_saving(
-                action, power, strategy._to_excl(forecast.price_per_kwh)
-            )
+            price_excl_now = strategy._to_excl(forecast.price_per_kwh)
+            saving = strategy.calc_saving(action, power, price_excl_now, is_solar_charge)
+            cost   = strategy.calc_cost(action, power, price_excl_now, is_solar_charge)
 
             slots.append(ScheduleSlot(
                 hour=forecast.hour,
@@ -507,6 +507,7 @@ class OptimizerEngine:
                 target_power_kw=power,
                 target_soc_pct=soc,
                 expected_saving=saving,
+                expected_cost=cost,
                 reason=reason,
                 expected_solar_kw=forecast.solar_kw,
                 expected_consumption_kw=forecast.consumption_kw,
@@ -567,6 +568,7 @@ class OptimizerEngine:
                 target_power_kw=s.target_power_kw,
                 target_soc_pct=s.target_soc_pct,
                 expected_saving=s.expected_saving,
+                expected_cost=s.expected_cost,
                 reason=s.reason,
                 expected_solar_kw=s.expected_solar_kw,
                 expected_consumption_kw=s.expected_consumption_kw,
