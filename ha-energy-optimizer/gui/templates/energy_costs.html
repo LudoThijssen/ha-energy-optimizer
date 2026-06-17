@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+<!-- gui/templates/energy_costs.html -->
+<!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/energy_costs.html -->
+<!-- v0.2.13 — 2026-06-16 -->
+{% block title %}Energie kosten / Energy costs — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Energie kosten / Energy costs</h1>
+<p class="subtitle">
+  Werkelijke kosten en besparing per periode / Actual costs and savings per period
+</p>
+
+<!-- Mode selector / Weergavekeuze -->
+<div class="card" style="padding:16px;">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <span style="font-size:13px; font-weight:500; color:#374151;">Weergave / View:</span>
+    <button class="btn btn-sm" id="btn-mode-day"    onclick="setMode('day')"   >Dag / Day</button>
+    <button class="btn btn-sm" id="btn-mode-week"   onclick="setMode('week')"  >Week</button>
+    <button class="btn btn-sm" id="btn-mode-month"  onclick="setMode('month')" >Maand / Month</button>
+    <button class="btn btn-sm" id="btn-mode-year"   onclick="setMode('year')"  >Jaar / Year</button>
+
+    <span style="color:#d1d5db; margin:0 4px;">|</span>
+
+    <!-- Day picker -->
+    <span id="picker-day" style="display:none; align-items:center; gap:8px;">
+      <button class="btn btn-secondary btn-sm" id="btn-prev-day" onclick="navigate(-1)">&#8592;</button>
+      <input type="date" id="input-day" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
+      <button class="btn btn-secondary btn-sm" id="btn-next-day" onclick="navigate(1)">&#8594;</button>
+    </span>
+
+    <!-- Week picker -->
+    <span id="picker-week" style="display:none; align-items:center; gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="navigate(-7)">&#8592;</button>
+      <input type="week" id="input-week" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
+      <button class="btn btn-secondary btn-sm" onclick="navigate(7)">&#8594;</button>
+    </span>
+
+    <!-- Month picker -->
+    <span id="picker-month" style="display:none; align-items:center; gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="navigate(-1)">&#8592;</button>
+      <input type="month" id="input-month" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
+      <button class="btn btn-secondary btn-sm" onclick="navigate(1)">&#8594;</button>
+    </span>
+
+    <!-- Year picker -->
+    <span id="picker-year" style="display:none; align-items:center; gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="navigate(-1)">&#8592;</button>
+      <select id="input-year" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;" onchange="load()"></select>
+      <button class="btn btn-secondary btn-sm" onclick="navigate(1)">&#8594;</button>
+    </span>
+
+    <span id="period-label" style="font-size:13px; color:#6b7280; margin-left:4px;"></span>
+  </div>
+</div>
+
+<!-- Loading / Laden -->
+<div id="loading" style="display:none; padding:24px; text-align:center; color:#6b7280; font-size:13px;">
+  Laden... / Loading...
+</div>
+
+<!-- No data -->
+<div id="no-data" style="display:none;" class="card">
+  <p style="color:#6b7280; font-size:13px; padding:8px 0;">
+    Geen data beschikbaar voor deze periode. / No data available for this period.
+  </p>
+</div>
+
+<!-- Summary cards / Samenvattingskaarten -->
+<div id="summary-row" style="display:none; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+  <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Huisverbruik (hypothetisch)</div>
+    <div id="sum-consumption" style="font-size:20px; font-weight:600; color:#6366f1;">—</div>
+  </div>
+  <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Werkelijke kosten / Actual cost</div>
+    <div id="sum-actual" style="font-size:20px; font-weight:600; color:#dc2626;">—</div>
+  </div>
+  <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Besparing installatie / Installation saving</div>
+    <div id="sum-saving" style="font-size:20px; font-weight:600; color:#16a34a;">—</div>
+  </div>
+  <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Terugverdien % / ROI %</div>
+    <div id="sum-roi" style="font-size:20px; font-weight:600; color:#f59e0b;">—</div>
+  </div>
+</div>
+
+<!-- Data table / Datatabeel -->
+<div class="card" id="card-table" style="display:none; padding:0; overflow-x:auto;">
+  <div id="table-wrap"></div>
+</div>
+
+<script>
+// ── Config / Configuratie ───────────────────────────────────────────────────
+const HAS_GAS     = {{ 'true' if system_config and system_config.has_gas else 'false' }};
+const HAS_HEATING = {{ 'true' if system_config and system_config.has_district_heating else 'false' }};
+
+// ── State / Toestand ────────────────────────────────────────────────────────
+let mode        = 'day';
+let currentDate = todayStr();
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ── Init / Initialisatie ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Populate year selector
+  const yearSel = document.getElementById('input-year');
+  const thisYear = new Date().getFullYear();
+  for (let y = thisYear; y >= thisYear - 5; y--) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    yearSel.appendChild(opt);
+  }
+  yearSel.addEventListener('change', load);
+  document.getElementById('input-day').addEventListener('change', e => { currentDate = e.target.value; load(); });
+  document.getElementById('input-week').addEventListener('change', e => { currentDate = mondayOfWeek(e.target.value); load(); });
+  document.getElementById('input-month').addEventListener('change', e => { currentDate = e.target.value + '-01'; load(); });
+
+  setMode('day');
+});
+
+// ── Mode switching / Weergave wisselen ─────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  ['day','week','month','year'].forEach(x => {
+    document.getElementById('btn-mode-' + x).className =
+      'btn btn-sm ' + (x === m ? 'btn-primary' : 'btn-secondary');
+    document.getElementById('picker-' + x).style.display = x === m ? 'flex' : 'none';
+  });
+  syncPickers();
+  load();
+}
+
+function syncPickers() {
+  const d = new Date(currentDate + 'T12:00:00');
+  if (mode === 'day')   document.getElementById('input-day').value   = currentDate;
+  if (mode === 'week')  document.getElementById('input-week').value  = toWeekStr(d);
+  if (mode === 'month') document.getElementById('input-month').value = currentDate.slice(0, 7);
+  if (mode === 'year')  document.getElementById('input-year').value  = d.getFullYear();
+}
+
+function navigate(delta) {
+  const d = new Date(currentDate + 'T12:00:00');
+  if (mode === 'day')   d.setDate(d.getDate() + delta);
+  if (mode === 'week')  d.setDate(d.getDate() + delta);  // delta = ±7
+  if (mode === 'month') d.setMonth(d.getMonth() + delta);
+  if (mode === 'year')  d.setFullYear(d.getFullYear() + delta);
+  currentDate = d.toISOString().slice(0, 10);
+  syncPickers();
+  load();
+}
+
+function toWeekStr(d) {
+  const jan4 = new Date(d.getFullYear(), 0, 4);
+  const week = Math.ceil(((d - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+  return d.getFullYear() + '-W' + String(week).padStart(2, '0');
+}
+
+function mondayOfWeek(weekStr) {
+  const [y, w] = weekStr.split('-W').map(Number);
+  const jan4 = new Date(y, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const monday = new Date(jan4.getTime() - (dayOfWeek - 1) * 86400000 + (w - 1) * 7 * 86400000);
+  return monday.toISOString().slice(0, 10);
+}
+
+// ── Load data / Data laden ──────────────────────────────────────────────────
+function load() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('no-data').style.display = 'none';
+  document.getElementById('summary-row').style.display = 'none';
+  document.getElementById('card-table').style.display = 'none';
+
+  const params = new URLSearchParams({ mode, date: currentDate });
+
+  // Update period label
+  const d = new Date(currentDate + 'T12:00:00');
+  const locale = 'nl-NL';
+  let label = '';
+  if (mode === 'day')   label = d.toLocaleDateString(locale, { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  if (mode === 'week')  label = 'Week ' + toWeekStr(d).split('-W')[1] + ', ' + d.getFullYear();
+  if (mode === 'month') label = d.toLocaleDateString(locale, { month:'long', year:'numeric' });
+  if (mode === 'year')  label = d.getFullYear().toString();
+  document.getElementById('period-label').textContent = label;
+
+  fetch(apiUrl('/api/energy-costs?' + params.toString()))
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('loading').style.display = 'none';
+      if (!d.ok || !d.rows || !d.rows.length) {
+        document.getElementById('no-data').style.display = 'block';
+        return;
+      }
+      renderSummary(d);
+      renderTable(d);
+      document.getElementById('summary-row').style.display = 'flex';
+      document.getElementById('card-table').style.display = 'block';
+    })
+    .catch(() => {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('no-data').style.display = 'block';
+    });
+}
+
+// ── Summary / Samenvatting ──────────────────────────────────────────────────
+function renderSummary(d) {
+  const tot = d.totals;
+  document.getElementById('sum-consumption').textContent =
+    tot.consumption_cost != null ? tot.consumption_cost.toFixed(2) + ' €' : '—';
+  document.getElementById('sum-actual').textContent =
+    tot.actual_cost != null ? tot.actual_cost.toFixed(2) + ' €' : '—';
+  const saving = (tot.consumption_cost || 0) - (tot.actual_cost || 0);
+  document.getElementById('sum-saving').textContent =
+    (saving >= 0 ? '+' : '') + saving.toFixed(2) + ' €';
+  document.getElementById('sum-saving').style.color = saving >= 0 ? '#16a34a' : '#dc2626';
+
+  // ROI as saving / consumption cost %
+  const roi = tot.consumption_cost > 0 ? (saving / tot.consumption_cost * 100) : 0;
+  document.getElementById('sum-roi').textContent = roi.toFixed(1) + '%';
+}
+
+// ── Table / Tabel ───────────────────────────────────────────────────────────
+function renderTable(d) {
+  const wrap = document.getElementById('table-wrap');
+
+  // Build header
+  let hdr = '<thead><tr>'
+    + '<th style="width:120px">Tijdstip</th>'
+    + '<th colspan="2" style="text-align:center; background:#eff6ff;">Huisverbruik</th>'
+    + '<th colspan="2" style="text-align:center; background:#fef2f2;">Net import</th>'
+    + '<th colspan="2" style="text-align:center; background:#f0fdf4;">Net export</th>';
+  if (HAS_GAS)     hdr += '<th colspan="2" style="text-align:center; background:#fffbeb;">Gas</th>';
+  if (HAS_HEATING) hdr += '<th colspan="2" style="text-align:center; background:#fdf4ff;">Stadsverwarming</th>';
+  hdr += '<th style="width:90px; text-align:right;">Werkelijk</th>'
+       + '<th style="width:90px; text-align:right;">Besparing</th>'
+       + '</tr>'
+       + '<tr style="font-size:11px; color:#6b7280;">'
+       + '<th></th>'
+       + '<th style="background:#eff6ff;">kWh</th><th style="background:#eff6ff;">€</th>'
+       + '<th style="background:#fef2f2;">kWh</th><th style="background:#fef2f2;">€</th>'
+       + '<th style="background:#f0fdf4;">kWh</th><th style="background:#f0fdf4;">€</th>';
+  if (HAS_GAS)     hdr += '<th style="background:#fffbeb;">m³</th><th style="background:#fffbeb;">€</th>';
+  if (HAS_HEATING) hdr += '<th style="background:#fdf4ff;">GJ</th><th style="background:#fdf4ff;">€</th>';
+  hdr += '<th></th><th></th></tr></thead>';
+
+  // Build rows
+  let body = '<tbody>';
+  d.rows.forEach(r => {
+    const isSub = r.is_subtotal;
+    const style = isSub
+      ? 'background:#f1f5f9; font-weight:700; border-top:2px solid #cbd5e1;'
+      : '';
+
+    const fmt    = (v, dec=2)  => v != null ? v.toFixed(dec) : '—';
+    const fmtEur = (v)         => v != null ? v.toFixed(4)   : '—';
+    const fmtSav = (v)         => v != null ? (v >= 0 ? '+' : '') + v.toFixed(4) : '—';
+    const savCol = (v)         => v != null ? (v >= 0 ? '#16a34a' : '#dc2626') : '#6b7280';
+
+    const saving = (r.consumption_cost || 0) - (r.actual_cost || 0);
+
+    let row = `<tr style="${style}">
+      <td style="font-size:${isSub?'12':'13'}px; white-space:nowrap;">${r.label}</td>
+      <td style="font-size:13px; text-align:right; background:#eff6ff;">${fmt(r.consumption_kwh, 3)}</td>
+      <td style="font-size:13px; text-align:right; background:#eff6ff; color:#6366f1;">${fmtEur(r.consumption_cost)}</td>
+      <td style="font-size:13px; text-align:right; background:#fef2f2;">${fmt(r.import_kwh, 3)}</td>
+      <td style="font-size:13px; text-align:right; background:#fef2f2; color:#dc2626;">${fmtEur(r.import_cost)}</td>
+      <td style="font-size:13px; text-align:right; background:#f0fdf4;">${fmt(r.export_kwh, 3)}</td>
+      <td style="font-size:13px; text-align:right; background:#f0fdf4; color:#10b981;">${fmtEur(r.export_revenue)}</td>`;
+
+    if (HAS_GAS) {
+      row += `<td style="font-size:13px; text-align:right; background:#fffbeb;">${fmt(r.gas_m3, 3)}</td>
+              <td style="font-size:13px; text-align:right; background:#fffbeb; color:#f59e0b;">${fmtEur(r.gas_cost)}</td>`;
+    }
+    if (HAS_HEATING) {
+      row += `<td style="font-size:13px; text-align:right; background:#fdf4ff;">${fmt(r.heating_gj, 4)}</td>
+              <td style="font-size:13px; text-align:right; background:#fdf4ff; color:#8b5cf6;">${fmtEur(r.heating_cost)}</td>`;
+    }
+
+    row += `<td style="font-size:13px; text-align:right; color:#dc2626; font-weight:${isSub?'700':'400'};">${fmtEur(r.actual_cost)}</td>
+            <td style="font-size:13px; text-align:right; color:${savCol(saving)}; font-weight:${isSub?'700':'400'};">${fmtSav(saving)}</td>
+          </tr>`;
+    body += row;
+  });
+  body += '</tbody>';
+
+  wrap.innerHTML = '<table>' + hdr + body + '</table>';
+}
+</script>
+{% endblock %}

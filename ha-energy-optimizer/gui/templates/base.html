@@ -83,6 +83,9 @@
     <a href="{{ nav_url('reportlog') }}" {% if request.endpoint == 'reportlog' %}class="active"{% endif %}>Report log</a>
     <a href="{{ nav_url('history') }}" {% if request.endpoint == 'history' %}class="active"{% endif %}>Geschiedenis / History</a>
     <a href="{{ nav_url('colors') }}" {% if request.endpoint == 'colors' %}class="active"{% endif %}>Kleuren / Colors</a>
+    <a href="{{ nav_url('prices') }}" {% if request.endpoint == 'prices' %}class="active"{% endif %}>Prijzen / Prices</a>
+    <div class="nav-section">Analyse</div>
+    <a href="{{ nav_url('energy_costs') }}" {% if request.endpoint == 'energy_costs' %}class="active"{% endif %}>&#128200; Energie kosten / Energy costs</a>
   </nav>
   <main>
     {% block content %}{% endblock %}

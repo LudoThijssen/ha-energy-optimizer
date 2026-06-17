@@ -18,18 +18,11 @@ def run_migrations(db: DatabaseConnection) -> None:
     _apply(db, 4, MIGRATIONS_DIR / "004_extended_strategy_fields.sql")
     _apply(db, 5, MIGRATIONS_DIR / "005_profile_tables.sql")
     _apply(db, 6, MIGRATIONS_DIR / "006_solar_charge_threshold.sql")
-    # Note: 007 is a one-time UTC->local data correction for existing
-    # installations affected by the timezone bug fixed in v0.2.12.
-    # It is NOT part of the regular migration sequence — it was applied
-    # manually once and must not run on fresh installs (it would shift
-    # already-correct timestamps).
-    #
-    # Opmerking: 007 is een eenmalige UTC->lokaal datacorrectie voor
-    # bestaande installaties die te maken hadden met de tijdzonebug
-    # opgelost in v0.2.12. Dit is GEEN onderdeel van de reguliere
-    # migratiereeks — eenmalig handmatig toegepast, mag niet draaien
-    # bij nieuwe installaties (zou correcte tijdstempels verschuiven).
+    # 007 is a one-time UTC->local data correction — NOT in regular sequence
+    # 007 is een eenmalige UTC->lokaal datacorrectie — NIET in reguliere reeks
     _apply(db, 8, MIGRATIONS_DIR / "008_dashboard_colors.sql")
+    _apply(db, 9, MIGRATIONS_DIR / "009_expected_cost.sql")
+    _apply(db, 10, MIGRATIONS_DIR / "010_energy_prices_config.sql")
 
 
 def _apply(db: DatabaseConnection, version: int, sql_file: Path) -> None:

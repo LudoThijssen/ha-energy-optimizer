@@ -1107,6 +1107,265 @@ def colors():
                            saved=request.args.get("saved"))
 
 
+@app.route("/prices", methods=["GET", "POST"])
+def prices():
+    """Gas and district heating price settings / Gas- en stadsverwarmingprijsinstellingen."""
+    db = _get_db()
+    config_row = None
+    if db:
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
+            config_row = cur.fetchone()
+
+    if request.method == "POST" and db and config_row:
+        with db.cursor() as cur:
+            cur.execute(
+                "UPDATE system_config SET "
+                "gas_price_eur_m3 = %(gas)s, "
+                "gas_price_entity_id = %(gas_eid)s, "
+                "heating_price_eur_gj = %(heat)s, "
+                "heating_price_entity_id = %(heat_eid)s "
+                "WHERE id = %(id)s",
+                {
+                    "gas":      request.form.get("gas_price_eur_m3") or None,
+                    "gas_eid":  request.form.get("gas_price_entity_id") or None,
+                    "heat":     request.form.get("heating_price_eur_gj") or None,
+                    "heat_eid": request.form.get("heating_price_entity_id") or None,
+                    "id":       config_row["id"],
+                }
+            )
+        return redirect(_url("prices") + "?saved=1")
+
+    return render_template("prices.html",
+                           config=config_row,
+                           saved=request.args.get("saved"))
+
+
+@app.route("/energy-costs")
+def energy_costs():
+    """Energy costs overview page / Energie kosten overzichtspagina."""
+    return render_template("energy_costs.html")
+
+
+@app.route("/api/energy-costs")
+def api_energy_costs():
+    """
+    JSON endpoint for energy costs data.
+    Supports mode: day (hours), week (days), month (days), year (months).
+    JSON-endpoint voor energie kostendata.
+    Ondersteunt mode: dag (uren), week (dagen), maand (dagen), jaar (maanden).
+    """
+    import json as _json2
+    from datetime import date as _date, timedelta as _td
+
+    db = _get_db()
+    if not db:
+        return jsonify({"ok": False, "message": "Database niet verbonden"})
+
+    mode     = request.args.get("mode", "day")
+    date_str = request.args.get("date", str(_date.today()))
+
+    try:
+        base_date = _date.fromisoformat(date_str)
+    except ValueError:
+        return jsonify({"ok": False, "message": "Ongeldige datum"})
+
+    # Load config for gas/heating prices
+    # Config laden voor gas/stadsverwarmingprijzen
+    with db.cursor() as cur:
+        cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
+        cfg = cur.fetchone() or {}
+
+    gas_price     = float(cfg.get("gas_price_eur_m3")      or 0)
+    heating_price = float(cfg.get("heating_price_eur_gj")   or 0)
+    has_gas       = bool(cfg.get("has_gas"))
+    has_heating   = bool(cfg.get("has_district_heating"))
+
+    # Determine date range based on mode
+    # Datumbereik bepalen op basis van weergave
+    if mode == "day":
+        date_from = base_date
+        date_to   = base_date
+    elif mode == "week":
+        # Monday of that week
+        date_from = base_date - _td(days=base_date.weekday())
+        date_to   = date_from + _td(days=6)
+    elif mode == "month":
+        date_from = base_date.replace(day=1)
+        next_month = (date_from.replace(day=28) + _td(days=4)).replace(day=1)
+        date_to   = next_month - _td(days=1)
+    elif mode == "year":
+        date_from = base_date.replace(month=1, day=1)
+        date_to   = base_date.replace(month=12, day=31)
+    else:
+        return jsonify({"ok": False, "message": "Onbekende mode"})
+
+    try:
+        # ── Consumption data (home_consumption) ─────────────────────────────
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    measured_at,
+                    COALESCE(grid_import_kw, 0)       AS import_kw,
+                    COALESCE(grid_export_kw, 0)        AS export_kw,
+                    COALESCE(total_consumption_kw, 0)  AS consumption_kw,
+                    COALESCE(gas_m3, 0)                AS gas_m3
+                FROM home_consumption
+                WHERE DATE(measured_at) BETWEEN %(from)s AND %(to)s
+                ORDER BY measured_at
+            """, {"from": str(date_from), "to": str(date_to)})
+            consumption_rows = cur.fetchall()
+
+        # ── Energy prices ────────────────────────────────────────────────────
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT price_hour, CAST(price_per_kwh AS DECIMAL(10,5)) AS price
+                FROM energy_prices
+                WHERE DATE(price_hour) BETWEEN %(from)s AND %(to)s
+                  AND energy_type = 'electricity'
+                ORDER BY price_hour
+            """, {"from": str(date_from), "to": str(date_to)})
+            price_rows = cur.fetchall()
+
+        # Build price lookup by hour / Prijsopzoektabel per uur bouwen
+        price_by_hour = {}
+        for p in price_rows:
+            h = p["price_hour"].replace(minute=0, second=0, microsecond=0)
+            price_by_hour[h] = float(p["price"])
+
+        # ── Aggregate by period ──────────────────────────────────────────────
+        def group_key(dt):
+            if mode == "day":
+                return dt.strftime("%H:00")
+            elif mode == "week":
+                return dt.strftime("%Y-%m-%d")
+            elif mode == "month":
+                return dt.strftime("%Y-%m-%d")
+            else:  # year
+                return dt.strftime("%Y-%m")
+
+        def period_label(key):
+            if mode == "day":
+                return key
+            elif mode in ("week", "month"):
+                d = _date.fromisoformat(key)
+                return d.strftime("%d-%m %a")
+            else:
+                from datetime import datetime as _dt
+                d = _dt.strptime(key, "%Y-%m")
+                return d.strftime("%B %Y")
+
+        from collections import defaultdict
+        groups = defaultdict(lambda: {
+            "import_kwh": 0.0, "import_cost": 0.0,
+            "export_kwh": 0.0, "export_revenue": 0.0,
+            "consumption_kwh": 0.0, "consumption_cost": 0.0,
+            "gas_m3": 0.0, "gas_cost": 0.0,
+            "heating_gj": 0.0, "heating_cost": 0.0,
+        })
+
+        # Each row represents one reading (~5 min interval = 1/12 hour)
+        # Elke rij is een meting (~5 min interval = 1/12 uur)
+        INTERVAL_H = 1 / 12  # 5 minutes in hours / 5 minuten in uren
+
+        for row in consumption_rows:
+            dt   = row["measured_at"]
+            key  = group_key(dt)
+            hour = dt.replace(minute=0, second=0, microsecond=0)
+            price = price_by_hour.get(hour, 0.0)
+
+            imp  = float(row["import_kw"])  * INTERVAL_H
+            exp  = float(row["export_kw"])  * INTERVAL_H
+            cons = float(row["consumption_kw"]) * INTERVAL_H
+            gas  = float(row["gas_m3"]) * INTERVAL_H
+
+            groups[key]["import_kwh"]       += imp
+            groups[key]["import_cost"]       += imp * price
+            groups[key]["export_kwh"]        += exp
+            groups[key]["export_revenue"]    += exp * price
+            groups[key]["consumption_kwh"]   += cons
+            groups[key]["consumption_cost"]  += cons * price
+            if has_gas:
+                groups[key]["gas_m3"]        += gas
+                groups[key]["gas_cost"]      += gas * gas_price
+            # Stadsverwarming: not yet collected — placeholder
+            # Stadsverwarming: nog niet verzameld — placeholder
+
+        # Build rows with subtotals / Rijen met subtotalen opbouwen
+        rows = []
+        totals = {k: 0.0 for k in [
+            "import_kwh","import_cost","export_kwh","export_revenue",
+            "consumption_kwh","consumption_cost","gas_m3","gas_cost",
+            "heating_gj","heating_cost"
+        ]}
+
+        # For week/month: add day subtotals, for year: month subtotals
+        # Voor week/maand: dagsubtotalen, voor jaar: maandsubtotalen
+        current_sub_key = None
+        sub_acc = None
+
+        def flush_subtotal(sub_key, acc):
+            if acc and sub_key:
+                actual = acc["import_cost"] - acc["export_revenue"] + acc["gas_cost"] + acc["heating_cost"]
+                rows.append({
+                    "label": f"Subtotaal {period_label(sub_key)}",
+                    "is_subtotal": True,
+                    "actual_cost": actual,
+                    **acc
+                })
+
+        for key in sorted(groups.keys()):
+            g = groups[key]
+            actual = g["import_cost"] - g["export_revenue"] + g["gas_cost"] + g["heating_cost"]
+            g["actual_cost"] = actual
+
+            # Week/month: group by day, add subtotal per day for hour mode
+            # (In day mode there are no subtotals — hours are the detail)
+            # Week/maand: groepeer per dag, subtotaal per dag
+            if mode in ("week", "month", "year"):
+                # No sub-subtotals needed for these aggregation levels
+                pass
+
+            rows.append({
+                "label": period_label(key),
+                "is_subtotal": False,
+                "actual_cost": actual,
+                **g
+            })
+            for k in totals:
+                totals[k] += g.get(k, 0.0)
+
+        if not rows:
+            return jsonify({"ok": False, "rows": []})
+
+        # Add grand total row / Totaalrij toevoegen
+        totals["actual_cost"] = (
+            totals["import_cost"]
+            - totals["export_revenue"]
+            + totals["gas_cost"]
+            + totals["heating_cost"]
+        )
+
+        rows.append({
+            "label": "Totaal / Total",
+            "is_subtotal": True,
+            "actual_cost": totals["actual_cost"],
+            **totals
+        })
+
+        return jsonify({
+            "ok":     True,
+            "mode":   mode,
+            "rows":   rows,
+            "totals": totals,
+        })
+
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).exception("[energy_costs] Data fetch failed")
+        return jsonify({"ok": False, "message": str(e)})
+
+
 @app.route("/history")
 def history():
     """Historical data page with date selector."""
@@ -1158,6 +1417,7 @@ def api_history_data():
                        CAST(expected_solar_kw AS DECIMAL(10,3))   AS solar_kw,
                        CAST(expected_price AS DECIMAL(10,5))      AS price,
                        CAST(expected_saving AS DECIMAL(10,5))     AS saving,
+                       CAST(expected_cost AS DECIMAL(10,5))       AS cost,
                        reason
                 FROM optimizer_schedule
                 WHERE DATE(schedule_for) = %(d)s
@@ -1172,6 +1432,7 @@ def api_history_data():
                     "solar_kw": float(r["solar_kw"] or 0),
                     "price":    float(r["price"] or 0),
                     "saving":   float(r["saving"] or 0),
+                    "cost":     float(r["cost"] or 0),
                     "reason":   r["reason"] or "",
                 }
                 for r in cur.fetchall()
@@ -1360,20 +1621,22 @@ def api_dashboard_data():
                 data["today"]["battery_min_soc"] = float(row["min_soc"])
                 data["today"]["battery_max_soc"] = float(row["max_soc"])
 
-            # Expected saving / Verwachte besparing
+            # Expected saving and cost / Verwachte besparing en kosten
             cur.execute("""
-                SELECT COALESCE(SUM(expected_saving), 0) AS total_saving
+                SELECT COALESCE(SUM(expected_saving), 0) AS total_saving,
+                       COALESCE(SUM(expected_cost), 0)   AS total_cost
                 FROM optimizer_schedule
                 WHERE DATE(schedule_for) = CURDATE()
             """)
             row = cur.fetchone()
             data["today"]["expected_saving"] = round(float(row["total_saving"] or 0), 4)
+            data["today"]["expected_cost"]   = round(float(row["total_cost"] or 0), 4)
 
         # ── Optimizer schedule 48h / Optimizer schema 48 uur ─────────────────
         with db.cursor() as cur:
             cur.execute("""
                 SELECT schedule_for, action, target_power_kw,
-                       expected_price, expected_saving, executed,
+                       expected_price, expected_saving, expected_cost, executed,
                        expected_solar_kw, expected_consumption_kw,
                        target_soc_pct
                 FROM optimizer_schedule
@@ -1390,6 +1653,7 @@ def api_dashboard_data():
                     "power_kw":       float(row["target_power_kw"] or 0),
                     "price":          float(row["expected_price"] or 0),
                     "saving":         float(row["expected_saving"] or 0),
+                    "cost":           float(row["expected_cost"] or 0),
                     "executed":       bool(row["executed"]),
                     "solar_kw":       float(row["expected_solar_kw"] or 0),
                     "consumption_kw": float(row["expected_consumption_kw"] or 0),

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+<!-- gui/templates/prices.html -->
+<!-- /ha-energy-optimizer/ha-energy-optimizer/gui/templates/prices.html -->
+<!-- v0.2.13 — 2026-06-16 -->
+{% block title %}Prijzen / Prices — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1>Energie prijzen / Energy prices</h1>
+<p class="subtitle">
+  Vaste prijzen voor gas en stadsverwarming / Fixed prices for gas and district heating
+</p>
+
+{% if saved %}
+<div class="alert alert-success">&#10003; Opgeslagen / Saved</div>
+{% endif %}
+
+{% if not system_config %}
+<div class="alert alert-info">
+  Configureer eerst uw systeem op de <a href="{{ nav_url('system') }}">Systeem-pagina</a>
+  om te zien welke aansluitingen van toepassing zijn. /
+  First configure your system on the <a href="{{ nav_url('system') }}">System page</a>
+  to see which connections apply.
+</div>
+{% endif %}
+
+<form method="POST">
+
+  {% if not system_config or system_config.has_gas %}
+  <div class="card">
+    <h2>Gas</h2>
+    <div class="alert alert-info">
+      Wordt later uitgebreid met dynamische gasprijzen via HA-sensor. /
+      Will later be extended with dynamic gas prices via HA sensor.
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Gasprijs (€/m³ incl. BTW)</label>
+        <input type="number" name="gas_price_eur_m3" step="0.00001" min="0"
+               value="{{ config.gas_price_eur_m3 if config and config.gas_price_eur_m3 else '' }}"
+               placeholder="bijv. 1.20000">
+        <div class="hint">
+          Vaste gasprijs inclusief BTW en vaste kosten per m³.<br>
+          Fixed gas price including VAT and fixed costs per m³.
+        </div>
+      </div>
+      <div class="field">
+        <label>HA entiteit (optioneel / optional)</label>
+        <input type="text" name="gas_price_entity_id"
+               value="{{ config.gas_price_entity_id if config and config.gas_price_entity_id else '' }}"
+               placeholder="sensor.gas_price (voor later / for later)">
+        <div class="hint">
+          Nog niet actief — voor toekomstige dynamische gasprijzen. /
+          Not yet active — for future dynamic gas pricing.
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not system_config or system_config.has_district_heating %}
+  <div class="card">
+    <h2>Stadsverwarming / District heating</h2>
+    <div class="alert alert-info">
+      Wordt later uitgebreid met dynamische stadsverwarmingprijzen via HA-sensor. /
+      Will later be extended with dynamic district heating prices via HA sensor.
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Stadsverwarmingprijs (€/GJ incl. BTW)</label>
+        <input type="number" name="heating_price_eur_gj" step="0.00001" min="0"
+               value="{{ config.heating_price_eur_gj if config and config.heating_price_eur_gj else '' }}"
+               placeholder="bijv. 35.00000">
+        <div class="hint">
+          Vaste prijs per gigajoule inclusief BTW. /
+          Fixed price per gigajoule including VAT.
+        </div>
+      </div>
+      <div class="field">
+        <label>HA entiteit (optioneel / optional)</label>
+        <input type="text" name="heating_price_entity_id"
+               value="{{ config.heating_price_entity_id if config and config.heating_price_entity_id else '' }}"
+               placeholder="sensor.heating_price (voor later / for later)">
+        <div class="hint">
+          Nog niet actief — voor toekomstige dynamische stadsverwarmingprijzen. /
+          Not yet active — for future dynamic district heating pricing.
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if system_config and not system_config.has_gas and not system_config.has_district_heating %}
+  <div class="card">
+    <p style="color:#6b7280; font-size:13px;">
+      Gas en stadsverwarming zijn niet aangevinkt in de systeeminstellingen. /
+      Gas and district heating are not checked in the system settings.
+      <a href="{{ nav_url('system') }}">Systeeminstellingen / System settings</a>
+    </p>
+  </div>
+  {% endif %}
+
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Opslaan / Save</button>
+  </div>
+</form>
+{% endblock %}
