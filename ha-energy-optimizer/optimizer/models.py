@@ -22,6 +22,7 @@ class ScheduleSlot:
     target_soc_pct: Decimal
     expected_saving: Decimal
     reason: str
-    expected_solar_kw: Decimal      = Decimal("0")
+    expected_cost: Decimal           = Decimal("0")
+    expected_solar_kw: Decimal       = Decimal("0")
     expected_consumption_kw: Decimal = Decimal("0")
     expected_price: Decimal          = Decimal("0")
