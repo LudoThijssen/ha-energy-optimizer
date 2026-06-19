@@ -136,6 +136,28 @@ class SolarRepository:
             return Decimal(str(row["total"])).quantize(Decimal("0.001")) if row else Decimal("0")
 
 
+    def get_average_power_for_hour(self, hour: "datetime") -> "Decimal | None":
+        """
+        Return average solar power (kW) measured during the given hour.
+        Returns None if no measurements exist for that hour.
+
+        Geeft gemiddeld zonnestroom (kW) gemeten tijdens het opgegeven uur.
+        Geeft None terug als er geen metingen zijn voor dat uur.
+        """
+        with self._db.cursor() as cur:
+            cur.execute(
+                "SELECT AVG(power_kw) AS avg_kw "
+                "FROM solar_production "
+                "WHERE measured_at >= %(start)s AND measured_at < %(end)s",
+                {"start": hour, "end": hour.replace(minute=59, second=59)}
+            )
+            row = cur.fetchone()
+            if row and row["avg_kw"] is not None:
+                from decimal import Decimal
+                return Decimal(str(row["avg_kw"])).quantize(Decimal("0.001"))
+            return None
+
+
 # ── Home consumption ──────────────────────────────────────────────────────────
 
 class HomeConsumptionRepository:
@@ -189,6 +211,28 @@ class HomeConsumptionRepository:
             """)
             row = cur.fetchone()
             return Decimal(str(row["avg_kw"])) if row else Decimal("0.5")
+
+
+    def get_average_power_for_hour(self, hour: "datetime") -> "Decimal | None":
+        """
+        Return average total consumption power (kW) during the given hour.
+        Returns None if no measurements exist for that hour.
+
+        Geeft gemiddeld totaal verbruiksvermogen (kW) tijdens het opgegeven uur.
+        Geeft None terug als er geen metingen zijn voor dat uur.
+        """
+        with self._db.cursor() as cur:
+            cur.execute(
+                "SELECT AVG(total_consumption_kw) AS avg_kw "
+                "FROM home_consumption "
+                "WHERE measured_at >= %(start)s AND measured_at < %(end)s",
+                {"start": hour, "end": hour.replace(minute=59, second=59)}
+            )
+            row = cur.fetchone()
+            if row and row["avg_kw"] is not None:
+                from decimal import Decimal
+                return Decimal(str(row["avg_kw"])).quantize(Decimal("0.001"))
+            return None
 
 
 # ── Energy prices ─────────────────────────────────────────────────────────────
@@ -366,28 +410,35 @@ class OptimizerRepository:
             self.save_slot(slot)
 
     def save_slot(self, slot: OptimizerSlot) -> None:
+        """
+        Save a single optimizer slot. Slots already marked as executed are
+        preserved — rolling horizon only updates future/unexecuted slots.
+
+        Sla één optimizer-slot op. Al uitgevoerde slots worden bewaard —
+        rolling horizon werkt alleen toekomstige/niet-uitgevoerde slots bij.
+        """
         with self._db.cursor() as cur:
             cur.execute("""
                 INSERT INTO optimizer_schedule
                     (schedule_for, action, target_power_kw, target_soc_pct,
                      expected_price, expected_solar_kw, expected_consumption_kw,
-                     expected_saving, reason)
+                     expected_saving, expected_cost, reason)
                 VALUES
                     (%(schedule_for)s, %(action)s, %(target_power_kw)s,
                      %(target_soc_pct)s, %(expected_price)s,
                      %(expected_solar_kw)s, %(expected_consumption_kw)s,
-                     %(expected_saving)s, %(reason)s)
+                     %(expected_saving)s, %(expected_cost)s, %(reason)s)
                 ON DUPLICATE KEY UPDATE
-                    action                  = VALUES(action),
-                    target_power_kw         = VALUES(target_power_kw),
-                    target_soc_pct          = VALUES(target_soc_pct),
-                    expected_price          = VALUES(expected_price),
-                    expected_solar_kw       = VALUES(expected_solar_kw),
-                    expected_consumption_kw = VALUES(expected_consumption_kw),
-                    expected_saving         = VALUES(expected_saving),
-                    reason                  = VALUES(reason),
-                    executed                = 0,
-                    executed_at             = NULL
+                    -- Only update if not yet executed / Alleen bijwerken als nog niet uitgevoerd
+                    action                  = IF(executed = 0, VALUES(action),                  action),
+                    target_power_kw         = IF(executed = 0, VALUES(target_power_kw),         target_power_kw),
+                    target_soc_pct          = IF(executed = 0, VALUES(target_soc_pct),          target_soc_pct),
+                    expected_price          = IF(executed = 0, VALUES(expected_price),          expected_price),
+                    expected_solar_kw       = IF(executed = 0, VALUES(expected_solar_kw),       expected_solar_kw),
+                    expected_consumption_kw = IF(executed = 0, VALUES(expected_consumption_kw), expected_consumption_kw),
+                    expected_saving         = IF(executed = 0, VALUES(expected_saving),         expected_saving),
+                    expected_cost           = IF(executed = 0, VALUES(expected_cost),           expected_cost),
+                    reason                  = IF(executed = 0, VALUES(reason),                  reason)
             """, {
                 "schedule_for":           slot.schedule_for,
                 "action":                 slot.action,
@@ -397,6 +448,7 @@ class OptimizerRepository:
                 "expected_solar_kw":      getattr(slot, "expected_solar_kw", None),
                 "expected_consumption_kw":getattr(slot, "expected_consumption_kw", None),
                 "expected_saving":        getattr(slot, "expected_saving", None),
+                "expected_cost":          getattr(slot, "expected_cost", None),
                 "reason":                 getattr(slot, "reason", None),
             })
 
