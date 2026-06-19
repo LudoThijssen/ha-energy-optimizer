@@ -70,6 +70,7 @@ class OptimizerSlot:
     expected_solar_kw: Decimal | None = None
     expected_consumption_kw: Decimal | None = None
     expected_saving: Decimal | None = None
+    expected_cost: Decimal | None = None
     reason: str | None = None
     executed: bool = False
     executed_at: datetime | None = None
