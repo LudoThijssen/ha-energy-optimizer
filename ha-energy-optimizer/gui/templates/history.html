@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 <!-- name:        history.html -->
 <!-- part of:     ha-energy-optimizer-->
-<!-- locatie:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/history.html -->
+<!-- locatie:     /ha-energy-optimizer/ha-energy-optimizer/history.html -->
 <!-- part versie: d_v0.3 -->
 <!-- altered:     2026-06-20 -->
 {% block title %}Geschiedenis — HA Energy Optimizer{% endblock %}
@@ -454,7 +454,7 @@ function renderScheduleTable(schedule) {
       ? (s.cost > 0 ? -s.cost : 0)
       : (s.action === 'discharge' ? (s.saving || 0) : 0);
     const kostenStr = netKosten !== 0
-      ? (netKosten >= 0 ? '+' : '') + netKosten.toFixed(4) + ' €' : '—';
+      ? (netKosten >= 0 ? '+' : '') + netKosten.toFixed(4) : '—';
     const kostenKleur = netKosten > 0 ? '#16a34a' : netKosten < 0 ? '#dc2626' : '#6b7280';
     totalCost   += s.cost   || 0;
     totalSaving += s.saving || 0;
@@ -462,7 +462,7 @@ function renderScheduleTable(schedule) {
       <td style="font-size:13px;font-weight:500;">${s.hour}</td>
       <td>${actionLabel[s.action] || s.action}</td>
       <td style="font-size:13px;">${s.power_kw ? s.power_kw.toFixed(2) : '—'}</td>
-      <td style="font-size:13px;">${s.price ? s.price.toFixed(4) + ' €' : '—'}</td>
+      <td style="font-size:13px;">${s.price ? s.price.toFixed(4) : '—'}</td>
       <td style="font-size:13px;">${s.soc_pct ? s.soc_pct.toFixed(0) : '—'}</td>
       <td style="font-size:13px;">${s.solar_kw ? s.solar_kw.toFixed(2) : '—'}</td>
       <td style="font-size:13px;font-weight:500;color:${kostenKleur};">${kostenStr}</td>
