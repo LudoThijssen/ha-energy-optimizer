@@ -1,3 +1,9 @@
+--  name:          010_energy_prices_config.sql
+--  part of:       ha-energy-optimizer
+--  location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/010_energy_prices_config.sql
+--  part version:  p_v0.3
+--  altered:       2026-06-21
+-- 
 -- database/migrations/010_energy_prices_config.sql
 -- /ha-energy-optimizer/ha-energy-optimizer/database/migrations/010_energy_prices_config.sql
 -- v0.2.13 — 2026-06-16

@@ -1,4 +1,9 @@
-# providers/ha_energyzero.py
+# name:          ha_energyzero.py.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/ha_energyzero.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+#
 # /ha-energy-optimizer/ha-energy-optimizer/providers/ha_energyzero.py
 # v0.2.9 — 2026-04-22
 #

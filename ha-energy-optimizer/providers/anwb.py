@@ -1,4 +1,8 @@
-# providers/anwb.py
+# name:          anwb.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/anwb.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # ANWB Energie uses the EnergyZero platform for dynamic pricing.
 # This wrapper is identical to EnergyZero but identifies itself as 'anwb'.

@@ -1,3 +1,9 @@
+# name:          energyzero.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/energyzero.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+#
 import requests
 from datetime import date, datetime
 from decimal import Decimal

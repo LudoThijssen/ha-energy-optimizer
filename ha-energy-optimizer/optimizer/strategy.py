@@ -1,4 +1,8 @@
-# optimizer/strategy.py
+# name:          strategy.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/strategy.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Decision rules for home battery optimization with a dynamic electricity contract.
 # Beslisregels voor thuisbatterij-optimalisatie met een dynamisch stroomcontract.

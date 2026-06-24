@@ -1,6 +1,8 @@
-# version 0.2.9
-# 2026-04-24
-# ha-energy-optimizer/ha-energy-optimizer/reporter/reporte.py
+# name:          reporter.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/reporter/reporter.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 
 import logging
 import requests

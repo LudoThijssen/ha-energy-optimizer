@@ -1,4 +1,9 @@
-# Versie 0.2.8
+# name:          run
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/rootfs/etc/services.d/energy-optimizer/run
+# part version:  p_v0.3
+# altered:       2026-06-21
+# 
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
 

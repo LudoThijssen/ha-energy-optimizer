@@ -1,3 +1,9 @@
+-- name:          004_extended_strategy_fields.sql
+-- part of:       ha-energy-optimizer
+-- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/004_extended_strategy_fields.sql
+-- part version:  p_v0.3
+-- altered:       2026-06-21
+--
 -- Migration 004: Extended strategy configuration fields.
 -- Migratie 004: Uitgebreide strategieconfiguratie-velden.
 

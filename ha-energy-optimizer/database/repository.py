@@ -1,6 +1,8 @@
-# database/repository.py
-# /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
-# v0.2.7 — 2026-04-13
+# name:          repository.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Repository classes for all database operations.
 # Exact column names match the SQL migrations 001-004.

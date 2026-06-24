@@ -1,3 +1,9 @@
+-- name:          002_add_indexes.sql
+-- part of:       ha-energy-optimizer
+-- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/002_add_indexes.sql
+-- part version:  p_v0.3
+-- altered:       2026-06-21
+--
 CREATE INDEX IF NOT EXISTS idx_energy_prices_hour     ON energy_prices    (price_hour);
 CREATE INDEX IF NOT EXISTS idx_energy_prices_type     ON energy_prices    (energy_type, price_hour);
 CREATE INDEX IF NOT EXISTS idx_solar_measured         ON solar_production (measured_at);

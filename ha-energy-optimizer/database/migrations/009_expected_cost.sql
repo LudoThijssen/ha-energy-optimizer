@@ -1,7 +1,9 @@
--- database/migrations/009_expected_cost.sql
--- /ha-energy-optimizer/ha-energy-optimizer/database/migrations/009_expected_cost.sql
--- v0.2.13 — 2026-06-16
---
+--  name:          009_expected_cost.sql
+--  part of:       ha-energy-optimizer
+--  location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/009_expected_cost.sql
+--  part version:  p_v0.3
+--  altered:       2026-06-21
+-- 
 -- Adds expected_cost to optimizer_schedule, alongside the existing
 -- expected_saving. This makes grid-charging costs visible in the
 -- schedule, rather than only showing savings — avoiding a misleading

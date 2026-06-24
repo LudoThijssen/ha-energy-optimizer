@@ -1,6 +1,8 @@
-# providers/base.py
-# /ha-energy-optimizer/ha-energy-optimizer/providers/base.py
-# v0.3.0 — 2026-06-08
+# name:          base.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/base.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Base class for all energy price providers.
 # Basisklasse voor alle energieprijsproviders.

@@ -1,4 +1,9 @@
-# providers/ha_price_sensor.py
+# name:          ha_price_sensor.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/ha_price_sensor.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+#
 # /ha-energy-optimizer/ha-energy-optimizer/providers/ha_price_sensor.py
 # v0.3.0 — 2026-06-08
 #

@@ -1,3 +1,9 @@
+# name:          entsoe.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/entsoe.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+#
 import requests
 from datetime import date, datetime, timezone
 from decimal import Decimal

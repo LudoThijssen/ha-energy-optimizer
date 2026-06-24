@@ -1,3 +1,9 @@
+-- name:          001_initial.sql
+-- part of:       ha-energy-optimizer
+-- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/001_initial.sql
+-- part version:  p_v0.3
+-- altered:       2026-06-21
+--
 CREATE TABLE IF NOT EXISTS `system_config` (
     `id`                    INT          NOT NULL AUTO_INCREMENT,
     `created_at`            DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,

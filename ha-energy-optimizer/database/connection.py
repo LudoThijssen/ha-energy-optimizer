@@ -1,4 +1,8 @@
-# database/connection.py
+# name:          connection.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/database/connection.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # MySQL connection pool — works with local HA MariaDB and external databases.
 # MySQL-verbindingspool — werkt met lokale HA MariaDB en externe databases.

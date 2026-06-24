@@ -1,3 +1,9 @@
+# name:          .gitignore
+# part of:       ha-energy-optimizer
+# location:      /.gitignore
+# part version:  p_v0.1
+# altered:       2026-06-26
+#
 *~
 *.pyc
 __pycache__/

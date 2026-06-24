@@ -1,3 +1,9 @@
+# name:          models.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/models.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal

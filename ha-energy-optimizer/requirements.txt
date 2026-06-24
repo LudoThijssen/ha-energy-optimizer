@@ -1,3 +1,9 @@
+# name:          requirements.txt
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/requirements.txt
+# part version:  p_v0.3
+# altered:       2026-06-21
+#
 # Runtime dependencies / Runtime-afhankelijkheden
 mysql-connector-python>=8.3.0
 pymodbus>=3.6.0

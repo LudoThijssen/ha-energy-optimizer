@@ -1,3 +1,8 @@
+// name:          _context.json
+// part of:       ha-energy-optimizer
+// location:      /ha-energy-optimizer/ha-energy-optimizer/translations/_context.json
+// part version:  p_v0.1
+// altered:       2026-06-21 
 {
   "battery.action.charge": {
     "context": "Action for a home battery storage system. The battery is being charged with electricity. NOT a financial charge or fee.",

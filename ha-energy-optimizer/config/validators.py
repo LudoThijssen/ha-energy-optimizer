@@ -1,3 +1,9 @@
+# name:          validators.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/config/validators.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+
 def validate_time(value: str, field_name: str) -> None:
     try:
         parts = value.split(":")

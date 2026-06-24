@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-# uninstall.py
+# name:          uninstall.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/uninstall.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # HA Energy Optimizer — Uninstaller
 # HA Energy Optimizer — Verwijderaar

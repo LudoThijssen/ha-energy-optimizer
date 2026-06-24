@@ -1,4 +1,8 @@
-# providers/frank.py
+# name:          frank.py.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/frank.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Frank Energie — dynamic electricity prices (Netherlands).
 # Frank Energie — dynamische stroomprijzen (Nederland).

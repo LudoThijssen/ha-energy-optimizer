@@ -1,6 +1,8 @@
-# collectors/profile_updater.py
-# /ha-energy-optimizer/ha-energy-optimizer/collectors/profile_updater.py
-# v0.2.10 — 2026-04-30
+# name:          profile_updater.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/profile_updater.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Nightly profile updater — recalculates historical averages from measured data.
 # Nachtelijke profielupdater — herberekent historische gemiddelden uit gemeten data.
@@ -119,3 +121,5 @@ class ProfileUpdater:
                     samples   = VALUES(samples)
             """)
         logger.info("[profile_updater] Price profile updated / Prijsprofiel bijgewerkt")
+# collectors/profile_updater.py
+# /ha-energy-optimizer/ha-energy-optimizer/collectors/profile_updater.py

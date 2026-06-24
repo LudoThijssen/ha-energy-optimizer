@@ -1,5 +1,9 @@
-# gui/app.py — v0.2.9
-# 2026-04-26 16:26
+# name:          app.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
+# part version:  p_v0.13
+# altered:       2026-06-21
+#
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
 

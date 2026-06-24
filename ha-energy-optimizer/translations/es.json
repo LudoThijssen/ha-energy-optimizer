@@ -1,3 +1,8 @@
+// name:          es.json
+// part of:       ha-energy-optimizer
+// location:      /ha-energy-optimizer/ha-energy-optimizer/translations/es.json
+// part version:  p_v0.1
+// altered:       2026-06-21 
 {
   "nav.dashboard": "Panel de control",
   "nav.schedule": "Planificación",

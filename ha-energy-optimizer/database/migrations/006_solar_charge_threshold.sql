@@ -1,6 +1,8 @@
--- database/migrations/006_solar_charge_threshold.sql
--- /ha-energy-optimizer/ha-energy-optimizer/database/migrations/006_solar_charge_threshold.sql
--- v0.3.0 — 2026-05-29
+-- name:          006_solar_charge_threshold.sql
+-- part of:       ha-energy-optimizer
+-- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/006_solar_charge_threshold.sql
+-- part version:  p_v0.3
+-- altered:       2026-06-21
 --
 -- Adds solar_charge_threshold to system_config.
 -- This field was read by strategy.py since v0.2.9 but never formally migrated.

@@ -1,3 +1,8 @@
+// name:          internal_sensors.json
+// part of:       ha-energy-optimizer
+// location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/internal_sensors.json
+// part version:  p_v0.3
+// altered:       2026-06-21
 [
   {
     "internal_name": "battery_soc",

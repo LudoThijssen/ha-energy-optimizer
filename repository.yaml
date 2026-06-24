@@ -1,3 +1,8 @@
+# name:          repository.yaml
+# part of:       ha-energy-optimizer
+# location:      /repository.yaml
+# part version:  p_v0.1
+# altered:       2026-06-26
 name: HA Energy Optimizer
 url: https://github.com/LudoThijssen/ha-energy-optimizer
 maintainer: Ludo Thijssen

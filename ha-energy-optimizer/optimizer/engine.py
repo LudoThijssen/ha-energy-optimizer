@@ -1,4 +1,8 @@
-# optimizer/engine.py
+# name:          engine.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Optimization engine — orchestrates the full planning cycle.
 # Optimalisatie-engine — orkestreert de volledige planningscyclus.

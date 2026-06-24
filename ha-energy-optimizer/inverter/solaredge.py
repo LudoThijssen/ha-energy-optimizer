@@ -1,5 +1,9 @@
-# inverter/solaredge.py
-#
+# name:          solaredge.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/inverter/solaredge.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+
 # SolarEdge cloud API driver (stub — not yet implemented).
 # SolarEdge cloud API driver (stub — nog niet geïmplementeerd).
 #

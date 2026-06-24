@@ -1,6 +1,8 @@
--- database/migrations/005_profile_tables.sql
--- /ha-energy-optimizer/ha-energy-optimizer/database/migrations/005_profile_tables.sql
--- v0.2.9 — 2026-04-24
+-- name:          005_profile_tables.sql
+-- part of:       ha-energy-optimizer
+-- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/005_profile_tables.sql
+-- part version:  p_v0.3
+-- altered:       2026-06-21
 --
 -- Historical profile tables for consumption, solar and price predictions.
 -- Historische profieltabellen voor verbruik-, zon- en prijsvoorspellingen.

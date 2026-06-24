@@ -1,6 +1,8 @@
--- database/migrations/008_dashboard_colors.sql
--- /ha-energy-optimizer/ha-energy-optimizer/database/migrations/008_dashboard_colors.sql
--- v0.2.12 — 2026-06-13
+-- name:          008_dashboard_colors.sql
+-- part of:       ha-energy-optimizer
+-- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/008_dashboard_colors.sql
+-- part version:  p_v0.3
+-- altered:       2026-06-21
 --
 -- Adds dashboard_colors JSON column to system_config so chart colors
 -- persist across reinstalls (options.json does not survive reinstall,

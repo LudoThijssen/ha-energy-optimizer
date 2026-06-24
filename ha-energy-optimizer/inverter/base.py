@@ -1,6 +1,11 @@
+# name:          base.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/inverter/base.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+
 from abc import ABC, abstractmethod
 from database.models import BatteryStatus
-
 
 class BaseInverterDriver(ABC):
     """

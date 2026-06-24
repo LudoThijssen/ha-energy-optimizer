@@ -1,4 +1,8 @@
-# providers/__init__.py
+# name:          __init__.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/providers/__init__.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Provider factory — returns the active energy price driver.
 # Provider factory — geeft de actieve energieprijsdriver terug.

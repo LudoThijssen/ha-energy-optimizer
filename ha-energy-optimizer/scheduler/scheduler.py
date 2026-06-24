@@ -1,3 +1,9 @@
+# name:          scheduler.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/scheduler/scheduler.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+# 
 import asyncio
 import logging
 from datetime import datetime, time

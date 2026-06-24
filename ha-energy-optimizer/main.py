@@ -1,4 +1,8 @@
-# main.py
+# name:          main.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/main.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Entry point for the HA Energy Optimizer add-on.
 # Startpunt voor de HA Energy Optimizer add-on.
@@ -113,6 +117,8 @@ async def main() -> None:
                     price_collector.run_safe)
     scheduler.daily(config.optimizer.run_time,
                     optimizer.run)
+    # Hourly re-optimization / Uurlijkse heroptimalisatie
+    scheduler.every(3600, optimizer.run)
     # Evening planning: calculate day balance for tomorrow.
     # Avondplanning: bereken dagbalans voor morgen.
     scheduler.daily(config.optimizer.evening_planning_time,

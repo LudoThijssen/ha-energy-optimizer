@@ -1,3 +1,9 @@
+# name:          modbus.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/inverter/modbus.py
+# part version:  p_v0.3
+# altered:       2026-06-21
+
 from datetime import datetime
 from decimal import Decimal
 from pymodbus.client import ModbusTcpClient

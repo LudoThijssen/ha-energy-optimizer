@@ -1,6 +1,9 @@
-# Version 0.2.10
-# /ha-energy-optimizer/Dockerfile
-# 2026-04-25 21:55
+# name:          Dockerfile
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/Dockerfile
+# part version:  p_v0.3
+# altered:       2026-06-21
+#
 
 ARG BUILD_FROM
 FROM ${BUILD_FROM}

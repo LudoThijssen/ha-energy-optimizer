@@ -1,4 +1,8 @@
-# inverter/growatt.py
+# name:          growatt.py
+# part of:       ha-energy-optimizer
+# location:      /ha-energy-optimizer/ha-energy-optimizer/inverter/growatt.py
+# part version:  p_v0.3
+# altered:       2026-06-21
 #
 # Growatt cloud API driver (stub — not yet implemented).
 # Growatt cloud API driver (stub — nog niet geïmplementeerd).
