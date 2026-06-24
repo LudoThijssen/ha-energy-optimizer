@@ -100,7 +100,7 @@
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
 | VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v0.4 | 2026-06-26 |
 # 
-| README.md | /README.md | v0.2.8-alpha | 2026-06-26 |
+| README.md | /README.md | v0.2.12-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1| 2026-06-26 |
 | .gitattributes | /.gitattributes | p_v0.1| 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1| 2026-06-26 |

@@ -18,7 +18,7 @@
 ---
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.8--alpha-orange.svg)]()
+[![Version](https://img.shields.io/badge/version-0.2.12--alpha-orange.svg)]()
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Add--on-41BDF5.svg)](https://www.home-assistant.io/)
 [![Status](https://img.shields.io/badge/status-alpha-red.svg)]()
 
