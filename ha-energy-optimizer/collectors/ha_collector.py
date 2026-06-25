@@ -1,13 +1,15 @@
 # name:          ha_collector.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/ha_collector.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-06-26
 #
 import requests
 from datetime import datetime
 from decimal import Decimal
 from .base import BaseCollector, CollectorTemporaryError, CollectorConfigError, validate_reading
+from .solar_learner import SolarLearner
+from .consumption_learner import ConsumptionLearner
 from database.connection import DatabaseConnection
 from database.models import HomeConsumption, BatteryStatus, SolarProduction
 from database.repository import BatteryRepository, SolarRepository, HomeConsumptionRepository
@@ -24,6 +26,8 @@ class HaCollector(BaseCollector):
         self._battery_repo = BatteryRepository(db)
         self._solar_repo = SolarRepository(db)
         self._consumption_repo = HomeConsumptionRepository(db)
+        self._solar_learner = SolarLearner(db)
+        self._consumption_learner = ConsumptionLearner(db)
         self._base_url = f"http://{config.ha.host}:{config.ha.port}"
         self._headers = {
             "Authorization": f"Bearer {config.ha.token}",
@@ -36,6 +40,7 @@ class HaCollector(BaseCollector):
         self._store_battery(readings)
         self._store_solar(readings)
         self._store_consumption(readings)
+        self._update_learners(readings)
 
     def _load_entity_map(self) -> dict[str, str]:
         with self._db.cursor() as cur:
@@ -261,3 +266,74 @@ class HaCollector(BaseCollector):
             total_consumption_kw=total,
             gas_m3=gas,
         ))
+
+    def _update_learners(self, readings: dict) -> None:
+        """
+        Werk de leermodellen bij na elke meting.
+        Roept SolarLearner en ConsumptionLearner aan met de huidige waarden.
+
+        Update the learning models after each measurement.
+        Calls SolarLearner and ConsumptionLearner with the current values.
+        """
+        import logging
+        log = logging.getLogger(__name__)
+        now = datetime.now()
+
+        # Zon-leermodel bijwerken / Update solar learning model
+        # Instraling komt uit weather_forecast tabel (meest recente waarde)
+        # Irradiance comes from weather_forecast table (most recent value)
+        solar_kwh = readings.get("solar_power")
+        if solar_kwh is not None and solar_kwh > 0:
+            try:
+                with self._db.cursor() as cur:
+                    cur.execute(
+                        "SELECT solar_irradiance_wm2 FROM weather_forecast "
+                        "WHERE forecast_for <= %(now)s "
+                        "ORDER BY forecast_for DESC LIMIT 1",
+                        {"now": now}
+                    )
+                    row = cur.fetchone()
+
+                if row and row["solar_irradiance_wm2"]:
+                    irradiance = Decimal(str(row["solar_irradiance_wm2"]))
+                    # Vermogen (kW) omrekenen naar kWh voor 5-minuten interval
+                    # Convert power (kW) to kWh for 5-minute interval
+                    interval_h = Decimal("1") / Decimal("12")
+                    solar_kwh_interval = solar_kwh * interval_h
+                    self._solar_learner.update(now, solar_kwh_interval, irradiance)
+                else:
+                    log.debug("[ha_collector] Geen instraling beschikbaar voor solar_learner "
+                              "/ No irradiance available for solar_learner")
+
+            except Exception as e:
+                log.warning(f"[ha_collector] solar_learner update mislukt: {e}")
+
+        # Verbruik-leermodel bijwerken / Update consumption learning model
+        # Gebruik de berekende total_consumption (uit energiebalans)
+        # Use the calculated total_consumption (from energy balance)
+        grid_import = readings.get("grid_import_power")
+        grid_export = readings.get("grid_export_power")
+        solar       = readings.get("solar_power")
+        bat_charge  = readings.get("battery_charge_kw")
+        bat_disch   = readings.get("battery_discharge_kw")
+
+        if grid_import is not None and grid_export is not None:
+            try:
+                calculated = (
+                    Decimal(str(solar or 0))
+                    + Decimal(str(bat_disch or 0))
+                    - Decimal(str(bat_charge or 0))
+                    - Decimal(str(grid_export))
+                    + Decimal(str(grid_import))
+                )
+                if calculated < 0:
+                    calculated = Decimal("0")
+
+                # Omrekenen van kW naar kWh voor 5-minuten interval
+                # Convert from kW to kWh for 5-minute interval
+                interval_h = Decimal("1") / Decimal("12")
+                consumption_kwh = calculated * interval_h
+                self._consumption_learner.update(now, consumption_kwh)
+
+            except Exception as e:
+                log.warning(f"[ha_collector] consumption_learner update mislukt: {e}")
