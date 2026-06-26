@@ -1,14 +1,14 @@
 # name:      config.yaml
 # part of:   ha-energy-optimizer
 # location:  /ha-energy-optimizer/config.yaml
-# version:   v0.2.12
+# version:   v0.2.13
 # altered:   2026-06-21
 #
 name: "HA Energy Optimizer"
 description: >-
-  [ALPHA v0.2.12] Smart home battery optimization using dynamic energy prices,
+  [ALPHA v0.2.13] Smart home battery optimization using dynamic energy prices,
   solar forecasts and household consumption patterns.
-version: "0.2.12"
+version: "0.2.13"
 slug: "ha_energy_optimizer"
 url: "https://github.com/LudoThijssen/ha-energy-optimizer"
 documentation: "https://github.com/LudoThijssen/ha-energy-optimizer/blob/main/README.md"

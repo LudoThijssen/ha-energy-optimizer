@@ -2,7 +2,7 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v0.6
+# part version:  p_v0.7
 # altered:       2026-06-26
 
 | file | Path in repository | Version | Date |
@@ -64,7 +64,8 @@
 | modbus.py | /ha-energy-optimizer/inverter/modbus.py | p_v0.3 | 2026-06-21 |
 | solaredge.py | /ha-energy-optimizer/inverter/solaredge.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/optimizer
-| engine.py | /ha-energy-optimizer/optimizer/engine.py | p_v0.4 | 2026-06-26 |
+| engine.py | /ha-energy-optimizer/optimizer/engine.py | p_v0.5 | 2026-06-26 |
+| decision_engine.py | /ha-energy-optimizer/optimizer/decision_engine.py | p_v0.4 | 2026-06-26 |
 | forecast.py | /ha-energy-optimizer/optimizer/forecast.py | p_v0.3 | 2026-06-21 |
 | __init__.py (optimizer) | /ha-energy-optimizer/optimizer/__init__.py | p_v0.3 | 2026-06-21 |
 | models.py (optimizer) | /ha-energy-optimizer/optimizer/models.py | p_v0.3 | 2026-06-21 |
@@ -97,14 +98,14 @@
 | translator.py | /ha-energy-optimizer/translations/translator.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer
 | build.yaml | /ha-energy-optimizer/build.yaml | p_v0.3 | 2026-06-21 |
-| config.yaml | /ha-energy-optimizer/config.yaml | v0.2.12 | 2026-06-21 |
+| config.yaml | /ha-energy-optimizer/config.yaml | v0.2.13 | 2026-06-26 |
 | Dockerfile | /ha-energy-optimizer/Dockerfile | p_v0.3 | 2026-06-21 |
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
 | VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v0.5 | 2026-06-26 |
 # 
-| README.md | /README.md | v0.2.12 | 2026-06-21 |
+| README.md | /README.md | v0.2.13 | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |

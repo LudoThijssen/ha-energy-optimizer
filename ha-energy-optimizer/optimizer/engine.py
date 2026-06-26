@@ -1,7 +1,7 @@
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
-# part version:  p_v0.4
+# part version:  p_v0.5
 # altered:       2026-06-26
 #
 # Optimization engine — orchestrates the full planning cycle.
@@ -30,6 +30,7 @@ from .strategy import (
     Strategy, DayPriceStats, SolarOutlook, DayBalancePlan,
     build_strategy_from_db,
 )
+from .decision_engine import build_decision_engine
 
 logger = logging.getLogger(__name__)
 
@@ -165,9 +166,32 @@ class OptimizerEngine:
                 )
                 return
 
-            slots, all_notifications = self._calculate(
-                forecasts, strategy, day_stats, solar_outlook
-            )
+            # ── Nieuwe beslislogica / New decision logic ──────────────────────
+            # Gebruik DecisionEngine (fase 3) als primaire beslisser.
+            # Valt terug op de oude strategy._calculate() als er een fout optreedt.
+            # Use DecisionEngine (phase 3) as primary decision maker.
+            # Falls back to old strategy._calculate() if an error occurs.
+            try:
+                decision_engine = build_decision_engine(self._db)
+                battery_temp = (
+                    self._battery_repo.get_latest().temperature_c
+                    if self._battery_repo.get_latest() else None
+                )
+                slots = decision_engine.run(
+                    forecasts=forecasts,
+                    battery_temp_c=battery_temp,
+                )
+                all_notifications = []
+                logger.info("[optimizer] DecisionEngine fase 3 gebruikt / "
+                            "DecisionEngine phase 3 used")
+            except Exception as de_err:
+                logger.warning(
+                    f"[optimizer] DecisionEngine mislukt, terugval op strategy: {de_err} / "
+                    f"DecisionEngine failed, falling back to strategy"
+                )
+                slots, all_notifications = self._calculate(
+                    forecasts, strategy, day_stats, solar_outlook
+                )
 
             # Save only future (unexecuted) slots — preserve executed history
             # Sla alleen toekomstige (niet-uitgevoerde) slots op — bewaar uitgevoerde geschiedenis

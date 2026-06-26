@@ -2,10 +2,10 @@
 # name:     README.md
 # part of:  ha-energy-optimizer
 # location: /README.md
-# version:  v0.2.12-alpha
+# version:  v0.2.13-alpha
 # altered:  2026-06-26
 # 
-> ⚠️ **Alpha version / Alfa versie — v0.2.12-alpha** 
+> ⚠️ **Alpha version / Alfa versie — v0.2.13-alpha** 
 >
 > This add-on is in early development and not yet ready for production use.
 > Test thoroughly before relying on this for your home energy system.
@@ -18,7 +18,7 @@
 ---
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.12--alpha-orange.svg)]()
+[![Version](https://img.shields.io/badge/version-0.2.13--alpha-orange.svg)]()
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Add--on-41BDF5.svg)](https://www.home-assistant.io/)
 [![Status](https://img.shields.io/badge/status-alpha-red.svg)]()
 
