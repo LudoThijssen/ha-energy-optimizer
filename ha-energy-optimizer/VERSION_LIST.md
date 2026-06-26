@@ -2,7 +2,7 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v0.5
+# part version:  p_v0.6
 # altered:       2026-06-26
 
 | file | Path in repository | Version | Date |
@@ -64,7 +64,7 @@
 | modbus.py | /ha-energy-optimizer/inverter/modbus.py | p_v0.3 | 2026-06-21 |
 | solaredge.py | /ha-energy-optimizer/inverter/solaredge.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/optimizer
-| engine.py | /ha-energy-optimizer/optimizer/engine.py | p_v0.3 | 2026-06-21 |
+| engine.py | /ha-energy-optimizer/optimizer/engine.py | p_v0.4 | 2026-06-26 |
 | forecast.py | /ha-energy-optimizer/optimizer/forecast.py | p_v0.3 | 2026-06-21 |
 | __init__.py (optimizer) | /ha-energy-optimizer/optimizer/__init__.py | p_v0.3 | 2026-06-21 |
 | models.py (optimizer) | /ha-energy-optimizer/optimizer/models.py | p_v0.3 | 2026-06-21 |

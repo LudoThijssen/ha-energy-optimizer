@@ -1,8 +1,8 @@
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-06-26
 #
 # Optimization engine — orchestrates the full planning cycle.
 # Optimalisatie-engine — orkestreert de volledige planningscyclus.
@@ -191,11 +191,20 @@ class OptimizerEngine:
         self, actual_soc: Decimal | None = None
     ) -> list[HourForecast]:
         """
-        Build 48-hour forecasts combining price, weather and battery data.
-        Uses actual_soc as starting point when provided (rolling horizon).
-        Bouw 48-uurs prognoses op basis van prijs-, weer- en batterijgegevens.
-        Gebruikt actual_soc als startpunt indien opgegeven (rolling horizon).
+        Build 48-hour forecasts combining price, weather and learning model data.
+        Uses SolarLearner and ConsumptionLearner when data is available,
+        falls back to profile/irradiance/Gauss when not.
+
+        Bouw 48-uurs prognoses op basis van prijs-, weer- en leermodelgegevens.
+        Gebruikt SolarLearner en ConsumptionLearner als data beschikbaar is,
+        valt terug op profiel/straling/Gauss als dat niet het geval is.
         """
+        from collectors.solar_learner import SolarLearner
+        from collectors.consumption_learner import ConsumptionLearner
+
+        solar_learner       = SolarLearner(self._db)
+        consumption_learner = ConsumptionLearner(self._db)
+
         now = datetime.now().replace(minute=0, second=0, microsecond=0)
 
         # Load prices for today and tomorrow / Laad prijzen voor vandaag en morgen
@@ -232,9 +241,8 @@ class OptimizerEngine:
                 f"{current_soc:.1f}% / Geen werkelijke SoC, DB-waarde gebruikt"
             )
 
-        # Load solar profile for this month / Laad zonprofiel voor deze maand
-        # Profile gives average kW per hour based on historical measurements
-        # Profiel geeft gemiddeld kW per uur op basis van historische metingen
+        # Load legacy solar/consumption profiles as fallback
+        # Laad legacy zon/verbruiksprofielen als terugval
         solar_profile = {}
         consumption_profile = {}
         with self._db.cursor() as cur:
@@ -262,36 +270,60 @@ class OptimizerEngine:
             if not price:
                 continue
 
-            # Solar forecast / Zonverwachting
-            # Use historical profile corrected by cloud cover
-            # Gebruik historisch profiel gecorrigeerd met bewolking
+            # ── Solar forecast / Zonverwachting ─────────────────────────────
+            # Prioriteit: 1) SolarLearner 2) legacy profiel 3) irradiance 4) 0
+            # Priority:   1) SolarLearner 2) legacy profile 3) irradiance 4) 0
             solar_kw = Decimal("0")
-            profile_kw = solar_profile.get(hour.hour, Decimal("0"))
 
-            if profile_kw > 0:
+            if weather_h and weather_h.solar_irradiance_wm2:
+                irr = float(weather_h.solar_irradiance_wm2)
+                learned_kwh = solar_learner.predict(hour, irr)
+                if learned_kwh > 0:
+                    # Leermodel geeft kWh per uur — direct bruikbaar
+                    # Learning model gives kWh per hour — directly usable
+                    solar_kw = Decimal(str(learned_kwh)).quantize(Decimal("0.001"))
+                    logger.debug(
+                        f"[optimizer] {hour.strftime('%H:%M')} solar from learner: "
+                        f"{solar_kw} kW (irr={irr:.0f} W/m²)"
+                    )
+                else:
+                    # Leermodel heeft nog geen data — terugval op irradiance factor
+                    # Learning model has no data yet — fall back to irradiance factor
+                    solar_kw = (
+                        weather_h.solar_irradiance_wm2 * _WM2_TO_KW_FACTOR
+                    ).quantize(Decimal("0.001"))
+
+            elif solar_profile.get(hour.hour, Decimal("0")) > 0:
+                # Geen weerdata — gebruik legacy profiel met bewolkingscorrectie
+                # No weather data — use legacy profile with cloud correction
+                profile_kw = solar_profile[hour.hour]
                 if weather_h and weather_h.cloud_cover_pct is not None:
-                    # Cloud correction with minimum 15% for diffuse light
-                    # Bewolkingscorrectie met minimum 15% voor diffuus licht
                     cloud_factor = max(
                         Decimal("0.15"),
                         Decimal("1") - weather_h.cloud_cover_pct / Decimal("100")
                     )
                     solar_kw = (profile_kw * cloud_factor).quantize(Decimal("0.001"))
                 else:
-                    # No weather data — use profile directly
-                    # Geen weerdata — gebruik profiel direct
                     solar_kw = profile_kw
-            elif weather_h and weather_h.solar_irradiance_wm2:
-                # Fallback to irradiance if no profile available
-                # Terugval op straling als er geen profiel beschikbaar is
-                solar_kw = (
-                    weather_h.solar_irradiance_wm2 * _WM2_TO_KW_FACTOR
-                ).quantize(Decimal("0.001"))
 
-            # Consumption forecast / Verbruiksverwachting
-            consumption_kw = consumption_profile.get(
-                hour.hour, _FALLBACK_CONSUMPTION_KW
-            )
+            # ── Consumption forecast / Verbruiksverwachting ─────────────────
+            # Prioriteit: 1) ConsumptionLearner 2) legacy profiel 3) fallback
+            # Priority:   1) ConsumptionLearner 2) legacy profile 3) fallback
+            learned_cons = consumption_learner.predict(hour)
+            if learned_cons > 0:
+                # Leermodel geeft kWh per interval — omrekenen naar kW
+                # Learning model gives kWh per interval — convert to kW
+                consumption_kw = Decimal(str(learned_cons * 12)).quantize(
+                    Decimal("0.001")
+                )
+                logger.debug(
+                    f"[optimizer] {hour.strftime('%H:%M')} consumption from learner: "
+                    f"{consumption_kw} kW"
+                )
+            else:
+                consumption_kw = consumption_profile.get(
+                    hour.hour, _FALLBACK_CONSUMPTION_KW
+                )
 
             forecasts.append(HourForecast(
                 hour=hour,
