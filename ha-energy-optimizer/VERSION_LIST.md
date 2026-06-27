@@ -2,8 +2,8 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v0.7
-# altered:       2026-06-26
+# part version:  p_v0.8
+# altered:       2026-06-27
 
 | file | Path in repository | Version | Date |
 |---|---|---|---|
@@ -14,7 +14,7 @@
 | __init__.py (collectors) | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | price_collector.py | /ha-energy-optimizer/collectors/price_collector.py | p_v0.3 | 2026-06-21 |
 | profile_updater.py | /ha-energy-optimizer/collectors/profile_updater.py | p_v0.3 | 2026-06-21 |
-| solar_learner.py | /ha-energy-optimizer/collectors/solar_learner.py | p_v0.4 | 2026-06-26 |
+| solar_learner.py | /ha-energy-optimizer/collectors/solar_learner.py | p_v0.5 | 2026-06-27 |
 | weather_collector.py | /ha-energy-optimizer/collectors/weather_collector.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/config
 | config.py | /ha-energy-optimizer/config/config.py | p_v0.3 | 2026-06-21 |

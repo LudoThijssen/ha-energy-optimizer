@@ -1,8 +1,8 @@
 # name:          solar_learner.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/solar_learner.py
-# part version:  p_v0.4
-# altered:       2026-06-26
+# part version:  p_v0.5
+# altered:       2026-06-27
 #
 # Leert de relatie tussen instraling (W/m²) en werkelijke zonopbrengst (kWh)
 # voor deze specifieke installatie. Wordt aangeroepen na elke meting.
@@ -13,12 +13,18 @@
 # Uses the solar_learning table as persistent storage.
 
 import logging
-from datetime import datetime
+import math
+from datetime import datetime, date
 from decimal import Decimal
 
 from database.connection import DatabaseConnection
 
 log = logging.getLogger(__name__)
+
+# Maximale Gauss-fallback opbrengst per uur bij langste dag (kWh)
+# Maximum Gauss fallback yield per hour at longest day (kWh)
+# Wordt geschaald op basis van daglengte / Scaled based on day length
+_GAUSS_PEAK_KWH = 2.0
 
 
 class SolarLearner:
@@ -168,7 +174,9 @@ class SolarLearner:
                 row = cur.fetchone()
 
             if not row or row["sample_count"] == 0:
-                return 0.0
+                # Geen data — gebruik Gauss-fallback op basis van zonsopkomst/ondergang
+                # No data — use Gauss fallback based on sunrise/sunset
+                return self._solar_gauss_fallback(dt)
 
             irr_low  = float(row["irradiance_low"])
             irr_high = float(row["irradiance_high"])
@@ -189,6 +197,91 @@ class SolarLearner:
         except Exception as e:
             log.warning(f"[solar_learner] Voorspelling mislukt / Prediction failed: {e}")
             return 0.0
+
+    def _solar_gauss_fallback(self, dt: datetime) -> float:
+        """
+        Realistische Gauss-curve gebaseerd op zonsopkomst en zonsondergang
+        voor de gegeven datum, opgehaald uit de weather_forecast tabel.
+        Houdt automatisch rekening met zomertijd en seizoen.
+
+        Realistic Gauss curve based on sunrise and sunset for the given date,
+        fetched from the weather_forecast table.
+        Automatically accounts for daylight saving time and season.
+
+        Returns 0.0 buiten zonsopkomst/ondergang — nooit negatief.
+        Returns 0.0 outside sunrise/sunset — never negative.
+        """
+        sunrise_hour, sunset_hour = self._get_sun_hours(dt)
+
+        hour = dt.hour
+        # Buiten zonlicht: altijd 0 / Outside daylight: always 0
+        if hour < sunrise_hour or hour >= sunset_hour:
+            return 0.0
+
+        # Piek halverwege de dag / Peak halfway through the day
+        solar_noon = (sunrise_hour + sunset_hour) / 2.0
+        # Sigma: kwart van de daglengte / Sigma: quarter of day length
+        sigma = max((sunset_hour - sunrise_hour) / 4.0, 1.0)
+        x = hour - solar_noon
+
+        # Hoogte van de Gauss-curve schalen op basis van seizoen
+        # Scale Gauss curve height based on season
+        day_length = sunset_hour - sunrise_hour
+        # Langste dag NL ~17u, kortste dag ~8u — schalen naar peak_kwh
+        peak_kwh = _GAUSS_PEAK_KWH * min(1.0, day_length / 14.0)
+
+        return peak_kwh * math.exp(-(x ** 2) / (2 * sigma ** 2))
+
+    def _get_sun_hours(self, dt: datetime) -> tuple[int, int]:
+        """
+        Haal zonsopkomst en zonsondergang op uit weather_forecast voor deze datum.
+        Fetch sunrise and sunset from weather_forecast for this date.
+        Valt terug op seizoensgemiddelden als de database geen data heeft.
+        Falls back to seasonal averages if database has no data.
+        """
+        try:
+            with self._db.cursor() as cur:
+                cur.execute(
+                    "SELECT sun_rise, sun_set FROM weather_forecast "
+                    "WHERE DATE(forecast_for) = %(d)s "
+                    "AND sun_rise IS NOT NULL AND sun_set IS NOT NULL "
+                    "ORDER BY forecast_for LIMIT 1",
+                    {"d": dt.date()}
+                )
+                row = cur.fetchone()
+
+            if row and row["sun_rise"] and row["sun_set"]:
+                # sun_rise/sun_set zijn opgeslagen als HH:MM string
+                # sun_rise/sun_set are stored as HH:MM string
+                def parse_hour(s):
+                    if isinstance(s, str):
+                        return int(s.split(":")[0])
+                    # Kan ook een time-object zijn / Can also be a time object
+                    return s.hour
+
+                return parse_hour(row["sun_rise"]), parse_hour(row["sun_set"])
+
+        except Exception as e:
+            log.debug(f"[solar_learner] Zon uren ophalen mislukt: {e}")
+
+        # Seizoens-fallback op basis van maand en breedtegraad NL (~52°N)
+        # Seasonal fallback based on month and latitude NL (~52°N)
+        month = dt.month
+        seasonal = {
+            1:  (8, 16),   # januari / January
+            2:  (8, 17),   # februari / February
+            3:  (7, 18),   # maart / March
+            4:  (6, 20),   # april / April
+            5:  (5, 21),   # mei / May
+            6:  (5, 22),   # juni / June
+            7:  (5, 22),   # juli / July
+            8:  (6, 21),   # augustus / August
+            9:  (7, 20),   # september / September
+            10: (7, 18),   # oktober / October
+            11: (8, 17),   # november / November
+            12: (8, 16),   # december / December
+        }
+        return seasonal.get(month, (6, 20))
 
     def _get_bootstrap(self, hour: int, block: int) -> dict | None:
         """
