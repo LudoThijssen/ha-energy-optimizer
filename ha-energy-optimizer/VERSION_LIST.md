@@ -103,7 +103,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v0.5 | 2026-06-26 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v0.8 | 2026-06-27 |
 # 
 | README.md | /README.md | v0.2.13 | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
