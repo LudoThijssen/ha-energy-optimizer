@@ -1,8 +1,8 @@
 # name:          consumption_learner.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/consumption_learner.py
-# part version:  p_v0.4
-# altered:       2026-06-26
+# part version:  p_v0.5
+# altered:       2026-06-28
 #
 # Leert het typische huisverbruik per uur, dag van de week en maand.
 # Gebruikt rollend gewogen gemiddelde met bootstrap vanuit vorige vergelijkbare slot.
@@ -28,10 +28,16 @@ log = logging.getLogger(__name__)
 # Gauss curve fallback parameters — used when no comparable slot is available
 # (e.g. on first installation). Adjustable without code changes via
 # optimizer_defaults.json (future).
-_GAUSS_PEAK_KWH   = 0.60    # piek verbruik per uur / peak consumption per hour
+# Gauss-waarden in kWh per 5-minuten interval (niet per uur!)
+# ConsumptionLearner slaat kWh per interval op via ha_collector (interval_h = 1/12)
+# Gauss values in kWh per 5-minute interval (not per hour!)
+# ConsumptionLearner stores kWh per interval via ha_collector (interval_h = 1/12)
+# 0.5 kW gemiddeld verbruik = 0.5 / 12 ≈ 0.042 kWh per interval
+# 0.05 kW nachtverbruik = 0.05 / 12 ≈ 0.004 kWh per interval
+_GAUSS_PEAK_KWH   = 0.042   # piek verbruik per 5-min interval / peak per 5-min interval
 _GAUSS_PEAK_HOUR  = 12      # uur van de piek / hour of peak
 _GAUSS_SIGMA      = 5.0     # breedte van de curve / width of curve
-_GAUSS_NIGHT_KWH  = 0.05    # basisverbruik 's nachts / base consumption at night
+_GAUSS_NIGHT_KWH  = 0.004   # basisverbruik 's nachts / base consumption at night
 _BOOTSTRAP_WEIGHT = 3       # gewicht van vorig slot bij bootstrap / weight of previous slot
 
 

@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v0.8
-# altered:       2026-06-27
+# part version:  p_v0.9
+# altered:       2026-06-28
 
 | file | Path in repository | Version | Date |
 |---|---|---|---|
 # ha-energy-optimizer/collectors
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
-| consumption_learner.py | /ha-energy-optimizer/collectors/consumption_learner.py | p_v0.4 | 2026-06-26 |
+| consumption_learner.py | /ha-energy-optimizer/collectors/consumption_learner.py | p_v0.5 | 2026-06-28 |
 | ha_collector.py | /ha-energy-optimizer/collectors/ha_collector.py | p_v0.4 | 2026-06-26 |
 | __init__.py (collectors) | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | price_collector.py | /ha-energy-optimizer/collectors/price_collector.py | p_v0.3 | 2026-06-21 |
@@ -64,7 +64,7 @@
 | modbus.py | /ha-energy-optimizer/inverter/modbus.py | p_v0.3 | 2026-06-21 |
 | solaredge.py | /ha-energy-optimizer/inverter/solaredge.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/optimizer
-| engine.py | /ha-energy-optimizer/optimizer/engine.py | p_v0.5 | 2026-06-26 |
+| engine.py | /ha-energy-optimizer/optimizer/engine.py | p_v0.6 | 2026-06-28 |
 | decision_engine.py | /ha-energy-optimizer/optimizer/decision_engine.py | p_v0.4 | 2026-06-26 |
 | forecast.py | /ha-energy-optimizer/optimizer/forecast.py | p_v0.3 | 2026-06-21 |
 | __init__.py (optimizer) | /ha-energy-optimizer/optimizer/__init__.py | p_v0.3 | 2026-06-21 |
@@ -103,7 +103,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v0.8 | 2026-06-27 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v0.5 | 2026-06-26 |
 # 
 | README.md | /README.md | v0.2.13 | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |

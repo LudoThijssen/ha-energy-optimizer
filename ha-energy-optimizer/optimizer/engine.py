@@ -1,8 +1,8 @@
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
-# part version:  p_v0.5
-# altered:       2026-06-26
+# part version:  p_v0.6
+# altered:       2026-06-28
 #
 # Optimization engine — orchestrates the full planning cycle.
 # Optimalisatie-engine — orkestreert de volledige planningscyclus.
@@ -335,8 +335,9 @@ class OptimizerEngine:
             # Priority:   1) ConsumptionLearner 2) legacy profile 3) fallback
             learned_cons = consumption_learner.predict(hour)
             if learned_cons > 0:
-                # Leermodel geeft kWh per interval — omrekenen naar kW
-                # Learning model gives kWh per interval — convert to kW
+                # Leermodel geeft kWh per 5-min interval — omrekenen naar kW (× 12)
+                # Learning model gives kWh per 5-min interval — convert to kW (× 12)
+                # kWh/interval × 12 intervals/uur = kWh/uur = kW
                 consumption_kw = Decimal(str(learned_cons * 12)).quantize(
                     Decimal("0.001")
                 )
