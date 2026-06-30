@@ -2,25 +2,25 @@
 <!-- name:         inverter.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/inverter.html -->
-<!-- part version: p_v0.1 -->
-<!-- altered:      2026-06-21 -->
-{% block title %}Inverter & Battery — HA Energy Optimizer{% endblock %}
+<!-- part version: p_v0.2 -->
+<!-- altered:      2026-06-30 -->
+{% block title %}Inverter & Batterij — HA Energy Optimizer{% endblock %}
 {% block content %}
-            
-<h1>Inverter & Battery / Inverter & Batterij</h1>
-<p class="subtitle">Configure your inverter and battery / Configureer uw inverter en batterij</p>
+
+<h1><span class="mdi mdi-battery-charging-80"></span> Inverter &amp; batterij</h1>
+<p class="subtitle">Configureer uw inverter en batterij</p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Saved successfully / Opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> Opgeslagen</div>
 {% endif %}
 
 <form method="POST">
   <div class="card">
-    <h2>Inverter</h2>
+    <h2><span class="mdi mdi-flash-outline"></span> Inverter</h2>
 
     <div class="field-row">
       <div class="field">
-        <label>Brand / Merk</label>
+        <label>Merk</label>
         <input type="text" name="brand" value="{{ inverter.brand if inverter else 'FOX ESS' }}" placeholder="FOX ESS">
       </div>
       <div class="field">
@@ -33,50 +33,49 @@
       <label>Driver</label>
       <select name="driver" id="driver-select" onchange="showDriverFields()">
         <option value="simulate" {% if not inverter or inverter.driver == 'simulate' %}selected{% endif %}>
-          Simulate — Safe testing / Veilig testen (aanbevolen)
+          Simulatie — Veilig testen (aanbevolen)
         </option>
         <option value="modbus" {% if inverter and inverter.driver == 'modbus' %}selected{% endif %}>
-          Modbus TCP — Direct inverter connection / Directe inverterverbinding
+          Modbus TCP — Directe inverterverbinding
         </option>
       </select>
       <p class="hint">
-        Use Simulate while you don't have Modbus access yet.<br>
         Gebruik Simulatie zolang u nog geen Modbus-toegang heeft.
       </p>
     </div>
 
-    <!-- Simulate fields / Simulatievelden -->
+    <!-- Simulatievelden -->
     <div id="simulate-fields">
       <div class="field-row">
         <div class="field">
-          <label>Initial SoC % / Begin laadtoestand %</label>
+          <label>Begin laadtoestand %</label>
           <input type="number" name="initial_soc" value="{{ driver_cfg.get('initial_soc_pct', 65) }}" min="0" max="100" step="0.1">
-          <p class="hint">Starting battery charge level / Begin laadniveau batterij</p>
+          <p class="hint">Begin laadniveau batterij</p>
         </div>
         <div class="field">
-          <label>Simulated capacity kWh / Gesimuleerde capaciteit kWh</label>
+          <label>Gesimuleerde capaciteit kWh</label>
           <input type="number" name="sim_capacity_kwh" value="{{ driver_cfg.get('capacity_kwh', 17.281) }}" min="1" max="100" step="0.001">
         </div>
         <div class="field">
-          <label>Simulated temperature °C</label>
+          <label>Gesimuleerde temperatuur °C</label>
           <input type="number" name="temperature_c" value="{{ driver_cfg.get('temperature_c', 22.0) }}" min="-10" max="60" step="0.1">
         </div>
       </div>
     </div>
 
-    <!-- Modbus fields / Modbus-velden -->
+    <!-- Modbus-velden -->
     <div id="modbus-fields" style="display:none;">
       <div class="alert alert-info">
-        &#8505; You will need the Modbus TCP host, port and slave ID from your inverter manual.<br>
+        <span class="mdi mdi-information-outline"></span>
         U heeft het Modbus TCP-adres, poort en slave-ID uit de handleiding van uw inverter nodig.
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Modbus host (IP address)</label>
+          <label>Modbus host (IP-adres)</label>
           <input type="text" name="modbus_host" placeholder="192.168.1.xxx">
         </div>
         <div class="field">
-          <label>Modbus port</label>
+          <label>Modbus poort</label>
           <input type="number" name="modbus_port" value="502">
         </div>
         <div class="field">
@@ -88,28 +87,28 @@
 
     <div class="field-row">
       <div class="field">
-        <label>Max charge power kW / Max laadvermogen kW</label>
+        <label>Max laadvermogen kW</label>
         <input type="number" name="max_charge_kw"
                value="{{ inverter.max_charge_kw if inverter else '6.0' }}"
                min="0.1" max="50" step="0.001">
-        <p class="hint">FOX ESS AC1-6.0-E: 6.0 kW</p>
+        <p class="hint">FOX ESS AC1-6.0-E: 6,0 kW</p>
       </div>
       <div class="field">
-        <label>Max discharge power kW / Max ontlaadvermogen kW</label>
+        <label>Max ontlaadvermogen kW</label>
         <input type="number" name="max_discharge_kw"
                value="{{ inverter.max_discharge_kw if inverter else '6.0' }}"
                min="0.1" max="50" step="0.001">
-        <p class="hint">FOX ESS AC1-6.0-E: 6.0 kW</p>
+        <p class="hint">FOX ESS AC1-6.0-E: 6,0 kW</p>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2>Battery / Batterij</h2>
+    <h2><span class="mdi mdi-battery-outline"></span> Batterij</h2>
 
     <div class="field-row">
       <div class="field">
-        <label>Brand / Merk</label>
+        <label>Merk</label>
         <input type="text" name="bat_brand"
                value="{{ battery.brand if battery else '' }}" placeholder="bijv. BYD, Pylontech, FOX ESS">
       </div>
@@ -122,30 +121,30 @@
 
     <div class="field-row">
       <div class="field">
-        <label>Total capacity kWh / Totale capaciteit kWh</label>
+        <label>Totale capaciteit kWh</label>
         <input type="number" name="capacity_kwh"
                value="{{ battery.capacity_kwh if battery else '' }}"
-               min="0.1" max="500" step="0.001" placeholder="bijv. 10.0">
+               min="0.1" max="500" step="0.001" placeholder="bijv. 10,0">
       </div>
       <div class="field">
-        <label>Usable capacity kWh / Bruikbare capaciteit kWh</label>
+        <label>Bruikbare capaciteit kWh</label>
         <input type="number" name="usable_kwh"
                value="{{ battery.usable_capacity_kwh if battery else '' }}"
-               min="0.1" max="500" step="0.001" placeholder="bijv. 9.5">
-        <p class="hint">Usually 90-95% of total / Meestal 90-95% van totaal</p>
+               min="0.1" max="500" step="0.001" placeholder="bijv. 9,5">
+        <p class="hint">Meestal 90-95% van totaal</p>
       </div>
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label>Minimum SoC % / Minimale laadtoestand %</label>
+        <label>Minimale laadtoestand %</label>
         <input type="number" name="min_soc"
                value="{{ battery.min_soc_pct if battery else '10' }}"
                min="0" max="50" step="0.01">
-        <p class="hint">Protects battery life / Beschermt levensduur batterij</p>
+        <p class="hint">Beschermt levensduur batterij</p>
       </div>
       <div class="field">
-        <label>Maximum SoC % / Maximale laadtoestand %</label>
+        <label>Maximale laadtoestand %</label>
         <input type="number" name="max_soc"
                value="{{ battery.max_soc_pct if battery else '95' }}"
                min="50" max="100" step="0.01">
@@ -154,8 +153,8 @@
   </div>
 
   <div class="btn-row">
-    <button type="submit" class="btn btn-primary">Save / Opslaan</button>
-    <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel / Annuleren</a>
+    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary"><span class="mdi mdi-close"></span> Annuleren</a>
   </div>
 </form>
 

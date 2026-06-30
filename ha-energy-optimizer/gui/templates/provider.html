@@ -2,63 +2,63 @@
 <!-- name:         provider.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/provider.html -->
-<!-- part version: p_v0.1 -->
-<!-- altered:      2026-06-21 -->
-{% block title %}Energy provider — HA Energy Optimizer{% endblock %}
+<!-- part version: p_v0.2 -->
+<!-- altered:      2026-06-29 -->
+{% block title %}Energieleverancier — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1>Energy provider / Energieprovider</h1>
-<p class="subtitle">Dynamic electricity price source / Bron voor dynamische stroomprijzen</p>
+<h1><span class="mdi mdi-transmission-tower"></span> Energieleverancier</h1>
+<p class="subtitle">Bron voor dynamische stroomprijzen</p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
 {% endif %}
 
 <form method="POST" id="provider-form">
   <div class="card">
-    <h2>Provider</h2>
+    <h2><span class="mdi mdi-store-outline"></span> Leverancier</h2>
 
     <div class="field">
-      <label>Provider</label>
+      <label>Leverancier</label>
       <select name="provider_driver" id="provider-select" onchange="showProviderFields()">
         {% set current = provider.provider_driver if provider else '' %}
         <option value="anwb"       {% if current == 'anwb' %}selected{% endif %}>ANWB Energie (via EnergyZero)</option>
         <option value="energyzero" {% if current == 'energyzero' %}selected{% endif %}>EnergyZero</option>
         <option value="tibber"     {% if current == 'tibber' %}selected{% endif %}>Tibber</option>
-        <option value="entsoe"     {% if current == 'entsoe' %}selected{% endif %}>ENTSO-E (European day-ahead)</option>
-        <option value="ha_energyzero" {% if current == 'ha_energyzero' %}selected{% endif %}>HA EnergyZero sensor (aanbevolen / recommended)</option>
-        <option value="frank"      {% if current == 'frank' %}selected{% endif %}>Frank Energie (not yet available / nog niet beschikbaar)</option>
-        <option value="ha_price_sensor" {% if current == 'ha_price_sensor' %}selected{% endif %}>Generieke HA prijssensor / Generic HA price sensor</option>        
+        <option value="entsoe"     {% if current == 'entsoe' %}selected{% endif %}>ENTSO-E (Europese day-ahead)</option>
+        <option value="ha_energyzero" {% if current == 'ha_energyzero' %}selected{% endif %}>HA EnergyZero sensor (aanbevolen)</option>
+        <option value="frank"      {% if current == 'frank' %}selected{% endif %}>Frank Energie (nog niet beschikbaar)</option>
+        <option value="ha_price_sensor" {% if current == 'ha_price_sensor' %}selected{% endif %}>Generieke HA prijssensor</option>
       </select>
     </div>
 
-    <!-- ANWB / EnergyZero fields -->
+    <!-- ANWB / EnergyZero velden -->
     <div id="fields-anwb" class="provider-fields">
       <div class="field-row">
         <div class="field">
-          <label>VAT percentage / BTW-percentage</label>
+          <label>BTW-percentage</label>
           <input type="number" name="vat_pct" step="0.1" min="0" max="30"
                  value="{{ (provider.driver_config or {}).get('vat_pct', 21.0) if provider else 21.0 }}">
-          <div class="hint">Applied to market price / Op marktprijs toegepast</div>
+          <div class="hint">Wordt toegepast op de marktprijs</div>
         </div>
         <div class="field" style="max-width:200px; padding-top:28px">
           <label class="check-label">
             <input type="checkbox" name="incl_tax"
                    {% if provider and (provider.driver_config or {}).get('incl_tax') %}checked{% endif %}>
-            API delivers incl. VAT / API levert incl. BTW
+            API levert inclusief BTW
           </label>
         </div>
       </div>
       <div class="alert alert-info" style="margin-top:8px">
-        ANWB Energie uses the EnergyZero platform. Prices for tomorrow are published around 14:00.<br>
+        <span class="mdi mdi-information-outline"></span>
         ANWB Energie maakt gebruik van het EnergyZero platform. Prijzen van morgen worden rond 14:00 gepubliceerd.
       </div>
     </div>
 
-    <!-- HA EnergyZero fields -->
+    <!-- HA EnergyZero velden -->
     <div id="fields-ha_energyzero" class="provider-fields" style="display:none">
       <div class="alert alert-info">
-        Reads prices directly from your HA EnergyZero sensor — correct local time, no API key needed.<br>
+        <span class="mdi mdi-information-outline"></span>
         Leest prijzen direct uit uw HA EnergyZero sensor — correcte lokale tijd, geen API-sleutel nodig.
       </div>
       <div class="field">
@@ -66,7 +66,7 @@
         <input type="text" name="ha_entity_id"
                value="{{ (provider.driver_config or {}).get('entity_id', 'sensor.energy_prices_today') if provider else 'sensor.energy_prices_today' }}">
         <div class="hint">
-          Default: sensor.energy_prices_today — check Developer Tools → States in HA
+          Standaard: sensor.energy_prices_today — controleer Developer Tools → States in HA
         </div>
       </div>
       <div class="field-row">
@@ -76,7 +76,7 @@
                  value="{{ (provider.driver_config or {}).get('ha_host', 'homeassistant') if provider else 'homeassistant' }}">
         </div>
         <div class="field" style="max-width:120px">
-          <label>Port</label>
+          <label>Poort</label>
           <input type="number" name="ha_energyzero_port"
                  value="{{ (provider.driver_config or {}).get('ha_port', 8123) if provider else 8123 }}">
         </div>
@@ -85,45 +85,40 @@
         <label>HA Token</label>
         <input type="password" name="ha_energyzero_token"
                value="{{ (provider.driver_config or {}).get('ha_token', '') if provider else '' }}">
-        <div class="hint">
-          Same token as on the Home Assistant settings page.<br>
-          Zelfde token als op de Home Assistant instellingenpagina.
-        </div>
+        <div class="hint">Zelfde token als op de Home Assistant instellingenpagina.</div>
       </div>
     </div>
 
-    <!-- Generic HA price sensor fields -->
+    <!-- Generieke HA prijssensor velden -->
     <div id="fields-ha_price_sensor" class="provider-fields" style="display:none">
       <div class="alert alert-info">
-        Reads prices from any HA sensor with a <code>prices</code> attribute containing
-        a list of <code>{timestamp, price}</code> entries.<br>
+        <span class="mdi mdi-information-outline"></span>
         Leest prijzen uit elke HA sensor met een <code>prices</code> attribuut met
         een lijst van <code>{timestamp, price}</code> vermeldingen.<br><br>
-        <strong>Vereist sensorformaat / Required sensor format:</strong><br>
+        <strong>Vereist sensorformaat:</strong><br>
         <code>prices:<br>
         &nbsp;&nbsp;- timestamp: "2026-06-07T21:00:00+00:00"<br>
         &nbsp;&nbsp;&nbsp;&nbsp;price: 0.172</code><br><br>
-        Timestamps mogen UTC of lokaal zijn, met of zonder offset.<br>
-        Timestamps may be UTC or local, with or without offset.
+        Timestamps mogen UTC of lokaal zijn, met of zonder offset.
       </div>
       <div class="field">
         <label>Entity ID</label>
         <input type="text" name="ha_price_sensor_entity"
                value="{{ (provider.driver_config or {}).get('entity_id', 'sensor.energy_prices_today') if provider else 'sensor.energy_prices_today' }}">
-        <div class="hint">HA sensor entity ID — check Developer Tools → States</div>
+        <div class="hint">HA sensor entity ID — controleer Developer Tools → States</div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Prijs attribuut / Price attribute</label>
+          <label>Prijs attribuut</label>
           <input type="text" name="ha_price_sensor_attr"
                  value="{{ (provider.driver_config or {}).get('price_attr', 'prices') if provider else 'prices' }}">
-          <div class="hint">Naam van het attribuut met de prijslijst / Name of attribute containing price list</div>
+          <div class="hint">Naam van het attribuut met de prijslijst</div>
         </div>
         <div class="field">
-          <label>Prijs inclusief BTW / Price incl. VAT</label>
+          <label>Prijs inclusief BTW</label>
           <select name="ha_price_sensor_incl_tax">
-            <option value="true" {% if (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>Ja / Yes</option>
-            <option value="false" {% if not (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>Nee / No</option>
+            <option value="true" {% if (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>Ja</option>
+            <option value="false" {% if not (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>Nee</option>
           </select>
         </div>
       </div>
@@ -134,7 +129,7 @@
                  value="{{ (provider.driver_config or {}).get('ha_host', 'homeassistant') if provider else 'homeassistant' }}">
         </div>
         <div class="field" style="max-width:120px">
-          <label>Port</label>
+          <label>Poort</label>
           <input type="number" name="ha_price_sensor_port"
                  value="{{ (provider.driver_config or {}).get('ha_port', 8123) if provider else 8123 }}">
         </div>
@@ -147,41 +142,41 @@
       </div>
     </div>
 
-    <!-- Tibber fields -->
+    <!-- Tibber velden -->
     <div id="fields-tibber" class="provider-fields" style="display:none">
       <div class="field">
-        <label>Tibber API token</label>
+        <label>Tibber API-token</label>
         <input type="password" name="tibber_token"
                value="{{ (provider.driver_config or {}).get('token', '') if provider else '' }}">
         <div class="hint">
-          Get your token at <a href="https://developer.tibber.com" target="_blank">developer.tibber.com</a>
+          Haal uw token op via <a href="https://developer.tibber.com" target="_blank">developer.tibber.com</a>
         </div>
       </div>
     </div>
 
-    <!-- ENTSO-E fields -->
+    <!-- ENTSO-E velden -->
     <div id="fields-entsoe" class="provider-fields" style="display:none">
       <div class="field">
-        <label>ENTSO-E API token</label>
+        <label>ENTSO-E API-token</label>
         <input type="password" name="entsoe_token"
                value="{{ (provider.driver_config or {}).get('token', '') if provider else '' }}">
         <div class="hint">
-          Register at <a href="https://transparency.entsoe.eu" target="_blank">transparency.entsoe.eu</a>
+          Registreer op <a href="https://transparency.entsoe.eu" target="_blank">transparency.entsoe.eu</a>
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Bidding zone area code</label>
+          <label>Biedzone</label>
           <select name="area_code">
             {% set current_area = (provider.driver_config or {}).get('area_code', '10YNL----------L') if provider else '10YNL----------L' %}
-            <option value="10YNL----------L" {% if current_area == '10YNL----------L' %}selected{% endif %}>Netherlands / Nederland</option>
-            <option value="10YBE----------2" {% if current_area == '10YBE----------2' %}selected{% endif %}>Belgium / België</option>
-            <option value="10Y1001A1001A83F" {% if current_area == '10Y1001A1001A83F' %}selected{% endif %}>Germany / Duitsland</option>
-            <option value="10YFR-RTE------C" {% if current_area == '10YFR-RTE------C' %}selected{% endif %}>France / Frankrijk</option>
+            <option value="10YNL----------L" {% if current_area == '10YNL----------L' %}selected{% endif %}>Nederland</option>
+            <option value="10YBE----------2" {% if current_area == '10YBE----------2' %}selected{% endif %}>België</option>
+            <option value="10Y1001A1001A83F" {% if current_area == '10Y1001A1001A83F' %}selected{% endif %}>Duitsland</option>
+            <option value="10YFR-RTE------C" {% if current_area == '10YFR-RTE------C' %}selected{% endif %}>Frankrijk</option>
           </select>
         </div>
         <div class="field">
-          <label>VAT percentage / BTW-percentage</label>
+          <label>BTW-percentage</label>
           <input type="number" name="vat_pct" step="0.1" min="0" max="30"
                  value="{{ (provider.driver_config or {}).get('vat_pct', 21.0) if provider else 21.0 }}">
         </div>
@@ -189,7 +184,7 @@
     </div>
 
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
     </div>
   </div>
 </form>

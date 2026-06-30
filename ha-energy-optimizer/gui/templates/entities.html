@@ -2,39 +2,36 @@
 <!-- name:         entities.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/entities.html -->
-<!-- part version: p_v0.3 -->
-<!-- altered:      2026-06-21 -->
-{% block title %}HA Entities — HA Energy Optimizer{% endblock %}
+<!-- part version: p_v0.4 -->
+<!-- altered:      2026-06-30 -->
+{% block title %}HA Entiteiten — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1>HA entity mapping / HA entiteit-koppeling</h1>
-<p class="subtitle">
-  Link Home Assistant sensors to internal names / Koppel Home Assistant-sensoren aan interne namen
-</p>
+<h1><span class="mdi mdi-link-variant"></span> HA entiteit-koppeling</h1>
+<p class="subtitle">Koppel Home Assistant-sensoren aan interne namen</p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Saved / Opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> Opgeslagen</div>
 {% endif %}
 
-<!-- Add entity -->
+<!-- Entiteit toevoegen -->
 <div class="card">
-  <h2>Add entity / Entiteit toevoegen</h2>
+  <h2><span class="mdi mdi-plus-circle-outline"></span> Entiteit toevoegen</h2>
   <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7;">
-    Select a known internal name from the dropdown, or type a custom name.<br>
-    Selecteer een bekende interne naam uit de dropdown, of typ een eigen naam.
+    Selecteer een bekende interne naam uit de lijst, of typ een eigen naam.
   </p>
   <form method="POST">
     <input type="hidden" name="action" value="add">
     <div class="field-row">
       <div class="field">
-        <label>Internal name / Interne naam</label>
+        <label>Interne naam</label>
         {% if unmapped_names %}
         <select id="sensor-select" onchange="fillFromSelect()" style="margin-bottom:6px;">
-          <option value="">— select / kies —</option>
+          <option value="">— kies —</option>
           {% for s in unmapped_names %}
           <option value="{{ s.internal_name }}"
                   data-unit="{{ s.unit }}"
-                  data-desc="{{ s.description_en }}"
+                  data-desc="{{ s.description_nl }}"
                   data-category="{{ s.category }}">
             [{{ s.category }}] {{ s.internal_name }} — {{ s.description_nl }}
           </option>
@@ -42,17 +39,17 @@
         </select>
         {% else %}
         <p style="font-size:13px; color:#16a34a; margin-bottom:6px;">
-          &#10003; All relevant sensors are mapped / Alle relevante sensoren zijn gekoppeld
+          <span class="mdi mdi-check"></span> Alle relevante sensoren zijn gekoppeld
         </p>
         {% endif %}
         <input type="text" name="internal_name_custom" id="custom-name"
-               placeholder="or type custom name / of typ eigen naam">
+               placeholder="of typ eigen naam">
       </div>
       <div class="field">
         <label>Entity ID</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="text" name="entity_id" id="add-entity-id"
-                 placeholder="sensor.my_sensor" oninput="clearValidation('add')">
+                 placeholder="sensor.mijn_sensor" oninput="clearValidation('add')">
           <button type="button" class="btn btn-secondary btn-sm"
                   onclick="validateEntity('add-entity-id', 'add-validation')">
             Test
@@ -61,33 +58,35 @@
         <div id="add-validation" style="font-size:12px; margin-top:4px;"></div>
       </div>
       <div class="field" style="max-width:100px">
-        <label>Unit</label>
+        <label>Eenheid</label>
         <input type="text" name="unit" id="unit-field" placeholder="kW">
       </div>
     </div>
     <div class="field">
-      <label>Description / Omschrijving</label>
+      <label>Omschrijving</label>
       <input type="text" name="description" id="desc-field"
-             placeholder="What does this sensor measure?">
+             placeholder="Wat meet deze sensor?">
     </div>
     <div class="btn-row">
-      <button type="submit" id="btn-add-save" class="btn btn-primary" disabled>Add / Toevoegen</button>
-      <span style="font-size:12px; color:#6b7280;">Test de entiteit eerst / Test the entity first</span>
+      <button type="submit" id="btn-add-save" class="btn btn-primary" disabled>
+        <span class="mdi mdi-plus"></span> Toevoegen
+      </button>
+      <span style="font-size:12px; color:#6b7280;">Test de entiteit eerst</span>
     </div>
   </form>
 </div>
 
-<!-- Mapped entities -->
+<!-- Gekoppelde entiteiten -->
 {% if entities %}
 <div class="card">
-  <h2>Mapped entities / Gekoppelde entiteiten</h2>
+  <h2><span class="mdi mdi-format-list-bulleted"></span> Gekoppelde entiteiten</h2>
   <table>
     <thead>
       <tr>
-        <th style="width:180px">Internal name</th>
-        <th style="width:180px">Description</th>
+        <th style="width:180px">Interne naam</th>
+        <th style="width:180px">Omschrijving</th>
         <th>Entity ID</th>
-        <th style="width:55px">Unit</th>
+        <th style="width:55px">Eenheid</th>
         <th style="width:130px"></th>
       </tr>
     </thead>
@@ -99,7 +98,7 @@
         <td>
           <code style="font-size:12px">{{ e.internal_name }}</code>
           {% if is_required %}
-          <span style="font-size:10px; color:#3b82f6; display:block; margin-top:2px;">required</span>
+          <span style="font-size:10px; color:#3b82f6; display:block; margin-top:2px;">verplicht</span>
           {% endif %}
         </td>
         <td style="font-size:12px; color:#6b7280;">
@@ -112,7 +111,7 @@
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="internal_name_custom" value="{{ e.internal_name }}">
             <input type="hidden" name="unit" value="{{ e.unit or (sensor_info.unit if sensor_info else '') }}">
-            <input type="hidden" name="description" value="{{ e.description or (sensor_info.description_en if sensor_info else '') }}">
+            <input type="hidden" name="description" value="{{ e.description or (sensor_info.description_nl if sensor_info else '') }}">
             <input type="text" name="entity_id" id="eid-{{ e.id }}"
                    value="{{ e.entity_id }}"
                    style="min-width:190px; font-size:13px;"
@@ -121,7 +120,9 @@
                     onclick="validateEntity('eid-{{ e.id }}', 'val-{{ e.id }}')">
               Test
             </button>
-            <button type="submit" class="btn btn-primary btn-sm btn-save-entity" disabled>Save</button>
+            <button type="submit" class="btn btn-primary btn-sm btn-save-entity" disabled>
+              Opslaan
+            </button>
           </form>
           <div id="val-{{ e.id }}" style="font-size:12px; margin-top:3px;"></div>
         </td>
@@ -132,13 +133,13 @@
           {% if not is_required %}
           <form method="POST" action="{{ nav_url('delete_entity', entity_id=e.id) }}">
             <button type="submit" class="btn btn-danger btn-sm"
-                    onclick="return confirm('Remove mapping for {{ e.internal_name }}?')"
-                    title="Remove / Verwijder">
-              &#215; Remove
+                    onclick="return confirm('Koppeling voor {{ e.internal_name }} verwijderen?')"
+                    title="Verwijder">
+              <span class="mdi mdi-close"></span> Verwijder
             </button>
           </form>
           {% else %}
-          <span style="font-size:11px; color:#94a3b8;">required — cannot remove</span>
+          <span style="font-size:11px; color:#94a3b8;">verplicht — kan niet verwijderd worden</span>
           {% endif %}
         </td>
       </tr>
@@ -149,7 +150,6 @@
 {% else %}
 <div class="card">
   <p style="color:#6b7280; font-size:13px;">
-    No entities mapped yet. Add one above.<br>
     Nog geen entiteiten gekoppeld. Voeg er hierboven een toe.
   </p>
 </div>
@@ -171,11 +171,11 @@ async function validateEntity(inputId, resultId) {
   if (!input || !result) return;
   const entity_id = input.value.trim();
   if (!entity_id) {
-    result.textContent = 'Enter an entity ID first / Vul eerst een entiteit-ID in';
+    result.textContent = 'Vul eerst een entiteit-ID in';
     result.style.color = '#6b7280';
     return;
   }
-  result.textContent = 'Checking... / Controleren...';
+  result.textContent = 'Controleren...';
   result.style.color = '#6b7280';
   try {
     const resp = await fetch(apiUrl('/entities/validate'), {
@@ -187,11 +187,9 @@ async function validateEntity(inputId, resultId) {
     result.textContent = data.message;
     result.style.color = data.ok ? '#16a34a' : '#dc2626';
 
-    // Enable or disable the nearest Save button based on test result
-    // Dichtstbijzijnde Save knop in-/uitschakelen op basis van testresultaat
+    // Save-knop in-/uitschakelen op basis van testresultaat
     const inputEl = document.getElementById(inputId);
     if (inputEl) {
-      // Find the save button in the same form
       const form = inputEl.closest('form');
       if (form) {
         const saveBtn = form.querySelector('button[type="submit"]');
@@ -201,14 +199,13 @@ async function validateEntity(inputId, resultId) {
         }
       }
     }
-    // Also handle the add form specifically
     const addBtn = document.getElementById('btn-add-save');
     if (addBtn && inputId === 'add-entity-id') {
       addBtn.disabled = !data.ok;
       addBtn.style.opacity = data.ok ? '1' : '0.4';
     }
   } catch(e) {
-    result.textContent = '✗ Request failed: ' + e.message;
+    result.textContent = '✗ Verzoek mislukt: ' + e.message;
     result.style.color = '#dc2626';
   }
 }
@@ -216,13 +213,11 @@ async function validateEntity(inputId, resultId) {
 function clearValidation(resultId) {
   const el = document.getElementById(resultId);
   if (el) { el.textContent = ''; }
-  // Disable save button when input changes — re-test required
-  // Save knop uitschakelen als input verandert — opnieuw testen vereist
+  // Save-knop uitschakelen als input verandert — opnieuw testen vereist
   if (resultId === 'add-validation') {
     const btn = document.getElementById('btn-add-save');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
   } else {
-    // Find result div's form and disable its save button
     const resultEl = document.getElementById(resultId);
     if (resultEl) {
       const row = resultEl.closest('td');

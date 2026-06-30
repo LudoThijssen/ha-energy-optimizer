@@ -2,57 +2,57 @@
 <!-- name:         database.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/database.html -->
-<!-- part version: p_v0.3 -->
-<!-- altered:      2026-06-21 -->
+<!-- part version: p_v0.4 -->
+<!-- altered:      2026-06-30 -->
 {% block title %}Database — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1>Database</h1>
-<p class="subtitle">MySQL connection settings / MySQL-verbindingsinstellingen</p>
+<h1><span class="mdi mdi-database-outline"></span> Database</h1>
+<p class="subtitle">MySQL-verbindingsinstellingen</p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
 {% endif %}
 
 <form method="POST" id="db-form">
   <div class="card">
-    <h2>Connection / Verbinding</h2>
+    <h2><span class="mdi mdi-lan-connect"></span> Verbinding</h2>
     <div class="field-row">
       <div class="field">
         <label>Host</label>
         <input type="text" name="host" id="db-host"
-               placeholder="core-mariadb or 192.168.1.100"
+               placeholder="core-mariadb of 192.168.1.100"
                value="{{ options.get('database', {}).get('host', '') }}" required>
-        <div class="hint">IP address or hostname of your MySQL server / IP-adres of hostnaam van uw MySQL-server</div>
+        <div class="hint">IP-adres of hostnaam van uw MySQL-server</div>
       </div>
       <div class="field" style="max-width:120px">
-        <label>Port / Poort</label>
+        <label>Poort</label>
         <input type="number" name="port" id="db-port"
                value="{{ options.get('database', {}).get('port', 3306) }}" required>
       </div>
     </div>
     <div class="field">
-      <label>Database name / Databasenaam</label>
+      <label>Databasenaam</label>
       <input type="text" name="name" id="db-name"
              value="{{ options.get('database', {}).get('name', 'energy') }}" required>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Username / Gebruikersnaam</label>
+        <label>Gebruikersnaam</label>
         <input type="text" name="user" id="db-user"
                value="{{ options.get('database', {}).get('user', 'energy') }}" required>
       </div>
       <div class="field">
-        <label>Password / Wachtwoord</label>
+        <label>Wachtwoord</label>
         <input type="password" name="password" id="db-pass"
                value="{{ options.get('database', {}).get('password', '') }}">
       </div>
     </div>
 
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
       <button type="button" class="btn btn-secondary" onclick="testConnection()">
-        Test connection / Test verbinding
+        <span class="mdi mdi-connection"></span> Test verbinding
       </button>
       <span id="test-result"></span>
     </div>
@@ -62,7 +62,7 @@
 <script>
 async function testConnection() {
   const result = document.getElementById("test-result");
-  result.textContent = "Testing... / Testen...";
+  result.textContent = "Testen...";
   result.style.color = "#6b7280";
 
   const payload = {
@@ -83,7 +83,7 @@ async function testConnection() {
     result.textContent = data.message;
     result.style.color = data.ok ? "#16a34a" : "#dc2626";
   } catch (e) {
-    result.textContent = "Request failed: " + e.message;
+    result.textContent = "Verzoek mislukt: " + e.message;
     result.style.color = "#dc2626";
   }
 }

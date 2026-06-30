@@ -2,26 +2,26 @@
 <!-- name:         colors.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/colors.html -->
-<!-- part version: p_v0.3 -->
-<!-- altered:      2026-06-21 -->
-{% block title %}Kleuren / Colors — HA Energy Optimizer{% endblock %}
+<!-- part version: p_v0.4 -->
+<!-- altered:      2026-06-30 -->
+{% block title %}Kleuren — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1>Dashboard kleuren / Dashboard colors</h1>
-<p class="subtitle">Pas de grafiekkleuren aan naar uw voorkeur / Customize chart colors to your preference</p>
+<h1><span class="mdi mdi-palette-outline"></span> Dashboard kleuren</h1>
+<p class="subtitle">Pas de grafiekkleuren aan naar uw voorkeur</p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Kleuren opgeslagen / Colors saved</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> Kleuren opgeslagen</div>
 {% endif %}
 
 {% set c = options.get('colors', {}) %}
 
 <form method="POST">
   <div class="card">
-    <h2>Grafiek 1 & 2 — Energie / Energy</h2>
+    <h2><span class="mdi mdi-flash-outline"></span> Energie</h2>
     <div class="field-row">
       <div class="field">
-        <label>Zon / Solar</label>
+        <label>Zon</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="color" name="solar" value="{{ c.get('solar', '#f59e0b') }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;">
@@ -31,7 +31,7 @@
         </div>
       </div>
       <div class="field">
-        <label>Verbruik / Consumption</label>
+        <label>Verbruik</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="color" name="consume" value="{{ c.get('consume', '#6366f1') }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
@@ -42,7 +42,7 @@
         </div>
       </div>
       <div class="field">
-        <label>Netafname / Grid import</label>
+        <label>Netafname</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="color" name="import_kw" value="{{ c.get('import_kw', '#3b82f6') }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
@@ -55,7 +55,7 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Teruglevering / Grid export</label>
+        <label>Teruglevering</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="color" name="export_kw" value="{{ c.get('export_kw', '#10b981') }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
@@ -66,7 +66,7 @@
         </div>
       </div>
       <div class="field">
-        <label>Batterij SoC / Battery SoC</label>
+        <label>Batterij SoC</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="color" name="soc" value="{{ c.get('soc', '#8b5cf6') }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
@@ -80,10 +80,10 @@
   </div>
 
   <div class="card">
-    <h2>Grafiek 1 — Optimizer acties / Optimizer actions</h2>
+    <h2><span class="mdi mdi-cog-sync-outline"></span> Optimizer-acties</h2>
     <div class="field-row">
       <div class="field">
-        <label>Ontladen / Discharge</label>
+        <label>Ontladen</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="color" name="discharge" value="{{ c.get('discharge', '#ef4444') }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
@@ -92,10 +92,10 @@
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('discharge', this.value)">
         </div>
-        <div class="hint">Nettoladen / Grid charge gebruikt dezelfde kleur als Netafname</div>
+        <div class="hint">Nettoladen gebruikt dezelfde kleur als Netafname</div>
       </div>
       <div class="field">
-        <label>Zonne-lading / Solar charge</label>
+        <label>Zonne-lading</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="color" name="solar_charge" value="{{ c.get('solar_charge', '#f59e0b') }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
@@ -108,9 +108,9 @@
     </div>
   </div>
 
-  <!-- Preview / Voorbeeld -->
+  <!-- Voorbeeld -->
   <div class="card">
-    <h2>Voorbeeld / Preview</h2>
+    <h2><span class="mdi mdi-eye-outline"></span> Voorbeeld</h2>
     <div id="preview" style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; padding:8px 0;">
       <div style="display:flex; align-items:center; gap:6px;">
         <div id="prev-solar" style="width:16px; height:16px; border-radius:3px; background:#f59e0b;"></div>
@@ -144,9 +144,9 @@
   </div>
 
   <div class="btn-row">
-    <button type="submit" class="btn btn-primary">Opslaan / Save</button>
+    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
     <button type="button" class="btn btn-secondary" onclick="resetDefaults()">
-      Standaard / Reset defaults
+      <span class="mdi mdi-restore"></span> Standaard
     </button>
   </div>
 </form>
@@ -190,12 +190,10 @@ function resetDefaults() {
   });
 }
 
-// Init: sync previews from saved values on page load
 // Preview initialiseren vanuit opgeslagen waarden bij paginaladen
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input[type="color"]').forEach(inp => {
     inp.addEventListener('input', () => syncText(inp.name, inp.value));
-    // Initialize preview from current value
     updatePreview(inp.name, inp.value);
   });
 });

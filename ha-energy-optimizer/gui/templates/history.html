@@ -7,18 +7,18 @@
 {% block title %}Geschiedenis — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1>Geschiedenis</h1>
+<h1><span class="mdi mdi-history"></span> Geschiedenis</h1>
 <p class="subtitle">Bekijk historische data per dag</p>
 
 <!-- Date navigation / Datumnavigatie -->
 <div class="card" style="padding:16px;">
   <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-    <button class="btn btn-secondary" id="btn-prev" onclick="changeDay(+1)">&#8592; Vorige dag</button>
+    <button class="btn btn-secondary" id="btn-prev" onclick="changeDay(+1)"><span class="mdi mdi-chevron-left"></span> Vorige dag</button>
     <input type="date" id="date-picker"
            style="padding:8px 11px; border:1px solid #d1d5db; border-radius:6px; font-size:14px;"
            onchange="loadDate(this.value)">
-    <button class="btn btn-secondary" id="btn-next" onclick="changeDay(-1)">Volgende dag &#8594;</button>
-    <button class="btn btn-secondary" onclick="loadDate(todayStr())">Vandaag / Today</button>
+    <button class="btn btn-secondary" id="btn-next" onclick="changeDay(-1)">Volgende dag <span class="mdi mdi-chevron-right"></span></button>
+    <button class="btn btn-secondary" onclick="loadDate(todayStr())">Vandaag</button>
     <span id="date-label" style="font-size:13px; color:#6b7280; margin-left:8px;"></span>
   </div>
 </div>
@@ -67,9 +67,9 @@
   </p>
 </div>
 
-<!-- Grafiek 1: Verwacht schema / Expected schedule -->
+<!-- Grafiek 1: <span class="mdi mdi-chart-timeline-variant"></span> Verwacht schema -->
 <div class="card" id="card-schedule" style="display:none;">
-  <h2>Verwacht schema / Expected schedule</h2>
+  <h2><span class="mdi mdi-chart-timeline-variant"></span> Verwacht schema</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:12px;">
     Optimizer-beslissingen voor deze dag / Optimizer decisions for this day
   </p>
@@ -83,9 +83,9 @@
   </div>
 </div>
 
-<!-- Grafiek 2: Gemeten waarden / Measured values -->
+<!-- Grafiek 2: <span class="mdi mdi-gauge"></span> Gemeten waarden -->
 <div class="card" id="card-measured" style="display:none;">
-  <h2>Gemeten waarden / Measured values</h2>
+  <h2><span class="mdi mdi-gauge"></span> Gemeten waarden</h2>
   <canvas id="chart-measured" height="90"></canvas>
   <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
     <span style="color:{{ colors.solar }};">&#9646; Zon gemeten (kW)</span>
@@ -96,15 +96,15 @@
   </div>
 </div>
 
-<!-- Grafiek 3: Energieprijzen / Energy prices -->
+<!-- Grafiek 3: <span class="mdi mdi-currency-eur"></span> Energieprijzen -->
 <div class="card" id="card-prices" style="display:none;">
-  <h2>Energieprijzen / Energy prices</h2>
+  <h2><span class="mdi mdi-currency-eur"></span> Energieprijzen</h2>
   <canvas id="chart-prices" height="70"></canvas>
 </div>
 
 <!-- Schema tabel / Schedule table -->
 <div class="card" id="card-table" style="display:none;">
-  <h2>Uur-voor-uur schema</h2>
+  <h2><span class="mdi mdi-table"></span> Uur-voor-uur schema</h2>
   <div id="schedule-table-wrap"></div>
 </div>
 

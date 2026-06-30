@@ -2,37 +2,37 @@
 <!-- name:         system.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/system.html -->
-<!-- part version: p_v0.1 -->
-<!-- altered:      2026-06-21 -->
-{% block title %}System — HA Energy Optimizer{% endblock %}
+<!-- part version: p_v0.2 -->
+<!-- altered:      2026-06-29 -->
+{% block title %}Systeem — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1>System & location / Systeem & locatie</h1>
-<p class="subtitle">Basic installation settings / Basis installatiegegevens</p>
+<h1><span class="mdi mdi-map-marker-outline"></span> Systeem &amp; locatie</h1>
+<p class="subtitle">Basis installatiegegevens</p>
 
 {% if saved %}
-<div class="alert alert-success">&#10003; Settings saved / Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
 {% endif %}
 
 <form method="POST">
   <div class="card">
-    <h2>Location / Locatie</h2>
+    <h2><span class="mdi mdi-crosshairs-gps"></span> Locatie</h2>
     <div class="field-row">
       <div class="field">
-        <label>Latitude / Breedtegraad</label>
+        <label>Breedtegraad</label>
         <input type="number" name="latitude" step="0.0001"
                value="{{ options.get('location', {}).get('latitude', '') }}" required>
-        <div class="hint">e.g. 52.1551 (Netherlands / Nederland)</div>
+        <div class="hint">bijv. 52.1551 (Nederland)</div>
       </div>
       <div class="field">
-        <label>Longitude / Lengtegraad</label>
+        <label>Lengtegraad</label>
         <input type="number" name="longitude" step="0.0001"
                value="{{ options.get('location', {}).get('longitude', '') }}" required>
-        <div class="hint">e.g. 5.3872</div>
+        <div class="hint">bijv. 5.3872</div>
       </div>
     </div>
     <div class="field">
-      <label>Timezone / Tijdzone</label>
+      <label>Tijdzone</label>
       <select name="timezone">
         {% for tz in ["Europe/Amsterdam","Europe/Brussels","Europe/Berlin","Europe/Paris","Europe/London","Europe/Madrid"] %}
         <option value="{{ tz }}" {% if options.get('location', {}).get('timezone') == tz %}selected{% endif %}>{{ tz }}</option>
@@ -42,47 +42,46 @@
   </div>
 
   <div class="card">
-    <h2>Installed components / Geïnstalleerde componenten</h2>
+    <h2><span class="mdi mdi-cog-outline"></span> Geïnstalleerde componenten</h2>
     <label class="check-label">
       <input type="checkbox" name="has_grid" {% if options.get('system', {}).get('has_grid_connection', True) %}checked{% endif %}>
-      Grid connection / Netaansluiting
+      Netaansluiting
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_solar" {% if options.get('system', {}).get('has_solar_panels') %}checked{% endif %}>
-      Solar panels / Zonnepanelen
+      Zonnepanelen
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_battery" {% if options.get('system', {}).get('has_battery') %}checked{% endif %}>
-      Home battery / Thuisbatterij
+      Thuisbatterij
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_gas" {% if options.get('system', {}).get('has_gas') %}checked{% endif %}>
-      Gas connection / Gasaansluiting
+      Gasaansluiting
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_heating" {% if options.get('system', {}).get('has_district_heating') %}checked{% endif %}>
-      District heating / Stadsverwarming
+      Stadsverwarming
     </label>
   </div>
 
   <div class="card">
-    <h2>Language / Taal</h2>
+    <h2><span class="mdi mdi-translate"></span> Taal</h2>
     <div class="field">
-      <label>Interface language / Interfacetaal</label>
+      <label>Interfacetaal</label>
       <select name="language">
-        {% for code, label in [("en","English"),("nl","Nederlands"),("de","Deutsch"),("fr","Français"),("es","Español")] %}
+        {% for code, label in [("nl","Nederlands"),("en","English"),("de","Deutsch"),("fr","Français"),("es","Español")] %}
         <option value="{{ code }}" {% if options.get('language') == code %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
       <div class="hint">
-        Other languages are generated automatically using AI on first use.<br>
         Andere talen worden automatisch gegenereerd via AI bij eerste gebruik.
       </div>
     </div>
   </div>
 
   <div class="btn-row">
-    <button type="submit" class="btn btn-primary">Save / Opslaan</button>
+    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
   </div>
 </form>
 {% endblock %}

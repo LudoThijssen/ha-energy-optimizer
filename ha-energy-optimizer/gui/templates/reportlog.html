@@ -2,24 +2,22 @@
 <!-- name:         reportlog.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/reportlog.html -->
-<!-- part version: p_v0.3 -->
-<!-- altered:      2026-06-21 -->
-{% block title %}Report Log — HA Energy Optimizer{% endblock %}
+<!-- part version: p_v0.4 -->
+<!-- altered:      2026-06-30 -->
+{% block title %}Rapportage log — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1>Report log</h1>
-<p class="subtitle">
-  System messages and optimizer decisions / Systeemmeldingen en optimalisatiebeslissingen
-</p>
+<h1><span class="mdi mdi-text-box-outline"></span> Rapportage log</h1>
+<p class="subtitle">Systeemmeldingen en optimalisatiebeslissingen</p>
 
-<!-- Filter bar -->
+<!-- Filterbalk -->
 <div class="card" style="padding:16px;">
   <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
     <span style="font-size:13px; font-weight:500; color:#374151;">Filter:</span>
 
     <a href="{{ nav_url('reportlog') }}"
        class="btn btn-sm {% if not active_type and not active_cat %}btn-primary{% else %}btn-secondary{% endif %}">
-      All / Alles ({{ total_count }})
+      Alles ({{ total_count }})
     </a>
 
     {% for t, count in type_counts.items() %}
@@ -41,21 +39,21 @@
 
     {% if active_type or active_cat %}
     <a href="{{ nav_url('reportlog') }}" class="btn btn-sm btn-secondary"
-       style="margin-left:8px;">&#215; Clear</a>
+       style="margin-left:8px;"><span class="mdi mdi-close"></span> Wis filter</a>
     {% endif %}
   </div>
 </div>
 
-<!-- Log entries -->
+<!-- Logregels -->
 <div class="card" style="padding:0;">
   {% if entries %}
   <table>
     <thead>
       <tr>
-        <th style="width:145px">Time / Tijd</th>
+        <th style="width:145px">Tijd</th>
         <th style="width:70px">Type</th>
-        <th style="width:120px">Category</th>
-        <th>Message</th>
+        <th style="width:120px">Categorie</th>
+        <th>Bericht</th>
       </tr>
     </thead>
     <tbody>
@@ -66,11 +64,11 @@
         </td>
         <td>
           {% if e.report_type == 'error' %}
-            <span style="color:#dc2626; font-size:12px; font-weight:600;">&#9888; error</span>
+            <span style="color:#dc2626; font-size:12px; font-weight:600;"><span class="mdi mdi-alert-circle-outline"></span> fout</span>
           {% elif e.report_type == 'warning' %}
-            <span style="color:#d97706; font-size:12px; font-weight:600;">&#9888; warning</span>
+            <span style="color:#d97706; font-size:12px; font-weight:600;"><span class="mdi mdi-alert-outline"></span> waarschuwing</span>
           {% elif e.report_type == 'daily' %}
-            <span style="color:#16a34a; font-size:12px; font-weight:600;">&#128197; daily</span>
+            <span style="color:#16a34a; font-size:12px; font-weight:600;"><span class="mdi mdi-calendar-check-outline"></span> dagelijks</span>
           {% else %}
             <span style="color:#6b7280; font-size:12px;">info</span>
           {% endif %}
@@ -82,20 +80,20 @@
     </tbody>
   </table>
 
-  <!-- Pagination -->
+  <!-- Paginering -->
   {% if total_pages > 1 %}
   <div style="display:flex; gap:8px; padding:16px; align-items:center; border-top:1px solid #f1f5f9;">
     <span style="font-size:13px; color:#6b7280;">
-      Page {{ page }} of {{ total_pages }} ({{ total_count }} entries)
+      Pagina {{ page }} van {{ total_pages }} ({{ total_count }} regels)
     </span>
     <div style="margin-left:auto; display:flex; gap:6px;">
       {% if page > 1 %}
       <a href="{{ nav_url('reportlog') }}?page={{ page - 1 }}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_cat %}&category={{ active_cat }}{% endif %}"
-         class="btn btn-secondary btn-sm">&#8592; Prev</a>
+         class="btn btn-secondary btn-sm"><span class="mdi mdi-chevron-left"></span> Vorige</a>
       {% endif %}
       {% if page < total_pages %}
       <a href="{{ nav_url('reportlog') }}?page={{ page + 1 }}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_cat %}&category={{ active_cat }}{% endif %}"
-         class="btn btn-secondary btn-sm">Next &#8594;</a>
+         class="btn btn-secondary btn-sm">Volgende <span class="mdi mdi-chevron-right"></span></a>
       {% endif %}
     </div>
   </div>
@@ -103,7 +101,7 @@
 
   {% else %}
   <p style="padding:24px; color:#6b7280; font-size:13px;">
-    No log entries found. / Geen logregels gevonden.
+    Geen logregels gevonden.
   </p>
   {% endif %}
 </div>
