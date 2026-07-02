@@ -88,7 +88,7 @@ class WindowHour:
     executed:       bool   = False
     reason:         str    = ""
     reason_key:     str    = ""
-    reason_params:  dict   = None""
+    reason_params:  dict   = None
 
 
 # ── DecisionEngine ────────────────────────────────────────────────────────────
