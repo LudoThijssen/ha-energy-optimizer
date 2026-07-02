@@ -1,8 +1,8 @@
 # name:          repository.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-01
 #
 # Repository classes for all database operations.
 # Exact column names match the SQL migrations 001-004.
@@ -419,19 +419,26 @@ class OptimizerRepository:
         Sla één optimizer-slot op. Al uitgevoerde slots worden bewaard —
         rolling horizon werkt alleen toekomstige/niet-uitgevoerde slots bij.
         """
+        import json as _json
+        reason_params = getattr(slot, "reason_params", None)
+        if reason_params and not isinstance(reason_params, str):
+            reason_params = _json.dumps(reason_params)
+
         with self._db.cursor() as cur:
             cur.execute("""
                 INSERT INTO optimizer_schedule
                     (schedule_for, action, target_power_kw, target_soc_pct,
                      expected_price, expected_solar_kw, expected_consumption_kw,
-                     expected_saving, expected_cost, reason)
+                     expected_saving, expected_cost, reason, reason_key, reason_params)
                 VALUES
                     (%(schedule_for)s, %(action)s, %(target_power_kw)s,
                      %(target_soc_pct)s, %(expected_price)s,
                      %(expected_solar_kw)s, %(expected_consumption_kw)s,
-                     %(expected_saving)s, %(expected_cost)s, %(reason)s)
+                     %(expected_saving)s, %(expected_cost)s, %(reason)s,
+                     %(reason_key)s, %(reason_params)s)
                 ON DUPLICATE KEY UPDATE
-                    -- Only update if not yet executed / Alleen bijwerken als nog niet uitgevoerd
+                    -- Alleen bijwerken als nog niet uitgevoerd
+                    -- Only update if not yet executed
                     action                  = IF(executed = 0, VALUES(action),                  action),
                     target_power_kw         = IF(executed = 0, VALUES(target_power_kw),         target_power_kw),
                     target_soc_pct          = IF(executed = 0, VALUES(target_soc_pct),          target_soc_pct),
@@ -440,7 +447,9 @@ class OptimizerRepository:
                     expected_consumption_kw = IF(executed = 0, VALUES(expected_consumption_kw), expected_consumption_kw),
                     expected_saving         = IF(executed = 0, VALUES(expected_saving),         expected_saving),
                     expected_cost           = IF(executed = 0, VALUES(expected_cost),           expected_cost),
-                    reason                  = IF(executed = 0, VALUES(reason),                  reason)
+                    reason                  = IF(executed = 0, VALUES(reason),                  reason),
+                    reason_key              = IF(executed = 0, VALUES(reason_key),              reason_key),
+                    reason_params           = IF(executed = 0, VALUES(reason_params),           reason_params)
             """, {
                 "schedule_for":           slot.schedule_for,
                 "action":                 slot.action,
@@ -452,6 +461,8 @@ class OptimizerRepository:
                 "expected_saving":        getattr(slot, "expected_saving", None),
                 "expected_cost":          getattr(slot, "expected_cost", None),
                 "reason":                 getattr(slot, "reason", None),
+                "reason_key":             getattr(slot, "reason_key", None) or None,
+                "reason_params":          reason_params,
             })
 
     def get_current_slot(self) -> OptimizerSlot | None:

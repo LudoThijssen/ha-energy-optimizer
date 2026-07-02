@@ -1,8 +1,8 @@
 # name:          models.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/models.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-01
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -32,3 +32,5 @@ class ScheduleSlot:
     expected_solar_kw: Decimal       = Decimal("0")
     expected_consumption_kw: Decimal = Decimal("0")
     expected_price: Decimal          = Decimal("0")
+    reason_key:     str              = ""
+    reason_params:  dict             = None

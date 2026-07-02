@@ -1,12 +1,21 @@
 # name:          translator.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/translations/translator.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-01
+#
+# Twee vertaallagen:
+# 1. UI-teksten — uit JSON bestanden (bestaande functionaliteit)
+# 2. Operationele teksten — uit database translation_strings tabel
+#
+# Two translation layers:
+# 1. UI texts — from JSON files (existing functionality)
+# 2. Operational texts — from database translation_strings table
 
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,17 +25,12 @@ CONTEXT_FILE     = TRANSLATIONS_DIR / "_context.json"
 
 _cache: dict[str, dict] = {}
 
+# ── Laag 1: UI-teksten uit JSON ───────────────────────────────────────────────
 
 def t(key: str, language: str = "en", **kwargs) -> str:
     """
-    Vertaalfunctie voor gebruik door de rest van de app.
-
-    Gebruik:
-        t("battery.action.charge", "nl")
-        → "Opladen"
-
-        t("report.notify.battery_low", "nl", soc=12)
-        → "Batterij bijna leeg (12%)"
+    Vertaalfunctie voor UI-teksten uit JSON bestanden.
+    Translation function for UI texts from JSON files.
     """
     translation = _get_cached(language)
     text = translation.get(key, key)
@@ -97,7 +101,6 @@ Strings to translate:
 
 
 def _merge_with_master(translation: dict) -> dict:
-    """Vul ontbrekende sleutels aan vanuit de Engelse master."""
     return {**_load_master(), **translation}
 
 
@@ -117,3 +120,192 @@ def _get_cached(language: str) -> dict:
     if language not in _cache:
         _cache[language] = load_translation(language)
     return _cache[language]
+
+
+# ── Laag 2: Operationele teksten uit database ─────────────────────────────────
+
+class OperationalTranslator:
+    """
+    Vertaler voor operationele teksten (reason strings, log berichten).
+    Leest uit de translation_strings tabel in de database.
+    Valt terug op Engels als de gevraagde taal niet beschikbaar is.
+
+    Translator for operational texts (reason strings, log messages).
+    Reads from the translation_strings table in the database.
+    Falls back to English if the requested language is not available.
+    """
+
+    def __init__(self, db, language: str = "nl"):
+        self._db       = db
+        self._language = language
+        self._cache: dict[str, str] = {}
+        self._loaded   = False
+
+    def _load(self) -> None:
+        """Laad alle vertalingen voor de actieve taal in één query."""
+        if self._loaded:
+            return
+        try:
+            with self._db.cursor() as cur:
+                cur.execute(
+                    "SELECT string_key, text FROM translation_strings "
+                    "WHERE language = %s",
+                    (self._language,)
+                )
+                for row in cur.fetchall():
+                    self._cache[row["string_key"]] = row["text"]
+
+                # Vul ontbrekende keys aan vanuit Engels
+                cur.execute(
+                    "SELECT string_key, text FROM translation_strings "
+                    "WHERE language = 'en' AND string_key NOT IN "
+                    "(SELECT string_key FROM translation_strings WHERE language = %s)",
+                    (self._language,)
+                )
+                for row in cur.fetchall():
+                    self._cache[row["string_key"]] = row["text"]
+
+            self._loaded = True
+        except Exception as e:
+            logger.warning(f"[translator] Vertalingen laden mislukt: {e}")
+
+    def get(self, key: str, params: dict[str, Any] | None = None) -> str:
+        """
+        Haal vertaalde tekst op voor de gegeven key en vul parameters in.
+        Get translated text for the given key and fill in parameters.
+
+        Args:
+            key:    Vertaalsleutel bijv. 'RS01' / Translation key e.g. 'RS01'
+            params: Parameters voor variabelen bijv. {'price': 0.12}
+
+        Returns:
+            Vertaalde tekst met ingevulde parameters / Translated text with params filled in.
+            Als key niet gevonden: geeft de key terug / If key not found: returns the key.
+        """
+        self._load()
+        text = self._cache.get(key, key)
+        if params:
+            for var, val in params.items():
+                # Ondersteun format-specs bijv. {price:.4f}
+                # Support format specs e.g. {price:.4f}
+                import re
+                pattern = re.compile(r'\{' + var + r'(:[^}]*)?\}')
+                def replacer(m):
+                    spec = m.group(1) or ''
+                    try:
+                        return format(val, spec.lstrip(':'))
+                    except (ValueError, TypeError):
+                        return str(val)
+                text = pattern.sub(replacer, text)
+        return text
+
+    def translate_new_language(self, target_language: str) -> int:
+        """
+        Vertaal alle Nederlandse teksten naar een nieuwe taal via AI.
+        Slaat alleen keys op die nog niet bestaan voor die taal.
+
+        Translate all Dutch texts to a new language via AI.
+        Only saves keys that don't yet exist for that language.
+
+        Returns: aantal vertaalde keys / number of translated keys
+        """
+        try:
+            with self._db.cursor() as cur:
+                # Haal alle nl teksten op die nog niet vertaald zijn
+                cur.execute(
+                    "SELECT string_key, text FROM translation_strings "
+                    "WHERE language = 'nl' AND string_key NOT IN "
+                    "(SELECT string_key FROM translation_strings WHERE language = %s)",
+                    (target_language,)
+                )
+                to_translate = {row["string_key"]: row["text"] for row in cur.fetchall()}
+
+            if not to_translate:
+                logger.info(f"[translator] Alle keys al vertaald voor '{target_language}'")
+                return 0
+
+            # Vertaal via Anthropic API
+            translated = self._ai_translate_operational(to_translate, target_language)
+            if not translated:
+                return 0
+
+            # Sla op in database
+            inserted = 0
+            with self._db.cursor() as cur:
+                for key, text in translated.items():
+                    cur.execute(
+                        "INSERT IGNORE INTO translation_strings "
+                        "(string_key, language, text) VALUES (%s, %s, %s)",
+                        (key, target_language, text)
+                    )
+                    inserted += cur.rowcount
+
+            logger.info(f"[translator] {inserted} operationele vertalingen opgeslagen voor '{target_language}'")
+            return inserted
+
+        except Exception as e:
+            logger.error(f"[translator] Vertaling naar '{target_language}' mislukt: {e}")
+            return 0
+
+    def _ai_translate_operational(
+        self, texts: dict[str, str], target_language: str
+    ) -> dict[str, str] | None:
+        """Vertaal operationele teksten via de Anthropic API."""
+        try:
+            import anthropic
+            import json as _json
+
+            lines = [f'"{k}": "{v}"' for k, v in texts.items()]
+            prompt = f"""Translate the following operational strings from Dutch to {target_language}.
+
+IMPORTANT RULES:
+- Return ONLY a valid JSON object, no explanation, no markdown backticks
+- Keep all keys exactly as-is (e.g. RS01, LG03)
+- Keep all variables in braces exactly as-is (e.g. {{price:.4f}}, {{sensor}}, {{error}})
+- These strings are for a home energy management system
+- "laden" = charging a battery (NOT loading)
+- "ontladen" = discharging a battery
+- "zon" = solar energy / sun
+- "netafname" = grid import
+- "teruglevering" = grid export (feeding back to grid)
+- Use natural everyday language
+
+Strings to translate:
+{chr(10).join(lines)}"""
+
+            client = anthropic.Anthropic()
+            message = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return _json.loads(message.content[0].text)
+
+        except Exception as e:
+            logger.error(f"[translator] AI-vertaling operationeel mislukt: {e}")
+            return None
+
+    def invalidate_cache(self) -> None:
+        """Cache legen zodat vertalingen opnieuw worden geladen bij volgende aanroep."""
+        self._cache.clear()
+        self._loaded = False
+
+
+def build_translator(db, language: str | None = None) -> OperationalTranslator:
+    """
+    Maak een OperationalTranslator aan met de taal uit de database.
+    Create an OperationalTranslator with the language from the database.
+    """
+    if language is None:
+        try:
+            with db.cursor() as cur:
+                cur.execute(
+                    "SELECT language FROM system_config "
+                    "ORDER BY id DESC LIMIT 1"
+                )
+                row = cur.fetchone()
+                language = row["language"] if row and row.get("language") else "nl"
+        except Exception:
+            language = "nl"
+
+    return OperationalTranslator(db, language)

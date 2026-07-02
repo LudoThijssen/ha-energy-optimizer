@@ -1,8 +1,8 @@
 # name:          setup.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/setup.py
-# part version:  p_v0.4
-# altered:       2026-06-26
+# part version:  p_v0.5
+# altered:       2026-07-01
 #
 from pathlib import Path
 from .connection import DatabaseConnection
@@ -31,6 +31,13 @@ def run_migrations(db: DatabaseConnection) -> None:
     _apply(db, 10, MIGRATIONS_DIR / "010_energy_prices_config.sql")
     _apply(db, 11, MIGRATIONS_DIR / "011_solar_learning.sql")
     _apply(db, 12, MIGRATIONS_DIR / "012_consumption_learning.sql")
+    _apply(db, 13, MIGRATIONS_DIR / "013_translation_strings.sql")
+    _apply(db, 14, MIGRATIONS_DIR / "014_reason_key.sql")
+
+    # Vul vertalingstabel met standaardteksten (INSERT IGNORE — overschrijft geen aanpassingen)
+    # Fill translation table with default texts (INSERT IGNORE — does not overwrite customisations)
+    from translations.seed_translations import run_seed
+    run_seed(db)
 
 
 def _apply(db: DatabaseConnection, version: int, sql_file: Path) -> None:

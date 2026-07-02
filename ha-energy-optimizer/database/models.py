@@ -1,9 +1,9 @@
 # name:          models.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/models.py
-# part version:  p_v0.3
-# altered:       2026-06-21
-#
+# part version:  p_v0.4
+# altered:       2026-07-01
+
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -78,6 +78,8 @@ class OptimizerSlot:
     expected_saving: Decimal | None = None
     expected_cost: Decimal | None = None
     reason: str | None = None
+    reason_key: str | None = None
+    reason_params: dict | None = None
     executed: bool = False
     executed_at: datetime | None = None
     id: int | None = None

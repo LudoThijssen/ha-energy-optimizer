@@ -1,8 +1,8 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.4
-# altered:       2026-06-26
+# part version:  p_v0.5
+# altered:       2026-07-01
 #
 # Vervangt de combinatie van strategy.py decide() + engine._calculate().
 # Implementeert de 5-stappen beslislogica uit het technisch ontwerp v0.3:
@@ -30,6 +30,7 @@ from typing import Optional
 from database.connection import DatabaseConnection
 from collectors.consumption_learner import ConsumptionLearner
 from .models import HourForecast, ScheduleSlot
+from translations.translator import build_translator
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,8 @@ class WindowHour:
     is_solar_charge: bool  = False
     executed:       bool   = False
     reason:         str    = ""
+    reason_key:     str    = ""
+    reason_params:  dict   = None""
 
 
 # ── DecisionEngine ────────────────────────────────────────────────────────────
@@ -104,6 +107,7 @@ class DecisionEngine:
         self._bat   = bat
         self._price = price
         self._consumption_learner = ConsumptionLearner(db)
+        self._tr    = build_translator(db)
 
     # ── Publieke interface / Public interface ─────────────────────────────────
 
@@ -142,8 +146,7 @@ class DecisionEngine:
 
         # ── Stap 2: Off-grid check ────────────────────────────────────────────
         if off_grid:
-            logger.info("[decision_engine] Off-grid actief — nettoladen geblokkeerd / "
-                        "Off-grid active — grid charging blocked")
+            logger.info(f"[decision_engine] {self._tr.get("RS11")}")
 
         # Startende SoC voor de simulatie
         # Starting SoC for the simulation
@@ -177,16 +180,12 @@ class DecisionEngine:
                     wh.action         = "charge"
                     wh.power_kw       = charge_kw
                     wh.is_solar_charge = True
-                    wh.reason         = (
-                        f"Zon-overschot {wh.surplus_kwh:.2f} kWh — "
-                        f"batterij laden (prioriteit 2) / "
-                        f"Solar surplus — charging battery (priority 2)"
-                    )
+                    self._set_reason(wh, "RS01", {"surplus_kw": wh.surplus_kwh})
                     soc = self._update_soc(soc, "charge", charge_kw, eff_charge_kw)
                     continue
                 else:
                     wh.action = "self_consume"
-                    wh.reason = "Batterij vol — zon-overschot terugleveren / Battery full — exporting solar surplus"
+                    self._set_reason(wh, "RS02")
                     continue
 
             # Onvoldoende voor nacht? → probeer te laden
@@ -215,7 +214,7 @@ class DecisionEngine:
 
             # Geen actie — rust
             wh.action = "idle"
-            wh.reason = "Geen voordelige actie dit uur / No profitable action this hour"
+            self._set_reason(wh, "RS10")
             soc = self._update_soc(soc, "idle", Decimal("0"), eff_charge_kw)
 
         # ── Stap 4: Anti-cycling ──────────────────────────────────────────────
@@ -448,18 +447,13 @@ class DecisionEngine:
         beschikbaar_kwh = beschikbaar * self._bat.usable_kwh / 100 * self._bat.efficiency
 
         if beschikbaar_kwh < Decimal("0.5"):
-            wh.reason = (f"Onvoldoende beschikbare SoC voor ontladen "
-                         f"(beschikbaar: {beschikbaar:.1f}%, reserve: {gereserveerd:.1f}%) / "
-                         f"Insufficient available SoC for discharge")
+            self._set_reason(wh, "RS06", {"available": beschikbaar, "reserve": gereserveerd})
             return False
 
         discharge_kw = min(eff_discharge_kw, beschikbaar_kwh)
         wh.action    = "discharge"
         wh.power_kw  = discharge_kw.quantize(Decimal("0.01"))
-        wh.reason    = (
-            f"Hoge prijs {wh.price_excl:.4f} €/kWh excl. — ontladen / "
-            f"High price — discharging"
-        )
+        self._set_reason(wh, "RS05", {"price": wh.price_excl})
         return True
 
     def _mogelijk_laden(
@@ -540,15 +534,23 @@ class DecisionEngine:
             kandidaat.power_kw  = eff_charge_kw
             kandidaat.is_solar_charge = False
             kandidaat.reason    = (
-                f"Laden bij lage prijs {kandidaat.price_excl:.4f} €/kWh excl."
-                + (f" ({reden})" if reden else "")
-                + f" / Grid charge at low price"
+                self._tr.get("RS08" if reden else "RS07",
+                             {"price": kandidaat.price_excl, "reason": reden})
             )
             geladen_kwh += eff_charge_kw * self._bat.efficiency
             if geladen_kwh >= tekort_kwh:
                 break
 
     # ── Stap 4: Anti-cycling ──────────────────────────────────────────────────
+
+    def _set_reason(self, wh: "WindowHour", key: str, params: dict | None = None) -> None:
+        """
+        Zet reason tekst en sla key+params op voor hervertaling.
+        Set reason text and store key+params for re-translation.
+        """
+        wh.reason_key    = key
+        wh.reason_params = params or {}
+        wh.reason        = self._tr.get(key, params)
 
     def _anti_cycling(self, window: list[WindowHour]) -> None:
         """
@@ -574,12 +576,7 @@ class DecisionEngine:
                 if wh.price_excl < min_worthwhile:
                     wh.action   = "idle"
                     wh.power_kw = Decimal("0")
-                    wh.reason   = (
-                        f"Anti-cycling: prijs {wh.price_excl:.4f} te dicht bij "
-                        f"laadprijs {laatste_laadprijs:.4f} "
-                        f"(break-even {break_even:.4f}) — rust / "
-                        f"Anti-cycling: price too close to charge price — idle"
-                    )
+                    self._set_reason(wh, "RS09", {"price": wh.price_excl, "charge_price": laatste_laadprijs, "break_even": break_even})
                 else:
                     laatste_laadprijs = None
 
@@ -606,6 +603,8 @@ class DecisionEngine:
                 expected_saving        = saving,
                 expected_cost          = cost,
                 reason                 = wh.reason,
+                reason_key             = wh.reason_key,
+                reason_params          = wh.reason_params,
                 expected_solar_kw      = wh.forecast.solar_kw,
                 expected_consumption_kw= wh.forecast.consumption_kw,
                 expected_price         = wh.forecast.price_per_kwh,
