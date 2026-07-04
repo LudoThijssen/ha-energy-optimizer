@@ -1,8 +1,8 @@
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
-# part version:  p_v0.6
-# altered:       2026-06-28
+# part version:  p_v0.7
+# altered:       2026-07-03
 #
 # Optimization engine — orchestrates the full planning cycle.
 # Optimalisatie-engine — orkestreert de volledige planningscyclus.
@@ -31,6 +31,7 @@ from .strategy import (
     build_strategy_from_db,
 )
 from .decision_engine import build_decision_engine
+from translations.translator import build_translator
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class OptimizerEngine:
         self._weather_repo   = WeatherRepository(db)
         self._battery_repo   = BatteryRepository(db)
         self._optimizer_repo = OptimizerRepository(db)
+        self._tr             = build_translator(db)
 
         # Day balance plan is calculated in the evening and held in memory
         # until the next evening. It is also persisted to the schedule table.
@@ -76,14 +78,13 @@ class OptimizerEngine:
         Berekent de dagbalans voor morgen en selecteert de beste uren
         vanavond voor ontladen om ruimte te maken voor de zonopbrengst.
         """
-        logger.info("[optimizer] Evening planning started / Avondplanning gestart")
+        logger.info("[optimizer] Avondplanning gestart")
         try:
             strategy, day_stats, solar_outlook = build_strategy_from_db(self._db)
 
             if not solar_outlook:
                 self._reporter.warning(
-                    "No solar outlook available for evening planning — skipped. / "
-                    "Geen zonnerverwachting beschikbaar voor avondplanning — overgeslagen.",
+                    "Geen zonverwachting beschikbaar voor avondplanning — overgeslagen.",
                     category="optimizer",
                 )
                 return
@@ -109,10 +110,10 @@ class OptimizerEngine:
 
         except Exception as e:
             self._reporter.error(
-                f"Evening planning error: {e} / Avondplanning fout: {e}",
+                f"Avondplanning fout: {e}",
                 category="optimizer",
             )
-            logger.exception("[optimizer] Evening planning failed / Avondplanning mislukt")
+            logger.exception("[optimizer] Avondplanning mislukt")
 
     # ── Hourly optimization run / Uurlijkse optimalisatierun ─────────────────
 
@@ -129,13 +130,12 @@ class OptimizerEngine:
         startpunt, waarmee afwijkingen van het vorige plan worden gecorrigeerd.
         Al uitgevoerde slots blijven bewaard in de database.
         """
-        logger.info("[optimizer] Starting rolling-horizon run / Rolling-horizon run gestart")
+        logger.info("[optimizer] Rolling-horizon run gestart")
         try:
             strategy, day_stats, solar_outlook = build_strategy_from_db(self._db)
 
             if not day_stats:
                 self._reporter.warning(
-                    "No price data available — optimizer skipped. / "
                     "Geen prijsdata beschikbaar — optimizer overgeslagen.",
                     category="optimizer",
                 )
@@ -160,7 +160,6 @@ class OptimizerEngine:
             forecasts = self._build_forecasts(actual_soc=actual_soc)
             if not forecasts:
                 self._reporter.warning(
-                    "No hourly forecasts available — optimizer skipped. / "
                     "Geen uurprognoses beschikbaar — optimizer overgeslagen.",
                     category="optimizer",
                 )
@@ -182,12 +181,10 @@ class OptimizerEngine:
                     battery_temp_c=battery_temp,
                 )
                 all_notifications = []
-                logger.info("[optimizer] DecisionEngine fase 3 gebruikt / "
-                            "DecisionEngine phase 3 used")
+                logger.info("[optimizer] DecisionEngine fase 3 actief")
             except Exception as de_err:
                 logger.warning(
-                    f"[optimizer] DecisionEngine mislukt, terugval op strategy: {de_err} / "
-                    f"DecisionEngine failed, falling back to strategy"
+                    f"[optimizer] DecisionEngine mislukt, terugval op strategie: {de_err}"
                 )
                 slots, all_notifications = self._calculate(
                     forecasts, strategy, day_stats, solar_outlook
@@ -204,10 +201,10 @@ class OptimizerEngine:
 
         except Exception as e:
             self._reporter.error(
-                f"Optimizer error: {e} / Optimizer fout: {e}",
+                f"Optimizer fout: {e}",
                 category="optimizer",
             )
-            logger.exception("[optimizer] Unexpected error / Onverwachte fout")
+            logger.exception("[optimizer] Onverwachte fout")
 
     # ── Forecast building / Prognose-opbouw ──────────────────────────────────
 
@@ -254,15 +251,13 @@ class OptimizerEngine:
         if actual_soc is not None:
             current_soc = actual_soc
             logger.debug(
-                f"[optimizer] Rolling horizon: using actual SoC {current_soc:.1f}% / "
-                f"Werkelijke SoC {current_soc:.1f}% gebruikt als startpunt"
+                f"[optimizer] Rolling horizon: werkelijke SoC {current_soc:.1f}% als startpunt gebruikt"
             )
         else:
             battery = self._battery_repo.get_latest()
             current_soc = battery.soc_pct if battery else Decimal("50")
             logger.debug(
-                f"[optimizer] No actual SoC available, using DB value "
-                f"{current_soc:.1f}% / Geen werkelijke SoC, DB-waarde gebruikt"
+                f"[optimizer] Geen werkelijke SoC beschikbaar, DB-waarde {current_soc:.1f}% gebruikt"
             )
 
         # Load legacy solar/consumption profiles as fallback
@@ -408,16 +403,10 @@ class OptimizerEngine:
                 planned_soc = Decimal(str(row["target_soc_pct"]))
                 deviation = abs(actual_soc - planned_soc)
                 logger.info(
-                    f"[optimizer] Rolling horizon: actual SoC {actual_soc:.1f}% vs "
-                    f"planned {planned_soc:.1f}% (deviation {deviation:.1f}%) / "
-                    f"Werkelijke SoC {actual_soc:.1f}% vs gepland {planned_soc:.1f}% "
-                    f"(afwijking {deviation:.1f}%)"
+                    f"[optimizer] Rolling horizon: werkelijke SoC {actual_soc:.1f}% vs gepland {planned_soc:.1f}% (afwijking {deviation:.1f}%)"
                 )
                 if deviation >= _DEVIATION_THRESHOLD_PCT:
                     self._reporter.warning(
-                        f"Rolling horizon: SoC deviation {deviation:.1f}% — "
-                        f"actual {actual_soc:.1f}% vs planned {planned_soc:.1f}%. "
-                        f"Schedule recalculated from actual SoC. / "
                         f"Rolling horizon: SoC-afwijking {deviation:.1f}% — "
                         f"werkelijk {actual_soc:.1f}% vs gepland {planned_soc:.1f}%. "
                         f"Schema herberekend vanuit werkelijke SoC.",
@@ -426,7 +415,7 @@ class OptimizerEngine:
             else:
                 logger.debug(
                     f"[optimizer] No planned SoC for {now} — "
-                    f"first run or fresh install / Eerste run of nieuwe installatie"
+                    f"eerste run of nieuwe installatie"
                 )
         except Exception as e:
             logger.debug(f"[optimizer] SoC deviation check failed (non-critical): {e}")
@@ -498,7 +487,7 @@ class OptimizerEngine:
 
             if deviations:
                 msg = (
-                    "Afwijking verwachting vs werkelijkheid / Forecast deviation:\n"
+                    "Afwijking verwachting vs werkelijkheid:\n"
                     + "\n".join(deviations)
                 )
                 self._reporter.warning(msg, category="deviation")
@@ -733,12 +722,20 @@ class OptimizerEngine:
         idles         = sum(1 for s in slots if s.action == "idle")
         self_consumes = sum(1 for s in slots if s.action == "self_consume")
         saving        = sum(s.expected_saving for s in slots)
-        sc_part = f", {self_consumes} self_consume/zelf-verbruik" if self_consumes else ""
+        sc_part = f", {self_consumes} {tr.get('LG09', {'slots': 'zelf-verbruik'})}" if self_consumes else ""
+        msg = self._tr.get("LG09", {
+            "slots": (
+                f"{len(slots)}h — "
+                f"{charges} {tr.get('RS01_short', {'surplus_kw': ''}).split(' ')[0]}"
+            )
+        })
+        # Bouw de melding op uit vertaalde onderdelen
+        # Build the message from translated parts
         msg = (
-            f"Schedule: {len(slots)}h — "
-            f"{charges} charge/laden, {discharges} discharge/ontladen, "
-            f"{idles} idle{sc_part}. "
-            f"Expected saving / Verwachte besparing: €{saving:.2f}"
+            f"Schema: {len(slots)}u — "
+            f"{charges} laden, {discharges} ontladen, {idles} rust"
+            + sc_part
+            + f". Verwachte besparing: €{saving:.2f}"
         )
         self._reporter.info(msg, category="optimizer")
         logger.info(f"[optimizer] {msg}")

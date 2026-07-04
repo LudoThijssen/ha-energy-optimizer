@@ -2,8 +2,8 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v0.8 -->
-<!-- altered:      2026-06-21 -->
+<!-- part version: p_v0.9 -->
+<!-- altered:      2026-06-30 -->
 {% block title %}Dashboard — HA Energy Optimizer{% endblock %}
 {% block content %}
 <style>
@@ -36,13 +36,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-  <h1 style="margin-bottom:0;">Dashboard</h1>
+  <h1 style="margin-bottom:0;"><span class="mdi mdi-view-dashboard"></span> Dashboard</h1>
   <div style="display:flex; align-items:center; gap:12px;">
     <span id="refresh-countdown" style="font-size:12px; color:#94a3b8;"></span>
     <button id="refresh-btn" class="btn btn-secondary btn-sm">&#8635; Refresh</button>
   </div>
 </div>
-<p class="subtitle">Live energy overview — 48 hours / Live energie-overzicht — 48 uur</p>
+<p class="subtitle">Live energie-overzicht — 48 uur</p>
 <div id="status-bar" style="font-size:12px; color:#6b7280; margin-bottom:12px;">Laden...</div>
 
 <!-- Live tiles -->
@@ -104,10 +104,10 @@
 
 <!-- Grafiek 1: Verwachting 48h -->
 <div class="card">
-  <h2>Grafiek 1 — Verwachting 48 uur / 48-hour forecast</h2>
+  <h2><span class="mdi mdi-chart-timeline-variant"></span> Grafiek 1 — Verwachting 48 uur</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
-    Verwacht zon, verbruik en acties / Expected solar, consumption and actions
-    <span style="margin-left:12px; color:#94a3b8;">| Verticale lijn = nu / Vertical line = now</span>
+    Verwacht zon, verbruik en acties
+    <span style="margin-left:12px; color:#94a3b8;">| Verticale lijn = nu</span>
   </p>
   <div style="position:relative; height:200px; overflow-x:auto;">
     <canvas id="chart-forecast"></canvas>
@@ -123,9 +123,9 @@
 
 <!-- Grafiek 2: Gemeten 48h -->
 <div class="card">
-  <h2>Grafiek 2 — Gemeten waarden / Measured values</h2>
+  <h2><span class="mdi mdi-gauge"></span> Grafiek 2 — Gemeten waarden</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
-    Werkelijke metingen — toekomstige uren = 0 / Actual measurements — future hours = 0
+    Werkelijke metingen — toekomstige uren = 0
   </p>
   <div style="position:relative; height:200px; overflow-x:auto;">
     <canvas id="chart-measured"></canvas>
@@ -135,14 +135,15 @@
     <span style="color:#6366f1;">&#9646; Verbruik gemeten (kW)</span>
     <span style="color:var(--c-import);">&#9646; Netafname (kW)</span>
     <span style="color:var(--c-export);">&#9646; Teruglevering (kW)</span>
+    <span style="color:var(--c-soc);">&#9644; Batterij SoC (%)</span>
   </div>
 </div>
 
 <!-- Grafiek 3: Energiekosten 48h -->
 <div class="card">
-  <h2>Grafiek 3 — Energieprijs 48 uur / Energy price 48 hours</h2>
+  <h2><span class="mdi mdi-currency-eur"></span> Grafiek 3 — Energieprijs 48 uur</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
-    Prijs per uur in € — negatief = opbrengst / Price per hour in € — negative = revenue
+    Prijs per uur in € — negatief = opbrengst
   </p>
   <div style="position:relative; height:200px; overflow-x:auto;">
     <canvas id="chart-prices"></canvas>
@@ -151,13 +152,13 @@
     <span style="color:var(--c-charge);">&#9646; Nettoladen</span>
     <span style="color:#ef4444;">&#9646; Ontladen</span>
     <span style="color:var(--c-solar-charge);">&#9646; Zonne-lading</span>
-    <span style="color:#6b7280;">&#9646; Rust / idle</span>
+    <span style="color:#6b7280;">&#9646; Rust</span>
   </div>
 </div>
 
 <!-- Schedule tabel 48h / Schedule table 48h -->
 <div class="card">
-  <h2>Optimizer schema — 48 uur / Optimizer schedule — 48 hours</h2>
+  <h2><span class="mdi mdi-table-clock"></span> Optimizer schema — 48 uur</h2>
   <div id="schedule-table-wrap">
     <p style="font-size:13px; color:#6b7280;">Laden...</p>
   </div>
