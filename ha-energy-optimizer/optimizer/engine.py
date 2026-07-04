@@ -726,7 +726,7 @@ class OptimizerEngine:
         msg = self._tr.get("LG09", {
             "slots": (
                 f"{len(slots)}h — "
-                f"{charges} {tr.get('RS01_short', {'surplus_kw': ''}).split(' ')[0]}"
+                f"{charges} laden"
             )
         })
         # Bouw de melding op uit vertaalde onderdelen

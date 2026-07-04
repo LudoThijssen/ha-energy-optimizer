@@ -28,6 +28,7 @@ class Reporter:
         self._solar       = SolarRepository(db)
         self._consumption = HomeConsumptionRepository(db)
         self._config      = config
+        self._tr      = build_translator(db)
         self._ha_url  = f"http://{config.ha.host}:{config.ha.port}"
         self._headers = {
             "Authorization": f"Bearer {config.ha.token}",
