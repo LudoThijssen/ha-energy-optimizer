@@ -1,8 +1,8 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.14
-# altered:       2026-07-03
+# part version:  p_v0.15
+# altered:       2026-07-05
 #
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
@@ -689,17 +689,36 @@ def entities():
         if not db:
             return render_template("entities.html",
                                    entities=entity_rows,
-                                   error="Database niet beschikbaar / Database unavailable",
+                                   error="Database niet beschikbaar",
                                    saved=None)
         try:
             action = request.form.get("action", "add")
 
+            # Laad sensoromschrijvingen voor opslaan in actieve taal
+            # Load sensor descriptions for saving in active language
+            _sensors_path = Path(__file__).parent.parent / "config" / "internal_sensors.json"
+            _sensor_desc = {}
+            if _sensors_path.exists():
+                import json as _j, re as _re
+                _raw = _re.sub(r'//.*', '', _sensors_path.read_text(encoding="utf-8"))
+                for _s in _j.loads(_raw):
+                    _sensor_desc[_s["internal_name"]] = {
+                        "nl": _s.get("description_nl", ""),
+                        "en": _s.get("description_en", ""),
+                    }
+
+            def _resolve_desc(internal_name, fallback):
+                """Gebruik altijd description_nl voor bekende sensoren."""
+                if internal_name in _sensor_desc:
+                    return _sensor_desc[internal_name].get("nl") or fallback
+                return fallback
+
             if action == "update":
-                # Update existing entity mapping / Bestaande koppeling bijwerken
+                # Bestaande koppeling bijwerken
                 internal_name = request.form.get("internal_name_custom", "").strip()
                 entity_id     = request.form.get("entity_id", "").strip()
                 unit          = request.form.get("unit", "")
-                description   = request.form.get("description", "")
+                description   = _resolve_desc(internal_name, request.form.get("description", ""))
                 if internal_name and entity_id:
                     with db.cursor() as cur:
                         cur.execute("""INSERT INTO ha_entity_map
@@ -710,10 +729,11 @@ def entities():
                             {"n": internal_name, "e": entity_id,
                              "u": unit, "d": description})
             else:
-                # Add new entity mapping / Nieuwe koppeling toevoegen
+                # Nieuwe koppeling toevoegen
                 internal_name = (request.form.get("internal_name_custom") or
                                 request.form.get("internal_name", "")).strip()
                 if internal_name:
+                    description = _resolve_desc(internal_name, request.form.get("description", ""))
                     with db.cursor() as cur:
                         cur.execute("""INSERT INTO ha_entity_map
                             (internal_name, entity_id, unit, description)
@@ -723,7 +743,7 @@ def entities():
                             {"n": internal_name,
                              "e": request.form.get("entity_id"),
                              "u": request.form.get("unit", ""),
-                             "d": request.form.get("description", "")})
+                             "d": description})
 
             return redirect(_url("entities") + "?saved=1")
 
@@ -732,7 +752,7 @@ def entities():
             _log.getLogger(__name__).exception("[entities] Save failed")
             return render_template("entities.html",
                                    entities=entity_rows,
-                                   error=f"Opslaan mislukt / Save failed: {str(e)[:120]}",
+                                   error=f"Opslaan mislukt: {str(e)[:120]}",
                                    saved=None)
 
     # Load known sensors from JSON
