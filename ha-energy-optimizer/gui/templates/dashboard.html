@@ -2,8 +2,8 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v0.9 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v1.0 -->
+<!-- altered:      2026-07-05 -->
 {% block title %}Dashboard — HA Energy Optimizer{% endblock %}
 {% block content %}
 <style>
@@ -416,8 +416,12 @@
       data: {
         labels: labels48,
         datasets: [
-          { type: 'bar',  label: 'Zon',      data: solar48,   backgroundColor: hexToRgba(COLORS.solar, 0.7), yAxisID: 'y' },
-          { type: 'bar',  label: 'Verbruik', data: consume48, backgroundColor: hexToRgba(COLORS.consume, 0.5), yAxisID: 'y' },
+          { type: 'line', label: 'Zon',      data: solar48,
+            borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.15),
+            borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3, yAxisID: 'y' },
+          { type: 'line', label: 'Verbruik', data: consume48,
+            borderColor: COLORS.consume, backgroundColor: hexToRgba(COLORS.consume, 0.1),
+            borderWidth: 2, pointRadius: 2, fill: false, tension: 0.3, yAxisID: 'y' },
           { type: 'bar',  label: 'Laden',    data: charge48,  backgroundColor: hexToRgba(COLORS.charge, 0.8), yAxisID: 'y' },
           { type: 'bar',  label: 'Ontladen', data: disch48,   backgroundColor: hexToRgba(COLORS.discharge, 0.8),  yAxisID: 'y' },
           { type: 'line', label: 'SoC %',    data: soc48,

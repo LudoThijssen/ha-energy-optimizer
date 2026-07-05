@@ -2,7 +2,7 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v1.5
+# part version:  p_v1.6
 # altered:       2026-07-05
 
 | file | Path in repository | Version | Date |
@@ -47,7 +47,7 @@
 # ha-energy-optimizer/gui/templates/
 | base.html | /ha-energy-optimizer/gui/templates/base.html | p_v0.4 | 2026-06-29 |
 | colors.html | /ha-energy-optimizer/gui/templates/colors.html | p_v0.4 | 2026-06-30 |
-| dashboard.html | /ha-energy-optimizer/gui/templates/dashboard.html | p_v0.9 | 2026-06-30 |
+| dashboard.html | /ha-energy-optimizer/gui/templates/dashboard.html | p_v1.0 | 2026-07-05 |
 | database.html | /ha-energy-optimizer/gui/templates/database.html | p_v0.4 | 2026-06-30 |
 | energy_costs.html | /ha-energy-optimizer/gui/templates/energy_costs.html | p_v0.4 | 2026-06-30 |
 | entities.html | /ha-energy-optimizer/gui/templates/entities.html | p_v0.4 | 2026-06-30 |
@@ -107,7 +107,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v1.5 | 2026-07-05 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v1.6 | 2026-07-05 |
 # 
 | README.md | /README.md | v0.2.13 | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
