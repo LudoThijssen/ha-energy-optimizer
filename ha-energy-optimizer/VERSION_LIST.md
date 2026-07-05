@@ -2,7 +2,7 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v1.3
+# part version:  p_v1.4
 # altered:       2026-07-03
 
 | file | Path in repository | Version | Date |
@@ -42,7 +42,7 @@
 | 013_translation_strings.sql | /ha-energy-optimizer/database/migrations/013_translation_strings.sql | p_v0.4 | 2026-07-01 |
 | 014_reason_key.sql | /ha-energy-optimizer/database/migrations/014_reason_key.sql | p_v0.4 | 2026-07-01 |
 # ha-energy-optimizer/gui
-| app.py | /ha-energy-optimizer/gui/app.py | p_v0.13 | 2026-06-21 |
+| app.py | /ha-energy-optimizer/gui/app.py | p_v0.14 | 2026-07-03 |
 | __init__.py | /ha-energy-optimizer/gui/__init__.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/gui/templates/
 | base.html | /ha-energy-optimizer/gui/templates/base.html | p_v0.4 | 2026-06-29 |
@@ -107,7 +107,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v1.3 | 2026-07-03 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v1.4 | 2026-07-03 |
 # 
 | README.md | /README.md | v0.2.13 | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |

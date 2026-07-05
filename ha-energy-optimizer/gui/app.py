@@ -1,8 +1,8 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.13
-# altered:       2026-06-21
+# part version:  p_v0.14
+# altered:       2026-07-03
 #
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
@@ -18,6 +18,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from database.connection import DatabaseConnection
+from translations.translator import build_translator
 from config.config import AppConfig
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -55,6 +56,16 @@ def _save_options(data: dict) -> None:
     except Exception as e:
         import logging as _log
         _log.getLogger(__name__).debug(f"Supervisor sync failed (non-critical): {e}")
+
+
+def _get_tr():
+    """Haal de translator op voor de actieve taal."""
+    db = _get_db()
+    if db:
+        return build_translator(db)
+    class _FallbackTr:
+        def get(self, key, params=None): return key
+    return _FallbackTr()
 
 
 def _get_db():
@@ -215,8 +226,7 @@ def action_run_optimizer():
 
     return jsonify({
         "ok": True,
-        "message": "Optimizer started — check logs and refresh in 30s / "
-                   "Optimizer gestart — bekijk logs en ververs over 30s"
+        "message": "Optimizer gestart — bekijk logs en ververs over 30s"
     })
 
 
@@ -255,10 +265,7 @@ def action_fetch_prices():
 
         return jsonify({
             "ok": True,
-            "message": f"Price fetch complete: {', '.join(results)}. "
-                       f"Total in database: {total} rows / "
-                       f"Prijzen opgehaald: {', '.join(results)}. "
-                       f"Totaal in database: {total} rijen"
+            "message": f"Prijzen opgehaald: {', '.join(results)}. Totaal in database: {total} rijen"
         })
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)})
@@ -273,7 +280,7 @@ def action_test_entities():
         db = _get_db()
 
         if not db:
-            return jsonify({"ok": False, "message": "Database not connected / Database niet verbonden"})
+            return jsonify({"ok": False, "message": "Database niet verbonden"})
 
         with db.cursor() as cur:
             cur.execute("SELECT internal_name, entity_id, unit FROM ha_entity_map ORDER BY internal_name")
@@ -282,7 +289,7 @@ def action_test_entities():
         if not mappings:
             return jsonify({
                 "ok": False,
-                "message": "No entity mappings configured / Geen entiteitskoppelingen ingesteld",
+                "message": "Geen entiteitskoppelingen ingesteld",
                 "entities": []
             })
 
@@ -327,7 +334,7 @@ def action_test_entities():
         ok_count = sum(1 for r in results if r["ok"])
         return jsonify({
             "ok": ok_count > 0,
-            "message": f"{ok_count}/{len(results)} entities reachable / entiteiten bereikbaar",
+            "message": f"{ok_count}/{len(results)} entiteiten bereikbaar",
             "entities": results,
         })
 
@@ -474,7 +481,7 @@ def test_database():
             password=data["password"], connection_timeout=5,
         )
         conn.close()
-        return jsonify({"ok": True, "message": "Verbinding geslaagd / Connection successful"})
+        return jsonify({"ok": True, "message": "Verbinding geslaagd"})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)})
 
@@ -505,7 +512,7 @@ def test_ha():
             timeout=5,
         )
         if resp.status_code == 200:
-            return jsonify({"ok": True, "message": "Verbinding geslaagd / Connection successful"})
+            return jsonify({"ok": True, "message": "Verbinding geslaagd"})
         return jsonify({"ok": False, "message": f"HTTP {resp.status_code}"})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)})
@@ -800,7 +807,7 @@ def validate_entity():
     data = request.json or {}
     entity_id = data.get("entity_id", "").strip()
     if not entity_id:
-        return jsonify({"ok": False, "message": "No entity ID provided"})
+        return jsonify({"ok": False, "message": "Geen entiteit-ID opgegeven"})
     try:
         options = _load_options()
         ha_cfg  = options.get("homeassistant", {})
@@ -815,16 +822,16 @@ def validate_entity():
             unit  = state.get("attributes", {}).get("unit_of_measurement", "")
             return jsonify({
                 "ok": True,
-                "message": f"✓ Found: {value} {unit}",
+                "message": f"✓ Gevonden: {value} {unit}",
                 "value": value,
                 "unit": unit,
             })
         elif resp.status_code == 404:
-            return jsonify({"ok": False, "message": f"✗ Entity not found in HA"})
+            return jsonify({"ok": False, "message": "✗ Entiteit niet gevonden in HA"})
         else:
             return jsonify({"ok": False, "message": f"✗ HTTP {resp.status_code}"})
     except Exception as e:
-        return jsonify({"ok": False, "message": f"✗ Error: {str(e)[:60]}"})
+        return jsonify({"ok": False, "message": f"✗ Fout: {str(e)[:60]}"})
 
 
 
