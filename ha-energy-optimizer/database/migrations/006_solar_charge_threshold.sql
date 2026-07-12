@@ -1,3 +1,4 @@
+--
 -- name:          006_solar_charge_threshold.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/006_solar_charge_threshold.sql

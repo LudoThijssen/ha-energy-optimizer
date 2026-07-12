@@ -1,3 +1,4 @@
+#
 # name:          __init__.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/scheduler/__init__.py

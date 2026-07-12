@@ -1,3 +1,4 @@
+--
 -- name:          011_solar_learning.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/011_solar_learning.sql

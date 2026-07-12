@@ -2,8 +2,8 @@
 <!-- name:         system.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/system.html -->
-<!-- part version: p_v0.2 -->
-<!-- altered:      2026-06-29 -->
+<!-- part version: p_v0.3 -->
+<!-- altered:      2026-07-05 -->
 {% block title %}Systeem — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -12,6 +12,9 @@
 
 {% if saved %}
 <div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
+{% endif %}
+{% if lang_changed %}
+<div class="alert alert-info"><span class="mdi mdi-translate"></span> Taal bijgewerkt — nieuwe vertalingen worden automatisch aangemaakt bij eerste gebruik.</div>
 {% endif %}
 
 <form method="POST">

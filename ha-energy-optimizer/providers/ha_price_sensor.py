@@ -1,3 +1,4 @@
+#
 # name:          ha_price_sensor.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/providers/ha_price_sensor.py

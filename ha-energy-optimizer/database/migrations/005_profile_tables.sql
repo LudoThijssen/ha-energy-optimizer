@@ -1,3 +1,4 @@
+--
 -- name:          005_profile_tables.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/005_profile_tables.sql

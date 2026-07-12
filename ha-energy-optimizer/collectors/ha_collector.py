@@ -1,13 +1,16 @@
+# 
 # name:          ha_collector.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/ha_collector.py
-# part version:  p_v0.4
-# altered:       2026-06-26
+# part version:  p_v0.5
+# altered:       2026-07-05
 #
 import requests
 from datetime import datetime
 from decimal import Decimal
 from .base import BaseCollector, CollectorTemporaryError, CollectorConfigError, validate_reading
+from translations.translator import build_translator
+from translations.translator import build_translator
 from .solar_learner import SolarLearner
 from .consumption_learner import ConsumptionLearner
 from database.connection import DatabaseConnection
@@ -28,6 +31,8 @@ class HaCollector(BaseCollector):
         self._consumption_repo = HomeConsumptionRepository(db)
         self._solar_learner = SolarLearner(db)
         self._consumption_learner = ConsumptionLearner(db)
+        self._tr = build_translator(db)
+        self._tr = build_translator(db)
         self._base_url = f"http://{config.ha.host}:{config.ha.port}"
         self._headers = {
             "Authorization": f"Bearer {config.ha.token}",
@@ -84,11 +89,7 @@ class HaCollector(BaseCollector):
                 # Sensor niet beschikbaar — probeer fallback
                 fallback = self._get_last_known(internal_name)
                 if fallback is not None:
-                    log.info(
-                        f"[ha_collector] {internal_name} unavailable — "
-                        f"using last known value {fallback} / "
-                        f"niet beschikbaar — laatste bekende waarde {fallback} gebruikt"
-                    )
+                    log.info(self._tr.get("LG01", {"sensor": internal_name, "value": fallback}))
                 readings[internal_name] = fallback
 
             else:
@@ -302,11 +303,10 @@ class HaCollector(BaseCollector):
                     solar_kwh_interval = solar_kwh * interval_h
                     self._solar_learner.update(now, solar_kwh_interval, irradiance)
                 else:
-                    log.debug("[ha_collector] Geen instraling beschikbaar voor solar_learner "
-                              "/ No irradiance available for solar_learner")
+                    log.debug("[ha_collector] " + self._tr.get("LG02"))
 
             except Exception as e:
-                log.warning(f"[ha_collector] solar_learner update mislukt: {e}")
+                log.warning(f"[ha_collector] {self._tr.get('LG03', {'error': str(e)})}")
 
         # Verbruik-leermodel bijwerken / Update consumption learning model
         # Gebruik de berekende total_consumption (uit energiebalans)
@@ -336,4 +336,4 @@ class HaCollector(BaseCollector):
                 self._consumption_learner.update(now, consumption_kwh)
 
             except Exception as e:
-                log.warning(f"[ha_collector] consumption_learner update mislukt: {e}")
+                log.warning(f"[ha_collector] {self._tr.get('LG04', {'error': str(e)})}")

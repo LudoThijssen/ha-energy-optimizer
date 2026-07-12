@@ -1,3 +1,4 @@
+#
 # name:          __init__.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/__init__.py

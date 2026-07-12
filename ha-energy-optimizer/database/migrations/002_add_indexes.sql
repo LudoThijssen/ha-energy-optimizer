@@ -1,3 +1,4 @@
+--
 -- name:          002_add_indexes.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/002_add_indexes.sql

@@ -1,9 +1,9 @@
 # HA Energy Optimizer
-# name:     README.md
-# part of:  ha-energy-optimizer
-# location: /README.md
-# version:  v0.2.13-alpha
-# altered:  2026-06-26
+# name:          README.md
+# part of:       ha-energy-optimizer
+# location:      /README.md
+# version:       v0.2.13-alpha
+# altered:       2026-06-26
 # 
 > ⚠️ **Alpha version / Alfa versie — v0.2.13-alpha** 
 >

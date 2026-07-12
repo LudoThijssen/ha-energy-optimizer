@@ -1,3 +1,4 @@
+--
 --  name:          009_expected_cost.sql
 --  part of:       ha-energy-optimizer
 --  location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/009_expected_cost.sql

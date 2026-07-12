@@ -1,3 +1,4 @@
+#
 # name:          entsoe.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/providers/entsoe.py

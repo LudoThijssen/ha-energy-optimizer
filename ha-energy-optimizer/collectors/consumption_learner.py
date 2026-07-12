@@ -1,3 +1,4 @@
+#
 # name:          consumption_learner.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/consumption_learner.py

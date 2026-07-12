@@ -1,3 +1,4 @@
+#
 # name:          run
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/rootfs/etc/services.d/energy-optimizer/run

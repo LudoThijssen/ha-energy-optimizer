@@ -1,3 +1,4 @@
+#
 # name:          base.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/providers/base.py

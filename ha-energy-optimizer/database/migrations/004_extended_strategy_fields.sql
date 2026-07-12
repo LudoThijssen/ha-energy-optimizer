@@ -1,3 +1,4 @@
+--
 -- name:          004_extended_strategy_fields.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/004_extended_strategy_fields.sql

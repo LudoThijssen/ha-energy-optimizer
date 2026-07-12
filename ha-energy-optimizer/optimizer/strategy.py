@@ -1,8 +1,9 @@
+# 
 # name:          strategy.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/strategy.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-05
 #
 # Decision rules for home battery optimization with a dynamic electricity contract.
 # Beslisregels voor thuisbatterij-optimalisatie met een dynamisch stroomcontract.
@@ -60,7 +61,7 @@ class SolarOutlook:
     Solar energy outlook for tomorrow.
     Zonne-energie-verwachting voor morgen.
     """
-    sunshine_pct: Decimal          # Expected sunshine % / Verwacht zonpercentage
+    sunshine_pct: Decimal          # Verwacht zonpercentage
     estimated_yield_kwh: Decimal   # Estimated solar production / Geschatte zonopbrengst
 
 
@@ -87,7 +88,7 @@ class PowerLimits:
     Effective power limits for the current hour, considering temperature.
     Effectieve vermogensgrenzen voor het huidige uur, rekening houdend met temperatuur.
     """
-    charge_kw: Decimal             # Effective charge limit / Effectieve laadgrens
+    charge_kw: Decimal             # Effectieve laadgrens
     discharge_kw: Decimal          # Effective discharge limit / Effectieve ontlaadgrens
     derated: bool                  # Whether temperature derating is active
     reason: str
@@ -171,7 +172,7 @@ class Strategy:
         # Gebruiker melden als terugleverprijs onder dit niveau daalt.
         notify_export_threshold_excl: Decimal = Decimal("0.02"),
 
-        # ── Charging thresholds / Laaddrempelwaarden ─────────────────────────
+        # ── Laaddrempelwaarden ─────────────────────────────────────────────────
         # Current price must be within this fraction of today's cheapest.
         # Huidige prijs moet binnen deze fractie van het dagminimum liggen.
         charge_near_cheapest_fraction: Decimal = Decimal("1.15"),
@@ -324,7 +325,6 @@ class Strategy:
             f"consumption: {consumption_kwh:.1f} kWh, "
             f"free needed: {free_needed:.1f} kWh, "
             f"discharge tonight: {discharge_needed:.1f} kWh → "
-            f"target SoC at sunrise: {target_soc:.0f}% / "
             f"Zon morgen: {solar_kwh:.1f} kWh, verbruik: {consumption_kwh:.1f} kWh, "
             f"vrij nodig: {free_needed:.1f} kWh, ontladen vanavond: {discharge_needed:.1f} kWh → "
             f"doel-laadtoestand bij zonsopgang: {target_soc:.0f}%"
@@ -384,13 +384,11 @@ class Strategy:
         # Stap 2: Verwerking zonne-overschot
         if surplus_kw > Decimal("0.05"):
 
-            # Can we store it? / Kunnen we het opslaan?
+            # Kunnen we het opslaan?
             if soc_pct < self.max_soc:
                 power = min(surplus_kw, power_limits.charge_kw)
                 reason = (
-                    f"Solar surplus {surplus_kw:.2f} kW — charging battery "
-                    f"(priority 2){power_limits.reason} / "
-                    f"Zonne-overschot {surplus_kw:.2f} kW — batterij laden (prioriteit 2)"
+                    f"Zonne-overschot {surplus_kw:.2f} kW — batterij laden{power_limits.reason}"
                 )
                 return "charge", power, reason, notifications, True
 
@@ -400,15 +398,12 @@ class Strategy:
                 # Exporting costs money — limit export via inverter.
                 # Terugleveren kost geld — export beperken via inverter.
                 notifications.append(
-                    "EXPORT_LIMIT: Set inverter export power to 0W. "
-                    "Solar panels at maximum production but export price is negative. / "
-                    "Stel inverter terugleververmogen in op 0W. "
+                    "EXPORT_LIMIT: Stel inverter terugleververmogen in op 0W. "
                     "Zonnepanelen op maximale productie maar terugleverprijs is negatief."
                 )
                 return (
                     "idle",
                     Decimal("0"),
-                    f"Battery full, export price {export_excl:.4f} €/kWh — limiting export / "
                     f"Batterij vol, terugleverprijs {export_excl:.4f} €/kWh — export beperken",
                     notifications,
                     False,
@@ -419,10 +414,7 @@ class Strategy:
             return (
                 "self_consume",
                 Decimal("0"),
-                f"Battery full, surplus {surplus_kw:.2f} kW exported at "
-                f"{export_excl:.4f} €/kWh (priority 3) / "
-                f"Batterij vol, overschot {surplus_kw:.2f} kW teruggeleverd "
-                f"(prioriteit 3)",
+                f"Batterij vol, overschot {surplus_kw:.2f} kW teruggeleverd",
                 notifications,
                 False,
             )
@@ -444,10 +436,7 @@ class Strategy:
                 return (
                     "discharge",
                     power,
-                    f"Day balance: making room for tomorrow's solar — "
-                    f"target SoC {day_balance_plan.target_soc_pct:.0f}% / "
-                    f"Dagbalans: ruimte maken voor zonopbrengst morgen — "
-                    f"doel {day_balance_plan.target_soc_pct:.0f}%",
+                    f"Dagbalans: ruimte maken voor zonopbrengst morgen — doel {day_balance_plan.target_soc_pct:.0f}%",
                     notifications,
                     False,
                 )
@@ -474,7 +463,7 @@ class Strategy:
         return (
             "idle",
             Decimal("0"),
-            "No profitable action this hour / Geen voordelige actie dit uur",
+            "Geen voordelige actie dit uur",
             notifications,
             False,
         )
@@ -510,9 +499,8 @@ class Strategy:
                 f"vermogen verlaagd: temperatuur te hoog]"
             )
             logger.info(
-                f"[strategy] Temperature derating active: {battery_temp_c:.1f}°C — "
-                f"charge {charge_kw:.2f} kW, discharge {discharge_kw:.2f} kW / "
-                f"Temperatuurverlaging actief: vermogen begrensd"
+                f"[strategy] Temperatuurverlaging actief: {battery_temp_c:.1f}°C — "
+                f"laden {charge_kw:.2f} kW, ontladen {discharge_kw:.2f} kW"
             )
 
         return PowerLimits(
@@ -535,7 +523,7 @@ class Strategy:
         if not day_stats:
             return False, ""
 
-        # Hard floor / Harde ondergrens
+        # Harde ondergrens
         if price_excl < self.hard_min_discharge:
             return False, ""
 
@@ -562,26 +550,23 @@ class Strategy:
             if price_excl < min_worthwhile:
                 return (
                     False,
-                    f"Anti-cycling: price {price_excl:.4f} too close to recent "
-                    f"charge price {last_charge_price_excl:.4f} "
-                    f"(break-even {break_even:.4f}) — idle / "
-                    f"Anti-cycling: prijs te dicht bij recente laadprijs — rust",
+                    f"Anti-cycling: prijs {price_excl:.4f} te dicht bij recente laadprijs "
+                    f"{last_charge_price_excl:.4f} (break-even {break_even:.4f}) — rust",
                 )
 
         cheapest       = day_stats.cheapest_today
         most_expensive = day_stats.most_expensive_today
         average        = day_stats.average_today
 
-        # Rule A: Extremely high price / Regel A: Extreem hoge prijs
+        # Regel A: Extreem hoge prijs
         if price_excl >= average * self.extreme_price_multiplier:
             return (
                 True,
-                f"Extremely high price {price_excl:.4f} ≥ "
-                f"{self.extreme_price_multiplier}× avg {average:.4f} €/kWh excl. — "
-                f"discharging / Extreem hoge prijs — ontladen",
+                f"Extreem hoge prijs {price_excl:.4f} ≥ "
+                f"{self.extreme_price_multiplier}× gem {average:.4f} €/kWh excl. — ontladen",
             )
 
-        # Rule B: High spread + near peak / Regel B: Grote spreiding + nabij piekprijs
+        # Regel B: Grote spreiding + nabij piekprijs
         # Use absolute spread to handle negative prices correctly
         # Gebruik absoluut verschil voor correcte verwerking van negatieve prijzen
         abs_cheapest = abs(cheapest) if cheapest < 0 else cheapest
@@ -629,7 +614,7 @@ class Strategy:
 
         return False, ""
 
-    # ── Charge-from-grid logic / Laden-van-net-logica ────────────────────────
+    # ── Laden-van-net-logica ─────────────────────────────────────────────────
 
     def _should_charge_from_grid(
         self,
@@ -644,7 +629,7 @@ class Strategy:
         # Laad niet van net als zon de batterij toch al vult
         solar_threshold = self.solar_charge_threshold
         if solar_outlook and solar_outlook.estimated_yield_kwh >= self.usable_capacity_kwh * solar_threshold:
-            return False, "Voldoende zon verwacht — laden van net niet nodig / Sufficient solar expected — grid charging blocked"
+            return False, "Voldoende zon verwacht — laden van net niet nodig"
             
         if soc_pct >= self.max_soc - Decimal("2"):
             return False, ""
@@ -701,14 +686,13 @@ class Strategy:
             )
             return (
                 True,
-                f"Cheap price {price_excl:.4f} €/kWh excl., "
-                f"spread {most_expensive:.4f}/{cheapest:.4f}{dep} — "
-                f"charging from grid / Goedkope prijs, spread voldoende — laden vanaf net",
+                f"Goedkope prijs {price_excl:.4f} €/kWh excl., "
+                f"spread {most_expensive:.4f}/{cheapest:.4f}{dep} — laden vanaf net",
             )
 
         return False, ""
 
-    # ── Negative price notifications / Meldingen bij negatieve prijs ─────────
+    # ── Meldingen bij negatieve prijs ────────────────────────────────────────
 
     def _build_negative_price_notification(
         self, export_price_excl: Decimal, surplus_kw: Decimal
@@ -725,9 +709,6 @@ class Strategy:
             sign_nl = "negatief" if export_price_excl < 0 else "nul"
             return (
                 f"⚡ Export price is {sign} ({export_price_excl:.4f} €/kWh excl.) — "
-                f"use power now to avoid paying to export! Suggestions: "
-                f"turn on boiler / washing machine / dishwasher / EV charger. "
-                f"Solar surplus: {surplus_kw:.2f} kW. / "
                 f"⚡ Terugleverprijs is {sign_nl} ({export_price_excl:.4f} €/kWh excl.) — "
                 f"gebruik nu stroom om te voorkomen dat u betaalt voor teruglevering! "
                 f"Suggesties: zet boiler / wasmachine / vaatwasser / laadpaal aan. "
@@ -735,14 +716,12 @@ class Strategy:
             )
         elif export_price_excl <= self.notify_export_threshold:
             return (
-                f"⚠ Export price very low ({export_price_excl:.4f} €/kWh excl.) — "
-                f"consider switching on high-consumption appliances now. / "
                 f"⚠ Terugleverprijs zeer laag ({export_price_excl:.4f} €/kWh excl.) — "
                 f"overweeg nu apparaten met hoog verbruik in te schakelen."
             )
         return None
 
-    # ── Financial calculation / Financiële berekening ────────────────────────
+    # ── Financiële berekening ─────────────────────────────────────────────────
 
     def calc_saving(
         self,
@@ -814,10 +793,10 @@ class Strategy:
 
         return cost.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP)
 
-    # ── Helper / Hulpfunctie ─────────────────────────────────────────────────
+    # ── Hulpfunctie ──────────────────────────────────────────────────────────
 
     def _to_excl(self, price: Decimal) -> Decimal:
-        """Convert price to excl. VAT if needed. / Zet prijs om naar excl. BTW indien nodig."""
+        """Zet prijs om naar excl. BTW indien nodig."""
         if self.price_incl_tax:
             return (price / self.vat_multiplier).quantize(
                 Decimal("0.00001"), rounding=ROUND_HALF_UP
@@ -929,7 +908,7 @@ def _build_day_stats(
         rows = cur.fetchall()
 
     if not rows:
-        logger.warning("No price data for today / Geen prijsdata voor vandaag")
+        logger.warning("Geen prijsdata voor vandaag")
         return None
 
     vm    = Decimal("1") + vat_pct / 100
@@ -971,7 +950,7 @@ def _build_solar_outlook(db) -> "SolarOutlook | None":
     sunshine_pct = Decimal(str(row["avg_sunshine"] or 0))
     cloud_pct    = Decimal("100") - sunshine_pct
 
-    # Try solar profile for better estimate / Probeer zonprofiel voor betere schatting
+    # Probeer zonprofiel voor betere schatting
     from datetime import date as _date
     next_month = (tomorrow.replace(day=1) + __import__('datetime').timedelta(days=32)).month
     profile_month = tomorrow.month

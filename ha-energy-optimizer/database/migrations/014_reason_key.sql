@@ -1,3 +1,4 @@
+--
 -- name:          014_reason_key.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/014_reason_key.sql

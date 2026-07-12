@@ -1,3 +1,4 @@
+#
 # name:          solaredge.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/inverter/solaredge.py

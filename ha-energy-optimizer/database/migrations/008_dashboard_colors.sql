@@ -1,3 +1,4 @@
+--
 -- name:          008_dashboard_colors.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/008_dashboard_colors.sql

@@ -1,3 +1,4 @@
+#
 # name:          Dockerfile
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/Dockerfile

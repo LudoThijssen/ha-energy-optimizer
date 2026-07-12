@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+<!-- name:         translations.html -->
+<!-- part of:      ha-energy-optimizer -->
+<!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/translations.html -->
+<!-- part version: p_v0.4 -->
+<!-- altered:      2026-07-05 -->
+{% block title %}Vertalingen — HA Energy Optimizer{% endblock %}
+{% block content %}
+
+<h1><span class="mdi mdi-translate"></span> Vertalingen</h1>
+<p class="subtitle">Bekijk en pas de operationele teksten aan per taal</p>
+
+{% if saved %}
+<div class="alert alert-success"><span class="mdi mdi-check"></span> Vertaling opgeslagen</div>
+{% endif %}
+
+{% if generated %}
+<div class="alert alert-success">
+  <span class="mdi mdi-robot-outline"></span>
+  {{ generated }} vertalingen automatisch aangemaakt via AI voor '{{ active_language }}'
+</div>
+{% endif %}
+
+<!-- Taalkeuze en acties -->
+<div class="card" style="padding:16px;">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <span style="font-size:13px; font-weight:500; color:#374151;">Taal:</span>
+    {% for code, label in languages %}
+    <a href="?lang={{ code }}"
+       class="btn btn-sm {% if active_language == code %}btn-primary{% else %}btn-secondary{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+
+    <span style="color:#d1d5db; margin:0 4px;">|</span>
+
+    <form method="POST" style="display:inline;">
+      <input type="hidden" name="action" value="generate">
+      <input type="hidden" name="language" value="{{ active_language }}">
+      <button type="submit" class="btn btn-secondary btn-sm"
+              {% if active_language in ('nl', 'en') %}disabled title="nl en en zijn de basistalen"{% endif %}>
+        <span class="mdi mdi-robot-outline"></span> AI aanvullen
+      </button>
+    </form>
+
+    <span style="font-size:12px; color:#6b7280;">
+      {{ entry_count }} teksten — {{ missing_count }} ontbrekend
+    </span>
+  </div>
+</div>
+
+<!-- Groepfilter -->
+<div class="card" style="padding:12px 16px;">
+  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+    <span style="font-size:12px; color:#6b7280;">Groep:</span>
+    <a href="?lang={{ active_language }}" class="btn btn-sm {% if not active_group %}btn-primary{% else %}btn-secondary{% endif %}">Alles</a>
+    {% for grp, grp_label in groups %}
+    <a href="?lang={{ active_language }}&group={{ grp }}"
+       class="btn btn-sm {% if active_group == grp %}btn-primary{% else %}btn-secondary{% endif %}">
+      {{ grp }} — {{ grp_label }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Vertalingentabel -->
+<div class="card" style="padding:0;">
+  {% if entries %}
+  <table>
+    <thead>
+      <tr>
+        <th style="width:70px">Sleutel</th>
+        <th style="width:40%">Nederlands (basis)</th>
+        <th>{{ active_language_label }}</th>
+        <th style="width:80px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr style="{% if not e.translated %}background:#fef9ee;{% endif %}">
+        <td><code style="font-size:12px;">{{ e.key }}</code></td>
+        <td style="font-size:12px; color:#6b7280;">{{ e.nl_text }}</td>
+        <td>
+          <form method="POST" style="display:flex; gap:6px; align-items:center;">
+            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="language" value="{{ active_language }}">
+            <input type="hidden" name="key" value="{{ e.key }}">
+            <input type="text" name="text" value="{{ e.translated or '' }}"
+                   style="font-size:13px; {% if not e.translated %}border-color:#f59e0b;{% endif %}"
+                   placeholder="Vertaling ontbreekt...">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <span class="mdi mdi-content-save-outline"></span>
+            </button>
+          </form>
+        </td>
+        <td style="font-size:11px; color:#94a3b8; text-align:center;">
+          {% if e.translated %}
+          <span style="color:#16a34a;"><span class="mdi mdi-check"></span></span>
+          {% else %}
+          <span style="color:#f59e0b;"><span class="mdi mdi-alert-outline"></span></span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="padding:24px; color:#6b7280; font-size:13px;">
+    Geen teksten gevonden voor deze combinatie.
+  </p>
+  {% endif %}
+</div>
+
+{% endblock %}

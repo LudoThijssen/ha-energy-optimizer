@@ -1,3 +1,4 @@
+--
 -- name:          013_translation_strings.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/013_translation_strings.sql

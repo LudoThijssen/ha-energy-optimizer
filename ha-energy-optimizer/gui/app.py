@@ -1,7 +1,8 @@
+#
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.15
+# part version:  p_v0.16
 # altered:       2026-07-05
 #
 # Configuration GUI — Flask web server with HA ingress support.
@@ -448,9 +449,28 @@ def system():
                         "heating": has_heating, "lang": lang
                     })
 
-        return redirect(_url("system") + "?saved=1")
+            # Start AI-vertaling als de taal nog niet in de database staat
+            # Start AI translation if the language is not yet in the database
+            if lang not in ("nl", "en"):
+                try:
+                    from translations.translator import OperationalTranslator
+                    tr = OperationalTranslator(db, lang)
+                    inserted = tr.translate_new_language(lang)
+                    if inserted > 0:
+                        import logging as _log
+                        _log.getLogger(__name__).info(
+                            f"[system] {inserted} operationele vertalingen aangemaakt voor '{lang}'"
+                        )
+                except Exception as e:
+                    import logging as _log
+                    _log.getLogger(__name__).warning(
+                        f"[system] AI-vertaling voor '{lang}' mislukt: {e}"
+                    )
+
+        return redirect(_url("system") + "?saved=1&lang_changed=1")
     return render_template("system.html", options=options,
-                           saved=request.args.get("saved"))
+                           saved=request.args.get("saved"),
+                           lang_changed=request.args.get("lang_changed"))
 
 
 @app.route("/database", methods=["GET", "POST"])
@@ -1090,6 +1110,103 @@ def dashboard():
                            refresh_seconds=refresh,
                            options=options,
                            colors=colors)
+
+
+@app.route("/translations", methods=["GET", "POST"])
+def translations():
+    """Vertalingenbeheer — bekijk en pas operationele teksten aan per taal."""
+    db = _get_db()
+
+    LANGUAGES = [
+        ("nl", "Nederlands"), ("en", "English"), ("de", "Deutsch"),
+        ("fr", "Français"), ("es", "Español"),
+    ]
+    GROUPS = [
+        ("RS", "Reason strings"), ("LG", "Log berichten"),
+        ("NT", "Notificaties"), ("SY", "Systeem"), ("ER", "Foutmeldingen"),
+    ]
+
+    active_language = request.args.get("lang", "nl")
+    active_group    = request.args.get("group", "")
+    active_label    = next((l for c, l in LANGUAGES if c == active_language), active_language)
+
+    saved     = None
+    generated = None
+
+    if request.method == "POST" and db:
+        action = request.form.get("action")
+        lang   = request.form.get("language", "nl")
+
+        if action == "save":
+            key  = request.form.get("key", "").strip()
+            text = request.form.get("text", "").strip()
+            if key and text:
+                with db.cursor() as cur:
+                    cur.execute(
+                        "REPLACE INTO translation_strings (string_key, language, text) "
+                        "VALUES (%s, %s, %s)",
+                        (key, lang, text)
+                    )
+                saved = True
+
+        elif action == "generate" and lang not in ("nl", "en"):
+            try:
+                from translations.translator import OperationalTranslator
+                tr = OperationalTranslator(db, lang)
+                generated = tr.translate_new_language(lang)
+            except Exception as e:
+                import logging as _log
+                _log.getLogger(__name__).warning(f"[translations] AI-vertaling mislukt: {e}")
+
+        return redirect(_url("translations") + f"?lang={lang}&saved=1" if saved
+                        else _url("translations") + f"?lang={lang}")
+
+    entries = []
+    entry_count  = 0
+    missing_count = 0
+
+    if db:
+        # Laad alle NL teksten als basis
+        with db.cursor() as cur:
+            query = "SELECT string_key, text FROM translation_strings WHERE language = 'nl'"
+            if active_group:
+                query += f" AND string_key LIKE '{active_group}%'"
+            query += " ORDER BY string_key"
+            cur.execute(query)
+            nl_texts = {r["string_key"]: r["text"] for r in cur.fetchall()}
+
+        # Laad vertalingen voor actieve taal
+        with db.cursor() as cur:
+            query = "SELECT string_key, text FROM translation_strings WHERE language = %s"
+            params = [active_language]
+            if active_group:
+                query += " AND string_key LIKE %s"
+                params.append(f"{active_group}%")
+            cur.execute(query, params)
+            translated = {r["string_key"]: r["text"] for r in cur.fetchall()}
+
+        for key, nl_text in nl_texts.items():
+            t = translated.get(key)
+            entries.append({
+                "key":        key,
+                "nl_text":    nl_text,
+                "translated": t,
+            })
+            entry_count += 1
+            if not t:
+                missing_count += 1
+
+    return render_template("translations.html",
+                           languages=LANGUAGES,
+                           groups=GROUPS,
+                           active_language=active_language,
+                           active_language_label=active_label,
+                           active_group=active_group,
+                           entries=entries,
+                           entry_count=entry_count,
+                           missing_count=missing_count,
+                           saved=request.args.get("saved"),
+                           generated=generated)
 
 
 @app.route("/colors", methods=["GET", "POST"])

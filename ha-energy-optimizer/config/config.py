@@ -1,3 +1,4 @@
+#
 # name:          config.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/config/config.py

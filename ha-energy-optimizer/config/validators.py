@@ -1,3 +1,4 @@
+#
 # name:          validators.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/config/validators.py

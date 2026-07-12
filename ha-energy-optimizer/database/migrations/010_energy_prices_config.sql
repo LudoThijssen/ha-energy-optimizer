@@ -1,3 +1,4 @@
+--
 --  name:          010_energy_prices_config.sql
 --  part of:       ha-energy-optimizer
 --  location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/010_energy_prices_config.sql

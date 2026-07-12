@@ -1,3 +1,4 @@
+#
 # name:          solar_learner.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/solar_learner.py

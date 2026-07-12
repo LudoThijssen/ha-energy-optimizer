@@ -1,3 +1,4 @@
+--
 -- name:          012_consumption_learning.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/012_consumption_learning.sql

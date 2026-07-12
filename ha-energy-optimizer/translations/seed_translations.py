@@ -1,3 +1,4 @@
+#
 # name:          seed_translations.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/translations/seed_translations.py

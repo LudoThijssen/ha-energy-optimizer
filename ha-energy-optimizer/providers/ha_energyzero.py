@@ -1,3 +1,4 @@
+#
 # name:          ha_energyzero.py.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/providers/ha_energyzero.py

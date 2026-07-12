@@ -2,8 +2,8 @@
 <!-- name:         base.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/base.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-29 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-07-05 -->
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
@@ -187,12 +187,15 @@
       </div>
 
       <div class="nav-section" onclick="toggleGroup(this)">
-        <span>Weergave</span>
+        <span>Persoonlijk</span>
         <span class="mdi mdi-chevron-down"></span>
       </div>
       <div class="nav-group">
         <a href="{{ nav_url('colors') }}" {% if request.endpoint == 'colors' %}class="active"{% endif %}>
           <span class="mdi mdi-palette-outline"></span> Kleuren
+        </a>
+        <a href="{{ nav_url('translations') }}" {% if request.endpoint == 'translations' %}class="active"{% endif %}>
+          <span class="mdi mdi-translate"></span> Vertalingen
         </a>
       </div>
     </div>
