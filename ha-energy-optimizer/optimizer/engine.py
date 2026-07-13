@@ -1,4 +1,3 @@
-#
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
@@ -723,15 +722,7 @@ class OptimizerEngine:
         idles         = sum(1 for s in slots if s.action == "idle")
         self_consumes = sum(1 for s in slots if s.action == "self_consume")
         saving        = sum(s.expected_saving for s in slots)
-        sc_part = f", {self_consumes} {tr.get('LG09', {'slots': 'zelf-verbruik'})}" if self_consumes else ""
-        msg = self._tr.get("LG09", {
-            "slots": (
-                f"{len(slots)}h — "
-                f"{charges} laden"
-            )
-        })
-        # Bouw de melding op uit vertaalde onderdelen
-        # Build the message from translated parts
+        sc_part = f", {self_consumes} zelf-verbruik" if self_consumes else ""
         msg = (
             f"Schema: {len(slots)}u — "
             f"{charges} laden, {discharges} ontladen, {idles} rust"
