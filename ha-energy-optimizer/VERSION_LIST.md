@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v2.0
-# altered:       2026-07-13
+# part version:  p_v2.1
+# altered:       2026-07-16
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v2.0 | 2026-07-13 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v2.1 | 2026-07-16 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -19,7 +19,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v2.0 | 2026-07-13 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v2.1 | 2026-07-16 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
@@ -39,11 +39,12 @@
 | connection.py | /ha-energy-optimizer/database/connection.py | p_v0.3 | 2026-06-21 |
 | models.py | /ha-energy-optimizer/database/models.py | p_v0.4 | 2026-07-01 |
 | repository.py | /ha-energy-optimizer/database/repository.py | p_v0.4 | 2026-07-01 |
-| setup.py | /ha-energy-optimizer/database/setup.py | p_v0.5 | 2026-07-01 |
+| setup.py | /ha-energy-optimizer/database/setup.py | p_v0.6 | 2026-07-16 |
 # ha-energy-optimizer/database/migrations
-| 001_initial.sql | /ha-energy-optimizer/database/migrations/001_initial.sql | p_v0.3 | 2026-06-21 |
+| 000_consolidated.sql | /ha-energy-optimizer/database/migrations/000_consolidated.sql | p_v0.1 | 2026-07-16 |
+| 001_initial.sql | /ha-energy-optimizer/database/migrations/001_initial.sql | p_v0.4 | 2026-07-16 |
 | 002_add_indexes.sql | /ha-energy-optimizer/database/migrations/002_add_indexes.sql | p_v0.3 | 2026-06-21 |
-| 003_strategy_fields.sql | /ha-energy-optimizer/database/migrations/003_strategy_fields.sql | p_v0.3 | 2026-06-21 |
+| 003_strategy_fields.sql | /ha-energy-optimizer/database/migrations/003_strategy_fields.sql | p_v0.4 | 2026-07-16 |
 | 004_extended_strategy_fields.sql | /ha-energy-optimizer/database/migrations/004_extended_strategy_fields.sql | p_v0.3 | 2026-06-21 |
 | 005_profile_tables.sql | /ha-energy-optimizer/database/migrations/005_profile_tables.sql | p_v0.3 | 2026-06-21 |
 | 006_solar_charge_threshold.sql | /ha-energy-optimizer/database/migrations/006_solar_charge_threshold.sql | p_v0.3 | 2026-06-21 |
@@ -54,6 +55,7 @@
 | 012_consumption_learning.sql | /ha-energy-optimizer/database/migrations/012_consumption_learning.sql | p_v0.4 | 2026-06-26 |
 | 013_translation_strings.sql | /ha-energy-optimizer/database/migrations/013_translation_strings.sql | p_v0.4 | 2026-07-01 |
 | 014_reason_key.sql | /ha-energy-optimizer/database/migrations/014_reason_key.sql | p_v0.4 | 2026-07-01 |
+| README.md | /ha-energy-optimizer/database/migrations/README.md | p_v2.0 | 2026-07-16 |
 # ha-energy-optimizer/gui
 | __init__.py | /ha-energy-optimizer/gui/__init__.py | p_v0.3 | 2026-06-21 |
 | app.py | /ha-energy-optimizer/gui/app.py | p_v0.16 | 2026-07-05 |
@@ -83,7 +85,7 @@
 | solaredge.py | /ha-energy-optimizer/inverter/solaredge.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/optimizer
 | __init__.py | /ha-energy-optimizer/optimizer/__init__.py | p_v0.3 | 2026-06-21 |
-| decision_engine.py | /ha-energy-optimizer/optimizer/decision_engine.py | p_v0.5 | 2026-07-01 |
+| decision_engine.py | /ha-energy-optimizer/optimizer/decision_engine.py | p_v0.6 | 2026-07-16 |
 | engine.py | /ha-energy-optimizer/optimizer/engine.py | p_v0.7 | 2026-07-03 |
 | forecast.py | /ha-energy-optimizer/optimizer/forecast.py | p_v0.3 | 2026-06-21 |
 | models.py | /ha-energy-optimizer/optimizer/models.py | p_v0.4 | 2026-07-01 |

@@ -2,8 +2,8 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.5
-# altered:       2026-07-01
+# part version:  p_v0.6
+# altered:       2026-07-16
 #
 # Vervangt de combinatie van strategy.py decide() + engine._calculate().
 # Implementeert de 5-stappen beslislogica uit het technisch ontwerp v0.3:
@@ -157,7 +157,8 @@ class DecisionEngine:
         for wh in window:
             if wh.executed:
                 # Al uitgevoerd — SoC bijwerken en doorgaan
-                soc = self._update_soc(soc, wh.action, wh.power_kw, eff_charge_kw)
+                idle_power = wh.tekort_kwh if wh.action == "idle" else wh.power_kw
+                soc = self._update_soc(soc, wh.action, idle_power, eff_charge_kw)
                 continue
 
             wh.forecast.soc_pct = soc
@@ -213,10 +214,10 @@ class DecisionEngine:
                     soc = self._update_soc(soc, wh.action, wh.power_kw, eff_charge_kw)
                     continue
 
-            # Geen actie — rust
+            # Geen actie — rust (maar batterij levert eventueel passief bij)
             wh.action = "idle"
             self._set_reason(wh, "RS10")
-            soc = self._update_soc(soc, "idle", Decimal("0"), eff_charge_kw)
+            soc = self._update_soc(soc, "idle", wh.tekort_kwh, eff_charge_kw)
 
         # ── Stap 4: Anti-cycling ──────────────────────────────────────────────
         self._anti_cycling(window)
@@ -342,14 +343,20 @@ class DecisionEngine:
         try:
             with self._db.cursor() as cur:
                 cur.execute(
-                    "SELECT schedule_for FROM optimizer_schedule "
+                    "SELECT schedule_for, action, target_power_kw "
+                    "FROM optimizer_schedule "
                     "WHERE executed = 1 AND schedule_for >= %(from_h)s",
                     {"from_h": hours[0]}
                 )
-                executed_hours = {row["schedule_for"] for row in cur.fetchall()}
+                executed_rows = {
+                    row["schedule_for"]: row for row in cur.fetchall()
+                }
             for wh in window:
-                if wh.forecast.hour in executed_hours:
+                row = executed_rows.get(wh.forecast.hour)
+                if row is not None:
                     wh.executed = True
+                    wh.action   = row["action"]
+                    wh.power_kw = Decimal(str(row["target_power_kw"]))
         except Exception as e:
             logger.debug(f"[decision_engine] Executed uren ophalen mislukt: {e}")
 
@@ -611,8 +618,14 @@ class DecisionEngine:
                 expected_price         = wh.forecast.price_per_kwh,
             ))
 
-            # SoC bijwerken voor volgend uur
-            soc = self._update_soc(soc, wh.action, wh.power_kw, self._bat.max_charge_kw)
+            # SoC bijwerken voor volgend uur (idle-uren nemen ook het
+            # niet door zon gedekte huisverbruik mee, anders klopt de
+            # getoonde SoC-trajectorie niet)
+            # Update SoC for next hour (idle hours also account for
+            # household consumption not covered by solar, otherwise the
+            # displayed SoC trajectory is wrong)
+            idle_power = wh.tekort_kwh if wh.action == "idle" else wh.power_kw
+            soc = self._update_soc(soc, wh.action, idle_power, self._bat.max_charge_kw)
 
         return slots
 
@@ -653,6 +666,13 @@ class DecisionEngine:
             delta = power_kw * self._bat.efficiency / self._bat.usable_kwh * 100
             return min(soc + delta, self._bat.max_soc_pct)
         elif action == "discharge":
+            delta = power_kw / self._bat.efficiency / self._bat.usable_kwh * 100
+            return max(soc - delta, self._bat.min_soc_pct)
+        elif action == "idle" and power_kw > Decimal("0"):
+            # Passief huisverbruik dat niet door zon wordt gedekt, trekt de
+            # batterij ook tijdens rust-uren leeg (bv. 's nachts).
+            # Passive household consumption not covered by solar also drains
+            # the battery during idle hours (e.g. at night).
             delta = power_kw / self._bat.efficiency / self._bat.usable_kwh * 100
             return max(soc - delta, self._bat.min_soc_pct)
         return soc
