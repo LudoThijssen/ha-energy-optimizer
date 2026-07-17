@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v2.2
+# part version:  p_v2.3
 # altered:       2026-07-17
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v2.2 | 2026-07-17 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v2.3 | 2026-07-17 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -19,7 +19,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v2.2 | 2026-07-17 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v2.3 | 2026-07-17 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
@@ -27,7 +27,7 @@
 | ha_collector.py | /ha-energy-optimizer/collectors/ha_collector.py | p_v0.5 | 2026-07-05 |
 | price_collector.py | /ha-energy-optimizer/collectors/price_collector.py | p_v0.3 | 2026-06-21 |
 | profile_updater.py | /ha-energy-optimizer/collectors/profile_updater.py | p_v0.3 | 2026-06-21 |
-| solar_learner.py | /ha-energy-optimizer/collectors/solar_learner.py | p_v0.5 | 2026-06-27 |
+| solar_learner.py | /ha-energy-optimizer/collectors/solar_learner.py | p_v0.6 | 2026-07-17 |
 | weather_collector.py | /ha-energy-optimizer/collectors/weather_collector.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/config
 | __init__.py | /ha-energy-optimizer/config/__init__.py | p_v0.3 | 2026-06-21 |

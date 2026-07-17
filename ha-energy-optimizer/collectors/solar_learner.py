@@ -2,8 +2,8 @@
 # name:          solar_learner.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/solar_learner.py
-# part version:  p_v0.5
-# altered:       2026-06-27
+# part version:  p_v0.6
+# altered:       2026-07-17
 #
 # Leert de relatie tussen instraling (W/m²) en werkelijke zonopbrengst (kWh)
 # voor deze specifieke installatie. Wordt aangeroepen na elke meting.
@@ -61,7 +61,15 @@ class SolarLearner:
 
         Args:
             dt:             tijdstip van de meting / measurement timestamp
-            solar_kwh:      gemeten zonopbrengst dit uur (kWh) / measured solar yield this hour (kWh)
+            solar_kwh:      gemeten zonopbrengst in DIT MEETINTERVAL (kWh) —
+                             in de praktijk 5 minuten, dus interval_h × power_kw,
+                             NIET het uurtotaal. De aanroeper (engine.py) moet
+                             dit terugrekenen naar kW/uur (× 12 bij 5-min interval).
+                             measured solar yield in THIS MEASUREMENT INTERVAL
+                             (kWh) — in practice 5 minutes, i.e. interval_h ×
+                             power_kw, NOT the hourly total. The caller
+                             (engine.py) must convert this to kW/hour
+                             (× 12 for a 5-min interval).
             irradiance_wm2: gemeten instraling (W/m²) / measured irradiance (W/m²)
         """
         # Nulwaarden negeren — nacht of volledig bewolkt
@@ -157,6 +165,16 @@ class SolarLearner:
         Voorspel de zonopbrengst (kWh) voor een gegeven instraling en tijdstip.
         Predict solar yield (kWh) for a given irradiance and timestamp.
 
+        Let op: geeft de opbrengst voor ÉÉN meetinterval terug (in de praktijk
+        5 minuten, zoals de trainingsdata via ha_collector), NIET het uurtotaal.
+        De aanroeper moet dit zelf omrekenen (× 12 bij een 5-minuten-interval) —
+        zie de verbruiksvoorspelling in engine.py voor het equivalente patroon.
+        Note: returns the yield for ONE measurement interval (in practice
+        5 minutes, matching how the training data arrives via ha_collector),
+        NOT the hourly total. The caller must convert this itself (× 12 for
+        a 5-minute interval) — see the consumption forecast in engine.py for
+        the equivalent pattern.
+
         Returns 0.0 als er nog geen data beschikbaar is.
         Returns 0.0 if no data is available yet.
         """
@@ -185,15 +203,35 @@ class SolarLearner:
             kwh_high = float(row["solar_kwh_high"])
 
             if irr_high <= irr_low:
-                # Enkel datapunt — gebruik de bekende waarde
-                # Single data point — use the known value
-                return kwh_low
+                # Enkel datapunt — gebruik de bekende waarde (× 12, zie toelichting
+                # hieronder bij de interpolatie-tak)
+                # Single data point — use the known value (× 12, see explanation
+                # below at the interpolation branch)
+                return kwh_low * 12
 
             # Lineaire interpolatie, geclamped op [0, 1]
             # Linear interpolation, clamped to [0, 1]
             factor = (irradiance_wm2 - irr_low) / (irr_high - irr_low)
             factor = max(0.0, min(1.0, factor))
-            return kwh_low + factor * (kwh_high - kwh_low)
+            interval_kwh = kwh_low + factor * (kwh_high - kwh_low)
+
+            # kwh_low/kwh_high zijn opgeslagen als 5-minuten-energieschijfjes
+            # (zie update() — ha_collector voedt dit per meetinterval, niet
+            # per uur). Omrekenen × 12 zodat predict() ALTIJD een uurwaarde
+            # teruggeeft, consistent met de Gauss-fallback hierboven
+            # (_GAUSS_PEAK_KWH is expliciet "per uur"). Zonder deze correctie
+            # was de voorspelling ~12× te laag zodra er genoeg leerdata was
+            # om van de Gauss-fallback over te schakelen naar interpolatie.
+            #
+            # kwh_low/kwh_high are stored as 5-minute energy slices (see
+            # update() — ha_collector feeds this per measurement interval,
+            # not per hour). Convert × 12 so predict() ALWAYS returns an
+            # hourly value, consistent with the Gauss fallback above
+            # (_GAUSS_PEAK_KWH is explicitly "per hour"). Without this
+            # correction the forecast was ~12x too low once there was
+            # enough learned data to switch from the Gauss fallback to
+            # interpolation.
+            return interval_kwh * 12
 
         except Exception as e:
             log.warning(f"[solar_learner] Voorspelling mislukt / Prediction failed: {e}")
