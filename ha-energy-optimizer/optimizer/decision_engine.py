@@ -444,25 +444,105 @@ class DecisionEngine:
         eff_discharge_kw: Decimal,
     ) -> bool:
         """
-        Bepaal of ontladen zinvol is en voer het uit.
-        Determine if discharging is worthwhile and execute it.
+        Bepaal of ontladen zinvol is en koppel de duurste uren via sortering.
+        Determine if discharging is worthwhile and assign the most expensive
+        hours via sorting.
         """
         if wh.price_excl < self._price.hard_min_excl:
             return False
 
+        self._ontladen(wh, window, soc, reserve_soc, nacht_soc, dag_soc, eff_discharge_kw)
+        return wh.action == "discharge"
+
+    def _ontladen(
+        self,
+        wh: WindowHour,
+        window: list[WindowHour],
+        soc: Decimal,
+        reserve_soc: Decimal,
+        nacht_soc: Decimal,
+        dag_soc: Decimal,
+        eff_discharge_kw: Decimal,
+    ) -> None:
+        """
+        Koppel ontlaadacties aan de duurste beschikbare uren in het venster
+        (sorteermethode — Ludo's voorkeur, zie overdracht):
+          1. Array van alle idle uren met prijs
+          2. Sorteer aflopend (duurste eerst)
+          3. Kies uren tot beschikbare kWh op is
+          4. Rendementscheck: duurste ontlaadprijs > goedkoopste laadprijs / rendement,
+             anders is ontladen op dit moment financieel niet zinvol.
+
+        Assign discharge actions to the most expensive available hours in
+        the window (sort method — Ludo's preference, see handover):
+          1. Array of all idle hours with price
+          2. Sort descending (most expensive first)
+          3. Select hours until available kWh is used up
+          4. Efficiency check: most expensive discharge price > cheapest
+             charge price / efficiency, otherwise discharging now is not
+             financially worthwhile.
+        """
         gereserveerd = max(nacht_soc, dag_soc, reserve_soc)
         beschikbaar  = max(Decimal("0"), soc - gereserveerd)
         beschikbaar_kwh = beschikbaar * self._bat.usable_kwh / 100 * self._bat.efficiency
 
         if beschikbaar_kwh < Decimal("0.5"):
             self._set_reason(wh, "RS06", {"available": beschikbaar, "reserve": gereserveerd})
-            return False
+            return
 
-        discharge_kw = min(eff_discharge_kw, beschikbaar_kwh)
-        wh.action    = "discharge"
-        wh.power_kw  = discharge_kw.quantize(Decimal("0.01"))
-        self._set_reason(wh, "RS05", {"price": wh.price_excl})
-        return True
+        # Verwijder bestaande niet-uitgevoerde ontlaadacties, zodat elke
+        # aanroep vers herberekent (zelfde patroon als _laden()) — voorkomt
+        # verouderde/dubbele reserveringen als de uur-loop een eerder
+        # toegewezen uur later opnieuw tegenkomt.
+        # Remove existing non-executed discharge actions, so every call
+        # recomputes fresh (same pattern as _laden()) — prevents stale/
+        # duplicate reservations if the hourly loop later re-encounters an
+        # hour that was already assigned.
+        for w in window:
+            if w.action == "discharge" and not w.executed:
+                w.action   = "idle"
+                w.power_kw = Decimal("0")
+                w.reason   = ""
+
+        # Sorteer beschikbare uren op prijs (duurste eerst) / oplopend voor laden
+        # Sort available hours by price (most expensive first) / ascending for charging
+        idle_uren = [w for w in window if w.action == "idle" and not w.executed]
+        ontlaad_kandidaten = sorted(
+            [w for w in idle_uren if w.price_excl >= self._price.hard_min_excl],
+            key=lambda w: w.price_excl,
+            reverse=True
+        )
+        if not ontlaad_kandidaten:
+            self._set_reason(wh, "RS06", {"available": beschikbaar, "reserve": gereserveerd})
+            return
+
+        # Rendementscheck: duurste ontlaadprijs moet de goedkoopste beschikbare
+        # laadprijs (gedeeld door rendement) overtreffen, anders is het
+        # voordeliger om (straks) te laden dan nu te ontladen.
+        # Efficiency check: most expensive discharge price must exceed the
+        # cheapest available charge price (divided by efficiency), otherwise
+        # it's more advantageous to charge (later) than discharge now.
+        laad_kandidaten = sorted(
+            (w.price_excl for w in idle_uren
+             if w.price_excl <= self._price.max_charge_excl),
+            reverse=False
+        )
+        if laad_kandidaten:
+            goedkoopste_laadprijs = laad_kandidaten[0]
+            duurste_ontlaadprijs  = ontlaad_kandidaten[0].price_excl
+            if duurste_ontlaadprijs <= goedkoopste_laadprijs / self._bat.efficiency:
+                self._set_reason(wh, "RS06", {"available": beschikbaar, "reserve": gereserveerd})
+                return
+
+        ontladen_kwh = Decimal("0")
+        for kandidaat in ontlaad_kandidaten:
+            if ontladen_kwh >= beschikbaar_kwh:
+                break
+            discharge_kw = min(eff_discharge_kw, beschikbaar_kwh - ontladen_kwh)
+            kandidaat.action   = "discharge"
+            kandidaat.power_kw = discharge_kw.quantize(Decimal("0.01"))
+            self._set_reason(kandidaat, "RS05", {"price": kandidaat.price_excl})
+            ontladen_kwh += discharge_kw
 
     def _mogelijk_laden(
         self,
@@ -541,9 +621,10 @@ class DecisionEngine:
             kandidaat.action    = "charge"
             kandidaat.power_kw  = eff_charge_kw
             kandidaat.is_solar_charge = False
-            kandidaat.reason    = (
-                self._tr.get("RS08" if reden else "RS07",
-                             {"price": kandidaat.price_excl, "reason": reden})
+            self._set_reason(
+                kandidaat,
+                "RS08" if reden else "RS07",
+                {"price": kandidaat.price_excl, "reason": reden}
             )
             geladen_kwh += eff_charge_kw * self._bat.efficiency
             if geladen_kwh >= tekort_kwh:
