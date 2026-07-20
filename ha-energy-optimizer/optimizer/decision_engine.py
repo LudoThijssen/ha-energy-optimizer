@@ -2,7 +2,7 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.7
+# part version:  p_v0.8
 # altered:       2026-07-20
 #
 # Vervangt de combinatie van strategy.py decide() + engine._calculate().
@@ -227,7 +227,9 @@ class DecisionEngine:
             soc_einde_dag = self._soc_einde_dag(window, soc)
             if soc_einde_dag < nacht_soc:
                 if self._mogelijk_laden(wh, window, soc, nacht_soc,
-                                        off_grid, eff_charge_kw):
+                                        off_grid, eff_charge_kw,
+                                        reden="RS18",
+                                        reden_params={"soc": soc_einde_dag, "min_soc": nacht_soc}):
                     soc = self._update_soc(soc, wh.action, wh.power_kw, eff_charge_kw)
                     continue
 
@@ -235,7 +237,9 @@ class DecisionEngine:
             soc_zonsopgang = self._soc_zonsopgang(window, soc)
             if soc_zonsopgang < dag_soc:
                 if self._mogelijk_laden(wh, window, soc, dag_soc,
-                                        off_grid, eff_charge_kw):
+                                        off_grid, eff_charge_kw,
+                                        reden="RS19",
+                                        reden_params={"soc": soc_zonsopgang, "min_soc": dag_soc}):
                     soc = self._update_soc(soc, wh.action, wh.power_kw, eff_charge_kw)
                     continue
 
@@ -243,7 +247,7 @@ class DecisionEngine:
             if price <= price_factor_low and not off_grid:
                 if soc < self._bat.max_soc_pct:
                     self._laden(wh, window, soc, self._bat.max_soc_pct,
-                                off_grid, eff_charge_kw, reden="opportunistisch / opportunistic")
+                                off_grid, eff_charge_kw, reden="RS20")
                     soc = self._update_soc(soc, wh.action, wh.power_kw, eff_charge_kw)
                     continue
 
@@ -586,6 +590,7 @@ class DecisionEngine:
         off_grid: bool,
         eff_charge_kw: Decimal,
         reden: str = "",
+        reden_params: dict | None = None,
     ) -> bool:
         """
         Bepaal of laden zinvol is en koppel de goedkoopste uren.
@@ -605,7 +610,7 @@ class DecisionEngine:
         if nog_nodig < Decimal("0.1"):
             return False
 
-        self._laden(wh, window, soc, doel_soc, off_grid, eff_charge_kw, reden)
+        self._laden(wh, window, soc, doel_soc, off_grid, eff_charge_kw, reden, reden_params)
         return wh.action == "charge"
 
     def _laden(
@@ -617,11 +622,14 @@ class DecisionEngine:
         off_grid: bool,
         eff_charge_kw: Decimal,
         reden: str = "",
+        reden_params: dict | None = None,
     ) -> None:
         """
         Koppel laadacties aan de goedkoopste beschikbare uren in het venster.
         Assign charging actions to the cheapest available hours in the window.
         """
+        reden_params = reden_params or {}
+
         # Verwijder bestaande niet-uitgevoerde laadacties
         for w in window:
             if w.action == "charge" and not w.executed and not w.is_solar_charge:
@@ -654,11 +662,17 @@ class DecisionEngine:
             kandidaat.action    = "charge"
             kandidaat.power_kw  = eff_charge_kw
             kandidaat.is_solar_charge = False
-            self._set_reason(
-                kandidaat,
-                "RS08" if reden else "RS07",
-                {"price": kandidaat.price_excl, "reason": reden}
-            )
+
+            # Reden bepalen: negatieve prijs > opgegeven reden-sleutel (RS18
+            # nacht / RS19 dag / RS20 opportunistisch) > generieke RS07.
+            # Determine reason: negative price > given reason key (RS18
+            # night / RS19 day / RS20 opportunistic) > generic RS07.
+            if kandidaat.price_excl < 0:
+                self._set_reason(kandidaat, "RS16", {"price": kandidaat.price_excl})
+            elif reden:
+                self._set_reason(kandidaat, reden, {"price": kandidaat.price_excl, **reden_params})
+            else:
+                self._set_reason(kandidaat, "RS07", {"price": kandidaat.price_excl})
             geladen_kwh += eff_charge_kw * self._bat.efficiency
             if geladen_kwh >= tekort_kwh:
                 break
