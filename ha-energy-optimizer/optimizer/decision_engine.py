@@ -2,8 +2,8 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.6
-# altered:       2026-07-16
+# part version:  p_v0.7
+# altered:       2026-07-20
 #
 # Vervangt de combinatie van strategy.py decide() + engine._calculate().
 # Implementeert de 5-stappen beslislogica uit het technisch ontwerp v0.3:
@@ -71,6 +71,7 @@ class PriceConfig:
     vat_pct:        Decimal = Decimal("21")
     hard_min_excl:  Decimal = Decimal("0.05")   # nooit ontladen onder deze prijs
     max_charge_excl: Decimal = Decimal("0.10")  # maximale laadprijs excl. BTW
+    negative_export_threshold_excl: Decimal = Decimal("0")  # exportprijs waaronder net-bijladen i.p.v. exporteren
 
 
 @dataclass
@@ -86,6 +87,7 @@ class WindowHour:
     action:         str   = "idle"
     power_kw:       Decimal = Decimal("0")
     is_solar_charge: bool  = False
+    grid_top_up_kwh: Decimal = Decimal("0")  # net-bijladen bovenop zonoverschot (bij negatieve exportprijs)
     executed:       bool   = False
     reason:         str    = ""
     reason_key:     str    = ""
@@ -154,7 +156,7 @@ class DecisionEngine:
         soc = forecasts[0].soc_pct
 
         # ── Stap 3: Beslisboom per uur ────────────────────────────────────────
-        for wh in window:
+        for idx, wh in enumerate(window):
             if wh.executed:
                 # Al uitgevoerd — SoC bijwerken en doorgaan
                 idle_power = wh.tekort_kwh if wh.action == "idle" else wh.power_kw
@@ -175,14 +177,45 @@ class DecisionEngine:
                     soc = self._update_soc(soc, wh.action, wh.power_kw, eff_discharge_kw)
                     continue
 
-            # Zon-overschot? → laden van zon
+            # Zon-overschot? → laden van zon (evt. aangevuld met net bij negatieve prijs)
             if wh.surplus_kwh > Decimal("0.05"):
-                charge_kw = min(wh.surplus_kwh, eff_charge_kw)
+                grid_top_up = Decimal("0")
+
+                if price < self._price.negative_export_threshold_excl and soc < self._bat.max_soc_pct:
+                    # Exporteren zou hier geld kosten. Kijk hoeveel ruimte er
+                    # NODIG is voor toekomstige uren die ook negatief geprijsd
+                    # zijn met eigen zonoverschot — die ruimte laten we vrij,
+                    # de rest mag nu extra vanaf het net bijgeladen worden
+                    # (ook tegen deze gunstige/negatieve prijs).
+                    #
+                    # Exporting here would cost money. Check how much room is
+                    # NEEDED for future hours that are also negatively priced
+                    # with their own solar surplus — that room stays free,
+                    # the rest may be topped up from the grid now (also at
+                    # this favourable/negative price).
+                    reserve_kwh  = self._reserve_for_future_negative_export(window, idx)
+                    headroom_kwh = (
+                        (self._bat.max_soc_pct - soc) * self._bat.usable_kwh
+                        / 100 / self._bat.efficiency
+                    )
+                    extra_room = max(Decimal("0"), headroom_kwh - reserve_kwh)
+                    grid_top_up = min(extra_room, eff_charge_kw - wh.surplus_kwh)
+                    grid_top_up = max(Decimal("0"), grid_top_up)
+
+                charge_kw = min(wh.surplus_kwh + grid_top_up, eff_charge_kw)
                 if soc < self._bat.max_soc_pct:
-                    wh.action         = "charge"
-                    wh.power_kw       = charge_kw
+                    wh.action          = "charge"
+                    wh.power_kw        = charge_kw
                     wh.is_solar_charge = True
-                    self._set_reason(wh, "RS01", {"surplus_kw": wh.surplus_kwh})
+                    wh.grid_top_up_kwh = grid_top_up
+                    if grid_top_up > Decimal("0.05"):
+                        self._set_reason(wh, "RS12", {
+                            "surplus_kw": wh.surplus_kwh,
+                            "grid_kw":    grid_top_up,
+                            "price":      price
+                        })
+                    else:
+                        self._set_reason(wh, "RS01", {"surplus_kw": wh.surplus_kwh})
                     soc = self._update_soc(soc, "charge", charge_kw, eff_charge_kw)
                     continue
                 else:
@@ -682,7 +715,7 @@ class DecisionEngine:
         for wh in window:
             price_excl = wh.price_excl
             saving = self._calc_saving(wh.action, wh.power_kw, price_excl, wh.is_solar_charge)
-            cost   = self._calc_cost(wh.action, wh.power_kw, price_excl, wh.is_solar_charge)
+            cost   = self._calc_cost(wh.action, wh.power_kw, price_excl, wh.is_solar_charge, wh.grid_top_up_kwh)
 
             slots.append(ScheduleSlot(
                 hour                   = wh.forecast.hour,
@@ -710,6 +743,29 @@ class DecisionEngine:
 
         return slots
 
+    def _reserve_for_future_negative_export(
+        self, window: list["WindowHour"], current_index: int
+    ) -> Decimal:
+        """
+        Som van het verwachte zonoverschot in latere uren die ook onder de
+        negative_export_threshold_excl geprijsd zijn. Deze ruimte houden we
+        nu vrij in de batterij, zodat dat toekomstige overschot niet alsnog
+        gedwongen tegen een negatieve prijs geëxporteerd hoeft te worden.
+
+        Sum of expected solar surplus in later hours that are also priced
+        below negative_export_threshold_excl. We keep this room free in the
+        battery now, so that future surplus doesn't end up being forced to
+        export at a negative price after all.
+        """
+        reserve = Decimal("0")
+        for w in window[current_index + 1:]:
+            if w.executed:
+                continue
+            if (w.price_excl < self._price.negative_export_threshold_excl
+                    and w.surplus_kwh > Decimal("0")):
+                reserve += w.surplus_kwh
+        return reserve
+
     # ── Financiële berekeningen / Financial calculations ──────────────────────
 
     def _calc_saving(
@@ -725,10 +781,19 @@ class DecisionEngine:
 
     def _calc_cost(
         self, action: str, power_kw: Decimal,
-        price_excl: Decimal, is_solar_charge: bool
+        price_excl: Decimal, is_solar_charge: bool,
+        grid_top_up_kwh: Decimal = Decimal("0"),
     ) -> Decimal:
         if action == "charge" and not is_solar_charge:
             cost = power_kw * price_excl
+        elif action == "charge" and is_solar_charge and grid_top_up_kwh > Decimal("0"):
+            # Gemengd uur: alleen het net-bijgeladen deel telt mee (kan bij
+            # een negatieve prijs een negatieve "kost" zijn = opbrengst).
+            # Het zon-deel (power_kw - grid_top_up_kwh) blijft gratis.
+            # Mixed hour: only the grid-topped-up portion counts (can be a
+            # negative "cost" = revenue at a negative price). The solar
+            # portion (power_kw - grid_top_up_kwh) remains free.
+            cost = grid_top_up_kwh * price_excl
         else:
             cost = Decimal("0")
         return cost.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP)
@@ -843,6 +908,7 @@ def build_decision_engine(db: DatabaseConnection) -> DecisionEngine:
         vat_pct        = vat_pct,
         hard_min_excl  = Decimal(str(cfg.get("hard_min_discharge_price_excl") or "0.05")),
         max_charge_excl = max_charge_excl,
+        negative_export_threshold_excl = Decimal(str(cfg.get("negative_export_threshold_excl") or "0")),
     )
 
     return DecisionEngine(db, bat_config, price_config)
