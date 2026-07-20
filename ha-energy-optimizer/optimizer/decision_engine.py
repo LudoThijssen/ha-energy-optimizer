@@ -209,7 +209,7 @@ class DecisionEngine:
                     wh.is_solar_charge = True
                     wh.grid_top_up_kwh = grid_top_up
                     if grid_top_up > Decimal("0.05"):
-                        self._set_reason(wh, "RS12", {
+                        self._set_reason(wh, "RS16", {
                             "surplus_kw": wh.surplus_kwh,
                             "grid_kw":    grid_top_up,
                             "price":      price
