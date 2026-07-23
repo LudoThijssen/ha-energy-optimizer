@@ -1,8 +1,8 @@
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
-# part version:  p_v0.7
-# altered:       2026-07-03
+# part version:  p_v0.8
+# altered:       2026-07-23
 #
 # Optimization engine — orchestrates the full planning cycle.
 # Optimalisatie-engine — orkestreert de volledige planningscyclus.
@@ -10,8 +10,29 @@
 # Two phases / Twee fasen:
 #   1. Evening planning (plan_evening): day balance calculation for tomorrow.
 #      Avondplanning (plan_evening): dagbalansberekening voor morgen.
-#   2. Hourly execution (run): real-time decision per hour.
-#      Uurlijkse uitvoering (run): real-time beslissing per uur.
+#   2. Rolling execution (run): real-time decision per quarter-hour slot.
+#      Rolling uitvoering (run): real-time beslissing per kwartier-slot.
+#
+# p_v0.8: overstap van 48 uur-slots naar 192 kwartier-slots in
+# _build_forecasts(). Twee losstaande fixes hierbij:
+#   - solar_profile/consumption_profile query's gebruikten nog hour_of_day,
+#     terwijl migratie 015 dat al hernoemd heeft naar slot_of_day (dit was
+#     de oorzaak van de "Unknown column 'hour_of_day'"-fout in productie).
+#   - Prijzen (energy_prices) zijn nu nog steeds uur-only via Tibber (volgt
+#     in een volgende batch) — de prijs-lookup valt daarom terug op het hele
+#     uur als er geen exacte kwartier-rij bestaat, zodat dit NU al werkt en
+#     automatisch preciezer wordt zodra Tibber kwartierprijzen levert.
+#
+# p_v0.8: switch from 48 hourly slots to 192 quarter-hour slots in
+# _build_forecasts(). Two separate fixes along the way:
+#   - solar_profile/consumption_profile queries still used hour_of_day,
+#     while migration 015 already renamed that to slot_of_day (this was the
+#     cause of the "Unknown column 'hour_of_day'" production error).
+#   - Prices (energy_prices) are still hour-only via Tibber for now (follows
+#     in a later batch) — the price lookup therefore falls back to the
+#     whole hour when no exact quarter row exists, so this already works
+#     NOW and automatically becomes more precise once Tibber delivers
+#     quarter-hour prices.
 
 import logging
 from datetime import datetime, timedelta, date
@@ -22,8 +43,10 @@ from database.models import OptimizerSlot
 from database.repository import (
     PriceRepository, WeatherRepository,
     BatteryRepository, OptimizerRepository,
+    SolarRepository, HomeConsumptionRepository,
 )
 from config.config import AppConfig
+from config.timeslot import SLOT_MINUTES, SLOT_HOURS, SLOTS_PER_HOUR, slot_start
 from reporter.reporter import Reporter
 from .models import HourForecast, ScheduleSlot
 from .strategy import (
@@ -34,6 +57,12 @@ from .decision_engine import build_decision_engine
 from translations.translator import build_translator
 
 logger = logging.getLogger(__name__)
+
+# Aantal uren vooruit dat wordt voorspeld (blijft 48 uur, ongeacht de
+# schema-tijdstap — het aantal slots dat dit oplevert is 48 × SLOTS_PER_HOUR).
+# Number of hours ahead that get forecast (stays 48 hours, regardless of the
+# schedule time step — the number of slots this yields is 48 × SLOTS_PER_HOUR).
+_FORECAST_HOURS = 48
 
 # Fallback hourly consumption when no historical data is available.
 # Terugvalwaarde voor uurverbruik als er geen historische gegevens zijn.
@@ -58,6 +87,18 @@ class OptimizerEngine:
         self._weather_repo   = WeatherRepository(db)
         self._battery_repo   = BatteryRepository(db)
         self._optimizer_repo = OptimizerRepository(db)
+        # p_v0.8: deze twee ontbraken — _check_forecast_deviation() riep
+        # self._solar_repo/self._consumption_repo al aan zonder dat ze ooit
+        # werden aangemaakt. Dit was een al bestaande, stille fout (de
+        # AttributeError werd opgevangen door de brede except daar en alleen
+        # gelogd als debug). Losstaand van de kwartier-overstap gefixt.
+        # p_v0.8: these two were missing — _check_forecast_deviation()
+        # already called self._solar_repo/self._consumption_repo without
+        # them ever being created. This was a pre-existing, silent bug (the
+        # AttributeError was caught by the broad except there and only
+        # logged as debug). Fixed independently of the quarter-hour switch.
+        self._solar_repo       = SolarRepository(db)
+        self._consumption_repo = HomeConsumptionRepository(db)
         self._tr             = build_translator(db)
 
         # Day balance plan is calculated in the evening and held in memory
@@ -212,13 +253,15 @@ class OptimizerEngine:
         self, actual_soc: Decimal | None = None
     ) -> list[HourForecast]:
         """
-        Build 48-hour forecasts combining price, weather and learning model data.
-        Uses SolarLearner and ConsumptionLearner when data is available,
-        falls back to profile/irradiance/Gauss when not.
+        Build 48-hour forecasts (as quarter-hour slots) combining price,
+        weather and learning model data. Uses SolarLearner and
+        ConsumptionLearner when data is available, falls back to
+        profile/irradiance/Gauss when not.
 
-        Bouw 48-uurs prognoses op basis van prijs-, weer- en leermodelgegevens.
-        Gebruikt SolarLearner en ConsumptionLearner als data beschikbaar is,
-        valt terug op profiel/straling/Gauss als dat niet het geval is.
+        Bouw 48-uurs prognoses (als kwartier-slots) op basis van prijs-,
+        weer- en leermodelgegevens. Gebruikt SolarLearner en
+        ConsumptionLearner als data beschikbaar is, valt terug op
+        profiel/straling/Gauss als dat niet het geval is.
         """
         from collectors.solar_learner import SolarLearner
         from collectors.consumption_learner import ConsumptionLearner
@@ -226,9 +269,15 @@ class OptimizerEngine:
         solar_learner       = SolarLearner(self._db)
         consumption_learner = ConsumptionLearner(self._db)
 
-        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+        now = slot_start(datetime.now())
 
         # Load prices for today and tomorrow / Laad prijzen voor vandaag en morgen
+        # Sleutel is de exacte DB-timestamp — bij Tibber (nog steeds
+        # uur-only, zie module-header) zijn dat hele uren; zodra Tibber
+        # kwartierprijzen levert, staan hier vanzelf kwartier-sleutels in.
+        # Key is the exact DB timestamp — with Tibber (still hour-only, see
+        # module header) these are whole hours; once Tibber delivers
+        # quarter-hour prices, quarter keys will land here automatically.
         prices = {}
         for target_date in [date.today(), date.today() + timedelta(days=1)]:
             with self._db.cursor() as cur:
@@ -241,9 +290,14 @@ class OptimizerEngine:
                     prices[row["price_hour"]] = Decimal(str(row["price_per_kwh"]))
 
         # Load weather forecasts / Laad weersvoorspellingen
+        # Weerdata blijft per uur binnenkomen (bron levert geen kwartier-
+        # resolutie) — lookup gebeurt daarom hieronder per hele-uur-sleutel.
+        # Weather data still arrives per hour (source doesn't provide
+        # quarter-hour resolution) — lookup below is therefore keyed by the
+        # whole hour.
         weather = {
             w.forecast_for: w
-            for w in self._weather_repo.get_forecast(now, hours=48)
+            for w in self._weather_repo.get_forecast(now, hours=_FORECAST_HOURS)
         }
 
         # Rolling horizon: use actual SoC if available, otherwise fall back to DB
@@ -262,30 +316,49 @@ class OptimizerEngine:
 
         # Load legacy solar/consumption profiles as fallback
         # Laad legacy zon/verbruiksprofielen als terugval
+        # p_v0.8: hour_of_day → slot_of_day (migratie 015) — dit was de kolom
+        # die in productie "Unknown column" opleverde.
+        # p_v0.8: hour_of_day → slot_of_day (migration 015) — this was the
+        # column that caused "Unknown column" in production.
         solar_profile = {}
         consumption_profile = {}
         with self._db.cursor() as cur:
             cur.execute("""
-                SELECT hour_of_day, avg_kw
+                SELECT slot_of_day, avg_kw
                 FROM solar_profile
                 WHERE month = %(month)s
             """, {"month": now.month})
             for row in cur.fetchall():
-                solar_profile[row["hour_of_day"]] = Decimal(str(row["avg_kw"]))
+                solar_profile[row["slot_of_day"]] = Decimal(str(row["avg_kw"]))
 
             cur.execute("""
-                SELECT hour_of_day, avg_kw
+                SELECT slot_of_day, avg_kw
                 FROM consumption_profile
                 WHERE day_of_week = %(dow)s
             """, {"dow": now.weekday()})
             for row in cur.fetchall():
-                consumption_profile[row["hour_of_day"]] = Decimal(str(row["avg_kw"]))
+                consumption_profile[row["slot_of_day"]] = Decimal(str(row["avg_kw"]))
 
         forecasts = []
-        for offset in range(48):
-            hour      = now + timedelta(hours=offset)
-            price     = prices.get(hour)
-            weather_h = weather.get(hour)
+        total_slots = _FORECAST_HOURS * SLOTS_PER_HOUR
+        for offset in range(total_slots):
+            slot_dt   = now + timedelta(minutes=SLOT_MINUTES * offset)
+            slot_idx  = slot_dt.hour * SLOTS_PER_HOUR + slot_dt.minute // SLOT_MINUTES
+
+            # Prijs: exacte match, anders terugval op het hele uur van dit
+            # slot (zie toelichting hierboven bij het laden van prices).
+            # Price: exact match, otherwise fall back to the whole hour of
+            # this slot (see explanation above where prices are loaded).
+            price = prices.get(slot_dt)
+            if price is None:
+                price = prices.get(slot_dt.replace(minute=0, second=0, microsecond=0))
+
+            # Weer: altijd op het hele uur opgeslagen, dus lookup op het
+            # afgeronde uur van dit slot.
+            # Weather: always stored on the hour, so look up this slot's
+            # rounded-down hour.
+            weather_h = weather.get(slot_dt.replace(minute=0, second=0, microsecond=0))
+
             if not price:
                 continue
 
@@ -296,13 +369,15 @@ class OptimizerEngine:
 
             if weather_h and weather_h.solar_irradiance_wm2:
                 irr = float(weather_h.solar_irradiance_wm2)
-                learned_kwh = solar_learner.predict(hour, irr)
+                learned_kwh = solar_learner.predict(slot_dt, irr)
                 if learned_kwh > 0:
-                    # Leermodel geeft kWh per uur — direct bruikbaar
-                    # Learning model gives kWh per hour — directly usable
+                    # Leermodel geeft een gemiddeld vermogen (kW) terug —
+                    # onafhankelijk van de slot-lengte, direct bruikbaar.
+                    # Learning model returns an average power (kW) —
+                    # independent of slot length, directly usable.
                     solar_kw = Decimal(str(learned_kwh)).quantize(Decimal("0.001"))
                     logger.debug(
-                        f"[optimizer] {hour.strftime('%H:%M')} solar from learner: "
+                        f"[optimizer] {slot_dt.strftime('%H:%M')} solar from learner: "
                         f"{solar_kw} kW (irr={irr:.0f} W/m²)"
                     )
                 else:
@@ -312,10 +387,10 @@ class OptimizerEngine:
                         weather_h.solar_irradiance_wm2 * _WM2_TO_KW_FACTOR
                     ).quantize(Decimal("0.001"))
 
-            elif solar_profile.get(hour.hour, Decimal("0")) > 0:
+            elif solar_profile.get(slot_idx, Decimal("0")) > 0:
                 # Geen weerdata — gebruik legacy profiel met bewolkingscorrectie
                 # No weather data — use legacy profile with cloud correction
-                profile_kw = solar_profile[hour.hour]
+                profile_kw = solar_profile[slot_idx]
                 if weather_h and weather_h.cloud_cover_pct is not None:
                     cloud_factor = max(
                         Decimal("0.15"),
@@ -328,25 +403,33 @@ class OptimizerEngine:
             # ── Consumption forecast / Verbruiksverwachting ─────────────────
             # Prioriteit: 1) ConsumptionLearner 2) legacy profiel 3) fallback
             # Priority:   1) ConsumptionLearner 2) legacy profile 3) fallback
-            learned_cons = consumption_learner.predict(hour)
+            learned_cons = consumption_learner.predict(slot_dt)
             if learned_cons > 0:
-                # Leermodel geeft kWh per 5-min interval — omrekenen naar kW (× 12)
-                # Learning model gives kWh per 5-min interval — convert to kW (× 12)
-                # kWh/interval × 12 intervals/uur = kWh/uur = kW
-                consumption_kw = Decimal(str(learned_cons * 12)).quantize(
+                # Leermodel geeft kWh per 5-min meetinterval — omrekenen naar
+                # een gemiddeld vermogen (kW) × MEASUREMENTS_PER_HOUR. Deze
+                # factor hangt af van het meetinterval, niet van de
+                # schema-tijdstap, en blijft dus ongewijzigd (zie
+                # config/timeslot.py en solar_learner.py/predict()).
+                # Learning model gives kWh per 5-min measurement interval —
+                # convert to an average power (kW) × MEASUREMENTS_PER_HOUR.
+                # This factor depends on the measurement interval, not the
+                # schedule time step, and stays unchanged (see
+                # config/timeslot.py and solar_learner.py/predict()).
+                from config.timeslot import MEASUREMENTS_PER_HOUR
+                consumption_kw = Decimal(str(learned_cons * MEASUREMENTS_PER_HOUR)).quantize(
                     Decimal("0.001")
                 )
                 logger.debug(
-                    f"[optimizer] {hour.strftime('%H:%M')} consumption from learner: "
+                    f"[optimizer] {slot_dt.strftime('%H:%M')} consumption from learner: "
                     f"{consumption_kw} kW"
                 )
             else:
                 consumption_kw = consumption_profile.get(
-                    hour.hour, _FALLBACK_CONSUMPTION_KW
+                    slot_idx, _FALLBACK_CONSUMPTION_KW
                 )
 
             forecasts.append(HourForecast(
-                hour=hour,
+                hour=slot_dt,
                 price_per_kwh=price,
                 solar_kw=solar_kw,
                 consumption_kw=consumption_kw,
@@ -359,7 +442,7 @@ class OptimizerEngine:
         Get remaining hours' prices for tonight (for day balance planning).
         Haal resterende uurprijzen van vanavond op (voor dagbalansplanning).
         """
-        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+        now = slot_start(datetime.now())
         midnight = now.replace(hour=23, minute=59)
 
         with self._db.cursor() as cur:
@@ -390,7 +473,7 @@ class OptimizerEngine:
         _DEVIATION_THRESHOLD_PCT = Decimal("10")  # warn above 10% deviation
 
         try:
-            now = datetime.now().replace(minute=0, second=0, microsecond=0)
+            now = slot_start(datetime.now())
             with self._db.cursor() as cur:
                 cur.execute("""
                     SELECT target_soc_pct FROM optimizer_schedule
@@ -432,17 +515,30 @@ class OptimizerEngine:
         _CONSUMPTION_DEVIATION_KW = Decimal("0.5")
 
         try:
-            from datetime import timedelta
-            last_hour = datetime.now().replace(
-                minute=0, second=0, microsecond=0
-            ) - timedelta(hours=1)
+            # p_v0.8: laatste SLOT i.p.v. laatste heel uur — met kwartier-
+            # schema staat er nu elk kwartier een rij in optimizer_schedule.
+            # LET OP: get_average_power_for_hour() in repository.py middelt
+            # nog over een heel uur (60 min venster). Dat moet in de
+            # database.py-batch nog aangepast worden naar een
+            # SLOT_MINUTES-venster, anders wordt hier een kwartier-prognose
+            # vergeleken met een uur-gemiddelde — functioneel niet fout
+            # (geeft geen foutmelding), maar wel minder precies dan bedoeld.
+            # p_v0.8: last SLOT instead of last whole hour — with a quarter
+            # schedule there's now a row in optimizer_schedule every quarter.
+            # NOTE: get_average_power_for_hour() in repository.py still
+            # averages over a full hour (60 min window). That still needs
+            # updating to a SLOT_MINUTES window in the database.py batch,
+            # otherwise a quarter-hour forecast gets compared against an
+            # hourly average here — not broken (no error), just less
+            # precise than intended.
+            last_slot = slot_start(datetime.now()) - timedelta(minutes=SLOT_MINUTES)
 
             with self._db.cursor() as cur:
                 cur.execute(
                     "SELECT expected_solar_kw, expected_consumption_kw "
                     "FROM optimizer_schedule "
                     "WHERE schedule_for = %(hour)s LIMIT 1",
-                    {"hour": last_hour}
+                    {"hour": last_slot}
                 )
                 planned = cur.fetchone()
 
@@ -452,8 +548,8 @@ class OptimizerEngine:
             planned_solar = Decimal(str(planned["expected_solar_kw"] or 0))
             planned_cons  = Decimal(str(planned["expected_consumption_kw"] or 0))
 
-            solar_actual = self._solar_repo.get_average_power_for_hour(last_hour)
-            cons_actual  = self._consumption_repo.get_average_power_for_hour(last_hour)
+            solar_actual = self._solar_repo.get_average_power_for_hour(last_slot)
+            cons_actual  = self._consumption_repo.get_average_power_for_hour(last_slot)
 
             deviations = []
 
@@ -464,7 +560,7 @@ class OptimizerEngine:
                     dir_nl = "lager" if solar_actual < planned_solar else "hoger"
                     dir_en = "lower" if solar_actual < planned_solar else "higher"
                     deviations.append(
-                        f"Zonopbrengst {last_hour.strftime('%H:%M')}: "
+                        f"Zonopbrengst {last_slot.strftime('%H:%M')}: "
                         f"verwacht {planned_solar:.2f} kW, "
                         f"gemeten {solar_actual:.2f} kW ({pct}% {dir_nl}). "
                         f"Solar: expected {planned_solar:.2f} kW, "
@@ -478,7 +574,7 @@ class OptimizerEngine:
                     dir_nl = "lager" if cons_actual < planned_cons else "hoger"
                     dir_en = "lower" if cons_actual < planned_cons else "higher"
                     deviations.append(
-                        f"Verbruik {last_hour.strftime('%H:%M')}: "
+                        f"Verbruik {last_slot.strftime('%H:%M')}: "
                         f"verwacht {planned_cons:.2f} kW, "
                         f"gemeten {cons_actual:.2f} kW ({pct}% {dir_nl}). "
                         f"Consumption: expected {planned_cons:.2f} kW, "
@@ -494,7 +590,7 @@ class OptimizerEngine:
                 logger.info(f"[optimizer] Forecast deviation: {msg}")
             else:
                 logger.debug(
-                    f"[optimizer] Forecast check {last_hour.strftime('%H:%M')}: "
+                    f"[optimizer] Forecast check {last_slot.strftime('%H:%M')}: "
                     "no significant deviation / geen significante afwijking"
                 )
 
@@ -594,15 +690,22 @@ class OptimizerEngine:
         strategy: Strategy,
     ) -> Decimal:
         """
-        Estimate SoC after one hour of the given action.
-        Schat laadtoestand na één uur van de opgegeven actie.
+        Estimate SoC after one schedule slot of the given action.
+        Schat laadtoestand na één schema-slot van de opgegeven actie.
+
+        p_v0.8: × SLOT_HOURS toegevoegd — dit is het strategy.py-fallbackpad
+        (gebruikt als DecisionEngine een fout geeft), zelfde correctie als
+        DecisionEngine._update_soc voor consistentie.
+        p_v0.8: × SLOT_HOURS added — this is the strategy.py fallback path
+        (used when DecisionEngine errors out), same correction as
+        DecisionEngine._update_soc for consistency.
         """
         kwh = strategy.usable_capacity_kwh
         if action == "charge":
-            delta = power_kw * strategy.efficiency / kwh * 100
+            delta = power_kw * strategy.efficiency * SLOT_HOURS / kwh * 100
             return min(current_soc + delta, strategy.max_soc)
         elif action == "discharge":
-            delta = power_kw / strategy.efficiency / kwh * 100
+            delta = power_kw / strategy.efficiency * SLOT_HOURS / kwh * 100
             return max(current_soc - delta, strategy.min_soc)
         # self_consume = battery full, surplus exported — SoC unchanged
         # self_consume = batterij vol, overschot teruggeleverd — SoC ongewijzigd
@@ -731,3 +834,4 @@ class OptimizerEngine:
         )
         self._reporter.info(msg, category="optimizer")
         logger.info(f"[optimizer] {msg}")
+
