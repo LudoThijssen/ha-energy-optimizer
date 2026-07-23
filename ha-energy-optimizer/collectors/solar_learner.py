@@ -2,16 +2,28 @@
 # name:          solar_learner.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/solar_learner.py
-# part version:  p_v0.6
-# altered:       2026-07-17
+# part version:  p_v0.7
+# altered:       2026-07-22
 #
 # Leert de relatie tussen instraling (W/m²) en werkelijke zonopbrengst (kWh)
 # voor deze specifieke installatie. Wordt aangeroepen na elke meting.
 # Gebruikt de solar_learning tabel als persistente opslag.
 #
+# p_v0.7: hour_of_day (0-23) vervangen door slot_of_day (0-95, kwartier-
+# resolutie) — zie migratie 015. De ×MEASUREMENTS_PER_HOUR-omrekening blijft
+# ONGEWIJZIGD: die hangt af van het 5-minuten MEETinterval van ha_collector,
+# niet van de schema-tijdstap (kwartier), dus de eerdere fix voor de
+# 12×-te-lage voorspelling (zie predict()) blijft correct staan.
+#
 # Learns the relationship between irradiance (W/m²) and actual solar yield (kWh)
 # for this specific installation. Called after each measurement.
 # Uses the solar_learning table as persistent storage.
+#
+# p_v0.7: hour_of_day (0-23) replaced by slot_of_day (0-95, quarter-hour
+# resolution) — see migration 015. The ×MEASUREMENTS_PER_HOUR conversion
+# stays UNCHANGED: it depends on ha_collector's 5-minute MEASUREMENT
+# interval, not the schedule time step (quarter hour), so the earlier fix
+# for the 12×-too-low forecast (see predict()) remains correct as-is.
 
 import logging
 import math
@@ -19,6 +31,7 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from database.connection import DatabaseConnection
+from config.timeslot import slot_of_day, SLOTS_PER_DAY, MEASUREMENTS_PER_HOUR
 
 log = logging.getLogger(__name__)
 
@@ -31,14 +44,14 @@ _GAUSS_PEAK_KWH = 2.0
 class SolarLearner:
     """
     Leersysteem voor zon-efficiëntie.
-    Slaat laagste en hoogste instraling/opbrengst-paren op per uur × week-blok.
-    Na voldoende metingen kan lineaire interpolatie de verwachte opbrengst
-    bepalen bij een gegeven instraling-voorspelling.
+    Slaat laagste en hoogste instraling/opbrengst-paren op per kwartier-slot
+    × week-blok. Na voldoende metingen kan lineaire interpolatie de
+    verwachte opbrengst bepalen bij een gegeven instraling-voorspelling.
 
     Solar efficiency learning system.
-    Stores lowest and highest irradiance/yield pairs per hour × week block.
-    After sufficient measurements, linear interpolation can determine the
-    expected yield for a given irradiance forecast.
+    Stores lowest and highest irradiance/yield pairs per quarter-hour slot
+    × week block. After sufficient measurements, linear interpolation can
+    determine the expected yield for a given irradiance forecast.
     """
 
     def __init__(self, db: DatabaseConnection):
@@ -63,13 +76,13 @@ class SolarLearner:
             dt:             tijdstip van de meting / measurement timestamp
             solar_kwh:      gemeten zonopbrengst in DIT MEETINTERVAL (kWh) —
                              in de praktijk 5 minuten, dus interval_h × power_kw,
-                             NIET het uurtotaal. De aanroeper (engine.py) moet
-                             dit terugrekenen naar kW/uur (× 12 bij 5-min interval).
+                             NIET het uurtotaal. De aanroeper (ha_collector.py)
+                             heeft dit al teruggerekend naar dit meetinterval.
                              measured solar yield in THIS MEASUREMENT INTERVAL
                              (kWh) — in practice 5 minutes, i.e. interval_h ×
                              power_kw, NOT the hourly total. The caller
-                             (engine.py) must convert this to kW/hour
-                             (× 12 for a 5-min interval).
+                             (ha_collector.py) has already converted this to
+                             this measurement interval.
             irradiance_wm2: gemeten instraling (W/m²) / measured irradiance (W/m²)
         """
         # Nulwaarden negeren — nacht of volledig bewolkt
@@ -77,7 +90,7 @@ class SolarLearner:
         if solar_kwh <= 0 or irradiance_wm2 <= 0:
             return
 
-        hour  = dt.hour
+        slot  = slot_of_day(dt)
         block = self.week_block(dt)
 
         try:
@@ -87,15 +100,15 @@ class SolarLearner:
                     "SELECT irradiance_low, irradiance_high, "
                     "solar_kwh_low, solar_kwh_high, sample_count "
                     "FROM solar_learning "
-                    "WHERE hour_of_day = %(h)s AND week_block = %(b)s",
-                    {"h": hour, "b": block}
+                    "WHERE slot_of_day = %(s)s AND week_block = %(b)s",
+                    {"s": slot, "b": block}
                 )
                 row = cur.fetchone()
 
                 if row is None or row["sample_count"] == 0:
                     # Eerste meting voor dit slot — bootstrap vanuit vorig blok
                     # First measurement for this slot — bootstrap from previous block
-                    bootstrap = self._get_bootstrap(hour, block)
+                    bootstrap = self._get_bootstrap(slot, block)
 
                     if bootstrap:
                         # Voeg bootstrap-gewicht toe (3×) zodat nieuw slot
@@ -118,41 +131,39 @@ class SolarLearner:
 
                     cur.execute(
                         "INSERT INTO solar_learning "
-                        "(hour_of_day, week_block, irradiance_low, irradiance_high, "
+                        "(slot_of_day, week_block, irradiance_low, irradiance_high, "
                         "solar_kwh_low, solar_kwh_high, sample_count) "
-                        "VALUES (%(h)s, %(b)s, %(il)s, %(ih)s, %(kl)s, %(kh)s, %(c)s) "
+                        "VALUES (%(s)s, %(b)s, %(il)s, %(ih)s, %(kl)s, %(kh)s, %(c)s) "
                         "ON DUPLICATE KEY UPDATE "
-                        "irradiance_low  = %(il)s, irradiance_high = %(ih)s, "
-                        "solar_kwh_low   = %(kl)s, solar_kwh_high  = %(kh)s, "
-                        "sample_count    = %(c)s",
-                        {"h": hour, "b": block,
-                         "il": irr_low, "ih": irr_high,
-                         "kl": kwh_low, "kh": kwh_high,
+                        "irradiance_low = %(il)s, irradiance_high = %(ih)s, "
+                        "solar_kwh_low = %(kl)s, solar_kwh_high = %(kh)s, "
+                        "sample_count = %(c)s",
+                        {"s": slot, "b": block,
+                         "il": round(irr_low, 3), "ih": round(irr_high, 3),
+                         "kl": round(kwh_low, 4), "kh": round(kwh_high, 4),
                          "c": count}
                     )
                 else:
-                    # Bestaand slot bijwerken — min/max uitbreiden
-                    # Update existing slot — extend min/max range
-                    new_irr_low  = min(float(row["irradiance_low"]),  float(irradiance_wm2))
-                    new_irr_high = max(float(row["irradiance_high"]), float(irradiance_wm2))
-                    new_kwh_low  = min(float(row["solar_kwh_low"]),   float(solar_kwh))
-                    new_kwh_high = max(float(row["solar_kwh_high"]),  float(solar_kwh))
-                    new_count    = row["sample_count"] + 1
+                    irr_low  = min(float(row["irradiance_low"]),  float(irradiance_wm2))
+                    irr_high = max(float(row["irradiance_high"]), float(irradiance_wm2))
+                    kwh_low  = min(float(row["solar_kwh_low"]),   float(solar_kwh))
+                    kwh_high = max(float(row["solar_kwh_high"]),  float(solar_kwh))
+                    count    = row["sample_count"] + 1
 
                     cur.execute(
                         "UPDATE solar_learning SET "
                         "irradiance_low = %(il)s, irradiance_high = %(ih)s, "
-                        "solar_kwh_low  = %(kl)s, solar_kwh_high  = %(kh)s, "
-                        "sample_count   = %(c)s "
-                        "WHERE hour_of_day = %(h)s AND week_block = %(b)s",
-                        {"il": new_irr_low, "ih": new_irr_high,
-                         "kl": new_kwh_low, "kh": new_kwh_high,
-                         "c": new_count,
-                         "h": hour, "b": block}
+                        "solar_kwh_low = %(kl)s, solar_kwh_high = %(kh)s, "
+                        "sample_count = %(c)s "
+                        "WHERE slot_of_day = %(s)s AND week_block = %(b)s",
+                        {"s": slot, "b": block,
+                         "il": round(irr_low, 3), "ih": round(irr_high, 3),
+                         "kl": round(kwh_low, 4), "kh": round(kwh_high, 4),
+                         "c": count}
                     )
 
                 log.debug(
-                    f"[solar_learner] uur={hour} blok={block} "
+                    f"[solar_learner] slot={slot} blok={block} "
                     f"irr={irradiance_wm2:.1f}W/m² kwh={solar_kwh:.4f} "
                     f"count={row['sample_count'] + 1 if row else 1}"
                 )
@@ -160,25 +171,27 @@ class SolarLearner:
         except Exception as e:
             log.warning(f"[solar_learner] Update mislukt / Update failed: {e}")
 
-    def predict(self, dt: datetime, irradiance_wm2: float) -> float:
+    def predict(self, dt: datetime, irradiance_wm2: Decimal) -> float:
         """
-        Voorspel de zonopbrengst (kWh) voor een gegeven instraling en tijdstip.
-        Predict solar yield (kWh) for a given irradiance and timestamp.
+        Voorspel het gemiddelde vermogen (kW) voor een gegeven tijdstip en
+        instraling, op basis van het geleerde slot × week-blok.
 
-        Let op: geeft de opbrengst voor ÉÉN meetinterval terug (in de praktijk
-        5 minuten, zoals de trainingsdata via ha_collector), NIET het uurtotaal.
-        De aanroeper moet dit zelf omrekenen (× 12 bij een 5-minuten-interval) —
-        zie de verbruiksvoorspelling in engine.py voor het equivalente patroon.
-        Note: returns the yield for ONE measurement interval (in practice
-        5 minutes, matching how the training data arrives via ha_collector),
-        NOT the hourly total. The caller must convert this itself (× 12 for
-        a 5-minute interval) — see the consumption forecast in engine.py for
-        the equivalent pattern.
+        Predict the average power (kW) for a given timestamp and irradiance,
+        based on the learned slot × week block.
+
+        Let op: retourneert de opbrengst omgerekend naar een GEMIDDELD
+        VERMOGEN (kW) — dit is onafhankelijk van de schema-tijdstap (uur of
+        kwartier) en hoeft dus niet aangepast te worden als SLOT_MINUTES
+        verandert. De aanroeper gebruikt dit rechtstreeks als solar_kw.
+        Note: returns the yield converted to an AVERAGE POWER (kW) — this is
+        independent of the schedule time step (hour or quarter) and does
+        not need adjustment if SLOT_MINUTES changes. The caller uses this
+        directly as solar_kw.
 
         Returns 0.0 als er nog geen data beschikbaar is.
         Returns 0.0 if no data is available yet.
         """
-        hour  = dt.hour
+        slot  = slot_of_day(dt)
         block = self.week_block(dt)
 
         try:
@@ -187,8 +200,8 @@ class SolarLearner:
                     "SELECT irradiance_low, irradiance_high, "
                     "solar_kwh_low, solar_kwh_high, sample_count "
                     "FROM solar_learning "
-                    "WHERE hour_of_day = %(h)s AND week_block = %(b)s",
-                    {"h": hour, "b": block}
+                    "WHERE slot_of_day = %(s)s AND week_block = %(b)s",
+                    {"s": slot, "b": block}
                 )
                 row = cur.fetchone()
 
@@ -203,11 +216,9 @@ class SolarLearner:
             kwh_high = float(row["solar_kwh_high"])
 
             if irr_high <= irr_low:
-                # Enkel datapunt — gebruik de bekende waarde (× 12, zie toelichting
-                # hieronder bij de interpolatie-tak)
-                # Single data point — use the known value (× 12, see explanation
-                # below at the interpolation branch)
-                return kwh_low * 12
+                # Enkel datapunt — gebruik de bekende waarde
+                # Single data point — use the known value
+                return kwh_low * MEASUREMENTS_PER_HOUR
 
             # Lineaire interpolatie, geclamped op [0, 1]
             # Linear interpolation, clamped to [0, 1]
@@ -216,22 +227,19 @@ class SolarLearner:
             interval_kwh = kwh_low + factor * (kwh_high - kwh_low)
 
             # kwh_low/kwh_high zijn opgeslagen als 5-minuten-energieschijfjes
-            # (zie update() — ha_collector voedt dit per meetinterval, niet
-            # per uur). Omrekenen × 12 zodat predict() ALTIJD een uurwaarde
-            # teruggeeft, consistent met de Gauss-fallback hierboven
-            # (_GAUSS_PEAK_KWH is expliciet "per uur"). Zonder deze correctie
-            # was de voorspelling ~12× te laag zodra er genoeg leerdata was
-            # om van de Gauss-fallback over te schakelen naar interpolatie.
+            # (zie update() — ha_collector voedt dit per meetinterval). Omrekenen
+            # × MEASUREMENTS_PER_HOUR (12 bij 5 min) zodat predict() ALTIJD een
+            # gemiddeld vermogen (kW) teruggeeft, consistent met de Gauss-fallback
+            # hierboven. Deze factor hangt af van het meetinterval, NIET van de
+            # schema-tijdstap — blijft dus ongewijzigd bij overstap naar kwartier.
             #
             # kwh_low/kwh_high are stored as 5-minute energy slices (see
-            # update() — ha_collector feeds this per measurement interval,
-            # not per hour). Convert × 12 so predict() ALWAYS returns an
-            # hourly value, consistent with the Gauss fallback above
-            # (_GAUSS_PEAK_KWH is explicitly "per hour"). Without this
-            # correction the forecast was ~12x too low once there was
-            # enough learned data to switch from the Gauss fallback to
-            # interpolation.
-            return interval_kwh * 12
+            # update() — ha_collector feeds this per measurement interval).
+            # Convert × MEASUREMENTS_PER_HOUR (12 at 5 min) so predict() ALWAYS
+            # returns an average power (kW), consistent with the Gauss fallback
+            # above. This factor depends on the measurement interval, NOT the
+            # schedule time step — stays unchanged when switching to quarter hour.
+            return interval_kwh * MEASUREMENTS_PER_HOUR
 
         except Exception as e:
             log.warning(f"[solar_learner] Voorspelling mislukt / Prediction failed: {e}")
@@ -247,12 +255,19 @@ class SolarLearner:
         fetched from the weather_forecast table.
         Automatically accounts for daylight saving time and season.
 
+        Gebruikt fractionele uren (incl. minuten) zodat kwartier-slots ook
+        binnen hetzelfde uur een vloeiende curve krijgen i.p.v. een vlakke
+        stap-functie per heel uur.
+        Uses fractional hours (incl. minutes) so quarter slots within the
+        same hour also get a smooth curve instead of a flat per-hour
+        step function.
+
         Returns 0.0 buiten zonsopkomst/ondergang — nooit negatief.
         Returns 0.0 outside sunrise/sunset — never negative.
         """
         sunrise_hour, sunset_hour = self._get_sun_hours(dt)
 
-        hour = dt.hour
+        hour = dt.hour + dt.minute / 60
         # Buiten zonlicht: altijd 0 / Outside daylight: always 0
         if hour < sunrise_hour or hour >= sunset_hour:
             return 0.0
@@ -322,7 +337,7 @@ class SolarLearner:
         }
         return seasonal.get(month, (6, 20))
 
-    def _get_bootstrap(self, hour: int, block: int) -> dict | None:
+    def _get_bootstrap(self, slot: int, block: int) -> dict | None:
         """
         Haal het vorige vergelijkbare slot op als bootstrap-startwaarde.
         Fetch the previous comparable slot as bootstrap starting value.
@@ -336,9 +351,9 @@ class SolarLearner:
                     "SELECT irradiance_low, irradiance_high, "
                     "solar_kwh_low, solar_kwh_high, sample_count "
                     "FROM solar_learning "
-                    "WHERE hour_of_day = %(h)s AND week_block = %(b)s "
+                    "WHERE slot_of_day = %(s)s AND week_block = %(b)s "
                     "AND sample_count > 0",
-                    {"h": hour, "b": prev_block}
+                    {"s": slot, "b": prev_block}
                 )
                 return cur.fetchone()
         except Exception:

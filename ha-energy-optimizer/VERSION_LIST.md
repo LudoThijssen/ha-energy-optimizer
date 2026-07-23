@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v2.6
-# altered:       2026-07-20
+# part version:  p_v2.7
+# altered:       2026-07-23
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v2.6 | 2026-07-20 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v2.7 | 2026-07-23 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -19,20 +19,21 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v2.6 | 2026-07-20 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v2.7 | 2026-07-23 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
-| consumption_learner.py | /ha-energy-optimizer/collectors/consumption_learner.py | p_v0.5 | 2026-06-28 |
+| consumption_learner.py | /ha-energy-optimizer/collectors/consumption_learner.py | p_v0.6 | 2026-07-22 |
 | ha_collector.py | /ha-energy-optimizer/collectors/ha_collector.py | p_v0.5 | 2026-07-05 |
 | price_collector.py | /ha-energy-optimizer/collectors/price_collector.py | p_v0.3 | 2026-06-21 |
-| profile_updater.py | /ha-energy-optimizer/collectors/profile_updater.py | p_v0.3 | 2026-06-21 |
-| solar_learner.py | /ha-energy-optimizer/collectors/solar_learner.py | p_v0.6 | 2026-07-17 |
+| profile_updater.py | /ha-energy-optimizer/collectors/profile_updater.py | p_v0.4 | 2026-07-22 |
+| solar_learner.py | /ha-energy-optimizer/collectors/solar_learner.py | p_v0.7 | 2026-07-22 |
 | weather_collector.py | /ha-energy-optimizer/collectors/weather_collector.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/config
 | __init__.py | /ha-energy-optimizer/config/__init__.py | p_v0.3 | 2026-06-21 |
 | config.py | /ha-energy-optimizer/config/config.py | p_v0.3 | 2026-06-21 |
 | internal_sensors.json | /ha-energy-optimizer/config/internal_sensors.json | p_v0.3 | 2026-06-21 |
+| timeslot.py | /ha-energy-optimizer/config/timeslot.py | p_v0.1 | 2026-07-22 |
 | validators.py | /ha-energy-optimizer/config/validators.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/database
 | __init__.py | /ha-energy-optimizer/database/__init__.py | p_v0.3 | 2026-06-21 |
@@ -55,6 +56,7 @@
 | 012_consumption_learning.sql | /ha-energy-optimizer/database/migrations/012_consumption_learning.sql | p_v0.4 | 2026-06-26 |
 | 013_translation_strings.sql | /ha-energy-optimizer/database/migrations/013_translation_strings.sql | p_v0.4 | 2026-07-01 |
 | 014_reason_key.sql | /ha-energy-optimizer/database/migrations/014_reason_key.sql | p_v0.4 | 2026-07-01 |
+| 015_quarter_hour_slots.sql | /ha-energy-optimizer/database/migrations/015_quarter_hour_slots.sql | p_v0.1 | 2026-07-22 |
 | README.md | /ha-energy-optimizer/database/migrations/README.md | p_v2.0 | 2026-07-16 |
 # ha-energy-optimizer/gui
 | __init__.py | /ha-energy-optimizer/gui/__init__.py | p_v0.3 | 2026-06-21 |

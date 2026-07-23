@@ -2,16 +2,26 @@
 # name:          consumption_learner.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/consumption_learner.py
-# part version:  p_v0.5
-# altered:       2026-06-28
+# part version:  p_v0.6
+# altered:       2026-07-22
 #
-# Leert het typische huisverbruik per uur, dag van de week en maand.
+# Leert het typische huisverbruik per kwartier-slot, dag van de week en maand.
 # Gebruikt rollend gewogen gemiddelde met bootstrap vanuit vorige vergelijkbare slot.
 # Wordt aangeroepen na elke meting in ha_collector.py.
 #
-# Learns typical household consumption per hour, day of week and month.
-# Uses rolling weighted average with bootstrap from previous comparable slot.
-# Called after each measurement in ha_collector.py.
+# p_v0.6: hour_of_day (0-23) vervangen door slot_of_day (0-95, kwartier-
+# resolutie) — zie migratie 015. Verbruik kan binnen één uur sterk pieken
+# (wasmachine, kookplaat), dus dit is de plek waar kwartier-resolutie het
+# meeste oplevert t.o.v. de oude uur-buckets.
+#
+# Learns typical household consumption per quarter-hour slot, day of week
+# and month. Uses rolling weighted average with bootstrap from previous
+# comparable slot. Called after each measurement in ha_collector.py.
+#
+# p_v0.6: hour_of_day (0-23) replaced by slot_of_day (0-95, quarter-hour
+# resolution) — see migration 015. Consumption can spike sharply within a
+# single hour (washing machine, stove), so this is where quarter-hour
+# resolution helps most compared to the old hourly buckets.
 
 import logging
 import math
@@ -19,6 +29,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from database.connection import DatabaseConnection
+from config.timeslot import slot_of_day, SLOTS_PER_HOUR
 
 log = logging.getLogger(__name__)
 
@@ -42,12 +53,17 @@ _GAUSS_NIGHT_KWH  = 0.004   # basisverbruik 's nachts / base consumption at nigh
 _BOOTSTRAP_WEIGHT = 3       # gewicht van vorig slot bij bootstrap / weight of previous slot
 
 
-def _gauss_fallback(hour: int) -> float:
+def _gauss_fallback(hour_fractional: float) -> float:
     """
-    Gauss-curve voor initiële verbruiksschatting per uur.
-    Gauss curve for initial consumption estimate per hour.
+    Gauss-curve voor initiële verbruiksschatting op basis van fractioneel uur
+    (incl. minuten), zodat kwartier-slots binnen hetzelfde uur ook een
+    vloeiende curve krijgen i.p.v. een vlakke stap-functie per heel uur.
+
+    Gauss curve for initial consumption estimate based on fractional hour
+    (incl. minutes), so quarter slots within the same hour also get a
+    smooth curve instead of a flat per-hour step function.
     """
-    x = hour - _GAUSS_PEAK_HOUR
+    x = hour_fractional - _GAUSS_PEAK_HOUR
     return _GAUSS_NIGHT_KWH + (_GAUSS_PEAK_KWH - _GAUSS_NIGHT_KWH) * math.exp(
         -(x ** 2) / (2 * _GAUSS_SIGMA ** 2)
     )
@@ -56,11 +72,11 @@ def _gauss_fallback(hour: int) -> float:
 class ConsumptionLearner:
     """
     Leersysteem voor huisverbruik.
-    2.016 slots: 12 maanden × 7 dagen × 24 uur.
+    8.064 slots: 12 maanden × 7 dagen × 96 kwartier-slots.
     Rollend gewogen gemiddelde met gewogen bootstrap vanuit vorig vergelijkbaar slot.
 
     Household consumption learning system.
-    2,016 slots: 12 months × 7 days × 24 hours.
+    8,064 slots: 12 months × 7 days × 96 quarter-hour slots.
     Rolling weighted average with weighted bootstrap from previous comparable slot.
     """
 
@@ -84,7 +100,7 @@ class ConsumptionLearner:
 
         month   = dt.month                      # 1..12
         dow     = dt.weekday()                  # 0=ma..6=zo / 0=Mon..6=Sun
-        hour    = dt.hour                       # 0..23
+        slot    = slot_of_day(dt)                # 0..95
         kwh     = float(consumption_kwh)
 
         try:
@@ -93,15 +109,15 @@ class ConsumptionLearner:
                     "SELECT kwh_avg, kwh_min, kwh_max, sample_count "
                     "FROM consumption_learning "
                     "WHERE month_of_year = %(m)s AND day_of_week = %(d)s "
-                    "AND hour_of_day = %(h)s",
-                    {"m": month, "d": dow, "h": hour}
+                    "AND slot_of_day = %(s)s",
+                    {"m": month, "d": dow, "s": slot}
                 )
                 row = cur.fetchone()
 
             if row is None or row["sample_count"] == 0:
                 # Eerste meting — bootstrap vanuit vorige maand of Gauss-fallback
                 # First measurement — bootstrap from previous month or Gauss fallback
-                bootstrap_avg, bootstrap_count = self._get_bootstrap(month, dow, hour)
+                bootstrap_avg, bootstrap_count = self._get_bootstrap(month, dow, slot)
 
                 # Gewogen startwaarde: bootstrap × _BOOTSTRAP_WEIGHT + eerste meting
                 # Weighted starting value: bootstrap × _BOOTSTRAP_WEIGHT + first measurement
@@ -124,13 +140,13 @@ class ConsumptionLearner:
             with self._db.cursor() as cur:
                 cur.execute(
                     "INSERT INTO consumption_learning "
-                    "(month_of_year, day_of_week, hour_of_day, "
+                    "(month_of_year, day_of_week, slot_of_day, "
                     "kwh_avg, kwh_min, kwh_max, sample_count) "
-                    "VALUES (%(m)s, %(d)s, %(h)s, %(avg)s, %(mn)s, %(mx)s, %(c)s) "
+                    "VALUES (%(m)s, %(d)s, %(s)s, %(avg)s, %(mn)s, %(mx)s, %(c)s) "
                     "ON DUPLICATE KEY UPDATE "
                     "kwh_avg = %(avg)s, kwh_min = %(mn)s, "
                     "kwh_max = %(mx)s, sample_count = %(c)s",
-                    {"m": month, "d": dow, "h": hour,
+                    {"m": month, "d": dow, "s": slot,
                      "avg": round(new_avg, 4),
                      "mn":  round(new_min, 4),
                      "mx":  round(new_max, 4),
@@ -138,7 +154,7 @@ class ConsumptionLearner:
                 )
 
             log.debug(
-                f"[consumption_learner] {month}/{dow}/{hour}h "
+                f"[consumption_learner] {month}/{dow}/slot{slot} "
                 f"kwh={kwh:.4f} avg={new_avg:.4f} n={new_count}"
             )
 
@@ -147,23 +163,27 @@ class ConsumptionLearner:
 
     def predict(self, dt: datetime) -> float:
         """
-        Voorspel het huisverbruik (kWh) voor een gegeven tijdstip.
-        Predict household consumption (kWh) for a given timestamp.
+        Voorspel het huisverbruik (kWh per meetinterval, 5 min) voor een
+        gegeven tijdstip. De aanroeper rekent dit om naar een gemiddeld
+        vermogen (kW) — zie config.timeslot.MEASUREMENTS_PER_HOUR.
+        Predict household consumption (kWh per measurement interval, 5 min)
+        for a given timestamp. The caller converts this to an average power
+        (kW) — see config.timeslot.MEASUREMENTS_PER_HOUR.
 
         Returns de Gauss-fallback als er nog geen data beschikbaar is.
         Returns the Gauss fallback if no data is available yet.
         """
         month = dt.month
         dow   = dt.weekday()
-        hour  = dt.hour
+        slot  = slot_of_day(dt)
 
         try:
             with self._db.cursor() as cur:
                 cur.execute(
                     "SELECT kwh_avg, sample_count FROM consumption_learning "
                     "WHERE month_of_year = %(m)s AND day_of_week = %(d)s "
-                    "AND hour_of_day = %(h)s",
-                    {"m": month, "d": dow, "h": hour}
+                    "AND slot_of_day = %(s)s",
+                    {"m": month, "d": dow, "s": slot}
                 )
                 row = cur.fetchone()
 
@@ -172,19 +192,19 @@ class ConsumptionLearner:
 
             # Geen data — bootstrap of Gauss-fallback
             # No data — bootstrap or Gauss fallback
-            bootstrap_avg, _ = self._get_bootstrap(month, dow, hour)
+            bootstrap_avg, _ = self._get_bootstrap(month, dow, slot)
             return bootstrap_avg
 
         except Exception as e:
             log.warning(f"[consumption_learner] Voorspelling mislukt / Prediction failed: {e}")
-            return _gauss_fallback(hour)
+            return _gauss_fallback(dt.hour + dt.minute / 60)
 
-    def _get_bootstrap(self, month: int, dow: int, hour: int) -> tuple[float, int]:
+    def _get_bootstrap(self, month: int, dow: int, slot: int) -> tuple[float, int]:
         """
-        Haal het vorige vergelijkbare slot op (vorige maand, zelfde dag/uur).
+        Haal het vorige vergelijkbare slot op (vorige maand, zelfde dag/kwartier-slot).
         Als dat ook leeg is: gebruik de Gauss-curve als initiële waarde.
 
-        Fetch the previous comparable slot (previous month, same day/hour).
+        Fetch the previous comparable slot (previous month, same day/quarter slot).
         If that is also empty: use the Gauss curve as initial value.
 
         Returns (gemiddelde, sample_count) / Returns (average, sample_count).
@@ -195,8 +215,8 @@ class ConsumptionLearner:
                 cur.execute(
                     "SELECT kwh_avg, sample_count FROM consumption_learning "
                     "WHERE month_of_year = %(m)s AND day_of_week = %(d)s "
-                    "AND hour_of_day = %(h)s AND sample_count > 0",
-                    {"m": prev_month, "d": dow, "h": hour}
+                    "AND slot_of_day = %(s)s AND sample_count > 0",
+                    {"m": prev_month, "d": dow, "s": slot}
                 )
                 row = cur.fetchone()
 
@@ -208,4 +228,5 @@ class ConsumptionLearner:
 
         # Gauss-fallback als er helemaal geen historische data is
         # Gauss fallback if there is no historical data at all
-        return _gauss_fallback(hour), 0
+        hour_fractional = slot / SLOTS_PER_HOUR
+        return _gauss_fallback(hour_fractional), 0
