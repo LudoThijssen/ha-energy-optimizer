@@ -23,6 +23,7 @@
 # Generiek: SLOT_TO_MEASUREMENT_FACTOR hieronder dekt elke combinatie af.
 
 from datetime import datetime
+from decimal import Decimal
 
 # Lengte van één schema-slot in minuten. Dit is de ENIGE plek die moet
 # veranderen om de granulariteit van het hele systeem aan te passen.
@@ -65,7 +66,11 @@ MEASUREMENTS_PER_HOUR = 60 // MEASUREMENT_MINUTES  # 12 bij 5 min
 # Bijv. bij 15 min: 1 kW gedurende 1 slot = 0,25 kWh.
 # Conversion factor for kWh <-> kW power over exactly one schedule slot.
 # E.g. at 15 min: 1 kW for 1 slot = 0.25 kWh.
-SLOT_HOURS = SLOT_MINUTES / 60
+# Decimal, niet float — decision_engine.py/engine.py rekenen overal met
+# Decimal, en Decimal * float geeft een TypeError in Python.
+# Decimal, not float — decision_engine.py/engine.py compute everywhere
+# with Decimal, and Decimal * float raises a TypeError in Python.
+SLOT_HOURS = Decimal(SLOT_MINUTES) / Decimal(60)
 
 
 def slot_of_day(dt: datetime) -> int:
