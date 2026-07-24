@@ -1,9 +1,19 @@
-#
 # name:          models.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/models.py
-# part version:  p_v0.4
-# altered:       2026-07-01
+# part version:  p_v0.5
+# altered:       2026-07-24
+#
+# p_v0.5: is_solar_charge / grid_charge_kw toegevoegd aan ScheduleSlot —
+# zie migratie 016. Zonder dit veld ging de zon/net-opsplitsing die
+# decision_engine.py al berekent verloren zodra het naar een ScheduleSlot
+# werd omgezet, waardoor de GUI "laden van het net" nooit apart kon tonen.
+#
+# p_v0.5: is_solar_charge / grid_charge_kw added to ScheduleSlot — see
+# migration 016. Without this field, the solar/grid split that
+# decision_engine.py already calculates was lost as soon as it got
+# converted to a ScheduleSlot, so the GUI could never show "charging from
+# the grid" separately.
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,7 +32,7 @@ class HourForecast:
 
 @dataclass
 class ScheduleSlot:
-    """Beslissing van de optimizer voor één uur."""
+    """Beslissing van de optimizer voor één slot."""
     hour: datetime
     action: str               # 'charge', 'discharge', 'idle', 'self_consume'
     target_power_kw: Decimal
@@ -35,3 +45,7 @@ class ScheduleSlot:
     expected_price: Decimal          = Decimal("0")
     reason_key:     str              = ""
     reason_params:  dict             = None
+    # p_v0.5: zon/net-opsplitsing bij een laadactie / solar/grid split for a charge action
+    is_solar_charge: bool  = False
+    grid_charge_kw:  Decimal = Decimal("0")
+

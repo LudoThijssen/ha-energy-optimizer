@@ -2,8 +2,26 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v1.1 -->
-<!-- altered:      2026-07-05 -->
+<!-- part version: p_v1.2 -->
+<!-- altered:      2026-07-24 -->
+<!--
+p_v1.2: Grafiek 1 herzien op verzoek:
+  - "Nettoladen" was verwarrend (klonk als "net laden" = vanaf het net,
+    maar toonde ELKE laadactie inclusief zon-laden). Nu opgesplitst in
+    "Laden van het net" (balk, alleen het net-gevoede deel) en
+    "Netto laden" (lijn, het totaal — zon + net), zie migratie 016.
+  - "Verbruik" hernoemd naar "Eigen verbruik".
+  - Statische, niet-klikbare HTML-legenda vervangen door Chart.js' eigen
+    interactieve legenda — klik op een label om die reeks te verbergen/tonen.
+p_v1.2: Chart 1 revised per request:
+  - "Nettoladen" (net charging) was confusing — sounded like "grid
+    charging" but showed EVERY charge action including solar-charging. Now
+    split into "Laden van het net" (bar, only the grid-fed portion) and
+    "Netto laden" (line, the total — solar + grid), see migration 016.
+  - "Verbruik" renamed to "Eigen verbruik".
+  - Static, non-clickable HTML legend replaced by Chart.js' own interactive
+    legend — click a label to hide/show that series.
+-->
 {% block title %}Dashboard — HA Energy Optimizer{% endblock %}
 {% block content %}
 <style>
@@ -107,17 +125,10 @@
   <h2><span class="mdi mdi-chart-timeline-variant"></span> Grafiek 1 — Verwachting 48 uur</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
     Verwacht zon, verbruik en acties
-    <span style="margin-left:12px; color:#94a3b8;">| Verticale lijn = nu</span>
+    <span style="margin-left:12px; color:#94a3b8;">| Verticale lijn = nu | Klik op de legenda om een reeks te verbergen/tonen</span>
   </p>
-  <div style="position:relative; height:200px; overflow-x:auto;">
+  <div style="position:relative; height:220px; overflow-x:auto;">
     <canvas id="chart-forecast"></canvas>
-  </div>
-  <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap; align-items:center;">
-    <span style="color:var(--c-solar);">&#9646; Zon (kW)</span>
-    <span style="color:var(--c-consume);">&#9646; Verbruik (kW)</span>
-    <span style="color:var(--c-import);">&#9646; Nettoladen (kW)</span>
-    <span style="color:#ef4444;">&#9646; Ontladen (kW)</span>
-    <span style="color:var(--c-soc);">&#9644; Batterij SoC (%)</span>
   </div>
 </div>
 
@@ -324,7 +335,8 @@
     prices.forEach(p => { priceMap[p.day + ' ' + p.hour_only] = p; });
 
     // Build datasets for each index
-    const solar48    = [], consume48 = [], charge48 = [], disch48 = [], soc48 = [];
+    const solar48    = [], consume48 = [], disch48 = [], soc48 = [];
+    const gridCharge48 = [], nettoCharge48 = [];
     const mSolar48   = [], mConsume48= [], mImport48= [], mExport48= [], mSoc48= [];
     const price48    = [], priceColors = [];
     const actionColors = {
@@ -343,9 +355,25 @@
       // Forecast chart data
       solar48.push(s ? s.solar_kw   : null);
       consume48.push(s ? s.consumption_kw : null);
-      charge48.push(s && s.action === 'charge'    ?  s.power_kw : 0);
       disch48.push(s  && s.action === 'discharge' ? -s.power_kw : 0);
       soc48.push(s ? s.soc_pct : null);
+
+      // p_v1.2: zon/net-opsplitsing bij een laadactie — zie migratie 016.
+      // p_v1.2: solar/grid split for a charge action — see migration 016.
+      // "Laden van het net": alleen het net-gevoede deel. Bij een puur
+      // net-laadslot (is_solar_charge=false) is grid_charge_kw al gelijk
+      // aan het volledige power_kw (zie decision_engine.py::_to_slots).
+      // "Charging from the grid": only the grid-fed portion. For a pure
+      // grid-charge slot (is_solar_charge=false) grid_charge_kw already
+      // equals the full power_kw (see decision_engine.py::_to_slots).
+      gridCharge48.push(s && s.action === 'charge' ? (s.grid_charge_kw || 0) : 0);
+      // "Netto laden": het totaal (zon + net) als lijn, zodat je nog steeds
+      // het volledige laadvermogen ziet zonder dat het verward wordt met de
+      // "laden van het net"-balk.
+      // "Net charging": the total (solar + grid) as a line, so the full
+      // charge power is still visible without being confused with the
+      // "charging from the grid" bar.
+      nettoCharge48.push(s && s.action === 'charge' ? s.power_kw : null);
 
       // Measured chart data (only past hours) — null for future = not plotted
       // Gemeten grafiekdata (alleen verleden uren) — null voor toekomst = niet geplot
@@ -419,11 +447,17 @@
           { type: 'line', label: 'Zon',      data: solar48,
             borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.15),
             borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3, yAxisID: 'y' },
-          { type: 'line', label: 'Verbruik', data: consume48,
+          { type: 'line', label: 'Eigen verbruik', data: consume48,
             borderColor: COLORS.consume, backgroundColor: hexToRgba(COLORS.consume, 0.1),
             borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3, yAxisID: 'y' },
-          { type: 'bar',  label: 'Laden',    data: charge48,  backgroundColor: hexToRgba(COLORS.charge, 0.8), yAxisID: 'y' },
-          { type: 'bar',  label: 'Ontladen', data: disch48,   backgroundColor: hexToRgba(COLORS.discharge, 0.8),  yAxisID: 'y' },
+          { type: 'bar',  label: 'Laden van het net', data: gridCharge48,
+            backgroundColor: hexToRgba(COLORS.charge, 0.8), yAxisID: 'y' },
+          { type: 'bar',  label: 'Ontladen naar het net', data: disch48,
+            backgroundColor: hexToRgba(COLORS.discharge, 0.8), yAxisID: 'y' },
+          { type: 'line', label: 'Netto laden', data: nettoCharge48,
+            borderColor: COLORS.charge, backgroundColor: 'transparent',
+            borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0,
+            tension: 0.1, spanGaps: false, yAxisID: 'y' },
           { type: 'line', label: 'SoC %',    data: soc48,
             borderColor: COLORS.soc, backgroundColor: 'transparent',
             borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2', tension: 0.3,
@@ -431,6 +465,12 @@
         ]
       },
       options: { ...commonOpts,
+        plugins: { ...commonOpts.plugins,
+          legend: {
+            display: true, position: 'bottom',
+            labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, usePointStyle: true, padding: 12 }
+          }
+        },
         scales: { ...commonOpts.scales,
           y:  { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
           y2: { position: 'right', min: 0, max: 100,

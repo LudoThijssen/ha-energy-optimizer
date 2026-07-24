@@ -1,14 +1,18 @@
-#
 # name:          repository.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
-# part version:  p_v0.4
-# altered:       2026-07-01
+# part version:  p_v0.5
+# altered:       2026-07-24
 #
 # Repository classes for all database operations.
 # Exact column names match the SQL migrations 001-004.
 # Repository-klassen voor alle databasebewerkingen.
 # Kolomnamen komen exact overeen met SQL-migraties 001-004.
+#
+# p_v0.5: is_solar_charge/grid_charge_kw toegevoegd aan
+# OptimizerRepository.save_slot()/get_current_slot() — zie migratie 016.
+# p_v0.5: is_solar_charge/grid_charge_kw added to
+# OptimizerRepository.save_slot()/get_current_slot() — see migration 016.
 
 from datetime import datetime, date
 from decimal import Decimal
@@ -430,13 +434,15 @@ class OptimizerRepository:
                 INSERT INTO optimizer_schedule
                     (schedule_for, action, target_power_kw, target_soc_pct,
                      expected_price, expected_solar_kw, expected_consumption_kw,
-                     expected_saving, expected_cost, reason, reason_key, reason_params)
+                     expected_saving, expected_cost, reason, reason_key, reason_params,
+                     is_solar_charge, grid_charge_kw)
                 VALUES
                     (%(schedule_for)s, %(action)s, %(target_power_kw)s,
                      %(target_soc_pct)s, %(expected_price)s,
                      %(expected_solar_kw)s, %(expected_consumption_kw)s,
                      %(expected_saving)s, %(expected_cost)s, %(reason)s,
-                     %(reason_key)s, %(reason_params)s)
+                     %(reason_key)s, %(reason_params)s,
+                     %(is_solar_charge)s, %(grid_charge_kw)s)
                 ON DUPLICATE KEY UPDATE
                     -- Alleen bijwerken als nog niet uitgevoerd
                     -- Only update if not yet executed
@@ -450,7 +456,9 @@ class OptimizerRepository:
                     expected_cost           = IF(executed = 0, VALUES(expected_cost),           expected_cost),
                     reason                  = IF(executed = 0, VALUES(reason),                  reason),
                     reason_key              = IF(executed = 0, VALUES(reason_key),              reason_key),
-                    reason_params           = IF(executed = 0, VALUES(reason_params),           reason_params)
+                    reason_params           = IF(executed = 0, VALUES(reason_params),           reason_params),
+                    is_solar_charge         = IF(executed = 0, VALUES(is_solar_charge),         is_solar_charge),
+                    grid_charge_kw          = IF(executed = 0, VALUES(grid_charge_kw),          grid_charge_kw)
             """, {
                 "schedule_for":           slot.schedule_for,
                 "action":                 slot.action,
@@ -464,6 +472,8 @@ class OptimizerRepository:
                 "reason":                 getattr(slot, "reason", None),
                 "reason_key":             getattr(slot, "reason_key", None) or None,
                 "reason_params":          reason_params,
+                "is_solar_charge":        bool(getattr(slot, "is_solar_charge", False)),
+                "grid_charge_kw":         getattr(slot, "grid_charge_kw", None),
             })
 
     def get_current_slot(self) -> OptimizerSlot | None:
@@ -472,7 +482,8 @@ class OptimizerRepository:
                 SELECT id, schedule_for, action, target_power_kw,
                        target_soc_pct, expected_price, expected_solar_kw,
                        expected_consumption_kw, expected_saving,
-                       reason, executed, executed_at
+                       reason, executed, executed_at,
+                       is_solar_charge, grid_charge_kw
                 FROM optimizer_schedule
                 WHERE schedule_for <= NOW() AND executed = 0
                 ORDER BY schedule_for DESC LIMIT 1
@@ -562,3 +573,5 @@ class ReportRepository:
                 "SET notified=1, notified_at=NOW() WHERE id=%(id)s",
                 {"id": entry_id}
             )
+
+#

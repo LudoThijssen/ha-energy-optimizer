@@ -2,8 +2,18 @@
 # name:          models.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/models.py
-# part version:  p_v0.4
-# altered:       2026-07-01
+# part version:  p_v0.5
+# altered:       2026-07-24
+#
+# p_v0.5: is_solar_charge / grid_charge_kw toegevoegd aan OptimizerSlot —
+# zie migratie 016 en optimizer/models.py p_v0.5 (ScheduleSlot). Maakt het
+# mogelijk om in de GUI "laden van het net" te tonen los van "laden vanuit
+# zon-overschot" binnen dezelfde laadactie.
+#
+# p_v0.5: is_solar_charge / grid_charge_kw added to OptimizerSlot — see
+# migration 016 and optimizer/models.py p_v0.5 (ScheduleSlot). Enables the
+# GUI to show "charging from the grid" separately from "charging from solar
+# surplus" within the same charge action.
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -83,6 +93,9 @@ class OptimizerSlot:
     reason_params: dict | None = None
     executed: bool = False
     executed_at: datetime | None = None
+    # p_v0.5: zon/net-opsplitsing bij een laadactie / solar/grid split for a charge action
+    is_solar_charge: bool = False
+    grid_charge_kw: Decimal | None = None
     id: int | None = None
 
 

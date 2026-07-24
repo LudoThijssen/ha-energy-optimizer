@@ -797,6 +797,23 @@ class DecisionEngine:
             saving = self._calc_saving(wh.action, wh.power_kw, price_excl, wh.is_solar_charge)
             cost   = self._calc_cost(wh.action, wh.power_kw, price_excl, wh.is_solar_charge, wh.grid_top_up_kwh)
 
+            # Vermogen dat specifiek uit het net wordt geladen: bij een
+            # gemengd (zon+net) slot is dat alleen de top-up bovenop het
+            # zon-overschot; bij een puur net-slot is dat het volledige
+            # laadvermogen. grid_top_up_kwh (ondanks de naam, een vermogen)
+            # is bij een puur net-slot altijd 0 gebleven — daarom hier
+            # expliciet uitgesplitst i.p.v. rechtstreeks doorgegeven.
+            # Power specifically charged from the grid: for a mixed
+            # (solar+grid) slot that's only the top-up on top of the solar
+            # surplus; for a pure grid slot that's the full charge power.
+            # grid_top_up_kwh (despite the name, a power) stays 0 for a pure
+            # grid slot — hence explicitly split out here rather than
+            # passed straight through.
+            if wh.action == "charge":
+                grid_charge_kw = wh.grid_top_up_kwh if wh.is_solar_charge else wh.power_kw
+            else:
+                grid_charge_kw = Decimal("0")
+
             slots.append(ScheduleSlot(
                 hour                   = wh.forecast.hour,
                 action                 = wh.action,
@@ -810,6 +827,12 @@ class DecisionEngine:
                 expected_solar_kw      = wh.forecast.solar_kw,
                 expected_consumption_kw= wh.forecast.consumption_kw,
                 expected_price         = wh.forecast.price_per_kwh,
+                # p_v0.9: zon/net-opsplitsing bewaren i.p.v. verloren laten
+                # gaan — zie migratie 016.
+                # p_v0.9: preserve solar/grid split instead of letting it
+                # get lost — see migration 016.
+                is_solar_charge        = wh.is_solar_charge,
+                grid_charge_kw         = grid_charge_kw,
             ))
 
             # SoC bijwerken voor volgend uur (idle-uren nemen ook het

@@ -2,11 +2,18 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.16
-# altered:       2026-07-05
+# part version:  p_v0.17
+# altered:       2026-07-24
 #
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
+#
+# p_v0.17: is_solar_charge/grid_charge_kw toegevoegd aan api_dashboard_data()
+# — zie migratie 016. Maakt het mogelijk om in Grafiek 1 "laden van het net"
+# los te tonen van "laden vanuit zon-overschot".
+# p_v0.17: is_solar_charge/grid_charge_kw added to api_dashboard_data() —
+# see migration 016. Enables Chart 1 to show "charging from the grid"
+# separately from "charging from solar surplus".
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json
@@ -1786,7 +1793,7 @@ def api_dashboard_data():
                 SELECT schedule_for, action, target_power_kw,
                        expected_price, expected_saving, expected_cost, executed,
                        expected_solar_kw, expected_consumption_kw,
-                       target_soc_pct
+                       target_soc_pct, is_solar_charge, grid_charge_kw
                 FROM optimizer_schedule
                 WHERE schedule_for >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')
                   AND schedule_for < DATE_FORMAT(NOW() + INTERVAL 2 DAY, '%Y-%m-%d 00:00:00')
@@ -1806,6 +1813,8 @@ def api_dashboard_data():
                     "solar_kw":       float(row["expected_solar_kw"] or 0),
                     "consumption_kw": float(row["expected_consumption_kw"] or 0),
                     "soc_pct":        float(row["target_soc_pct"] or 0),
+                    "is_solar_charge":bool(row["is_solar_charge"]),
+                    "grid_charge_kw": float(row["grid_charge_kw"] or 0),
                 }
                 for row in cur.fetchall()
             ]

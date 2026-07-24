@@ -726,6 +726,10 @@ class OptimizerEngine:
                 expected_solar_kw=s.expected_solar_kw,
                 expected_consumption_kw=s.expected_consumption_kw,
                 expected_price=s.expected_price,
+                # p_v0.8: zon/net-opsplitsing — zie migratie 016
+                # p_v0.8: solar/grid split — see migration 016
+                is_solar_charge=getattr(s, "is_solar_charge", False),
+                grid_charge_kw=getattr(s, "grid_charge_kw", Decimal("0")),
             )
             for s in slots
         ]
