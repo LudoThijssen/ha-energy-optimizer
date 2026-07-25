@@ -2,8 +2,14 @@
 <!-- name:         history.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/history.html -->
-<!-- part version: p_v0.6 -->
+<!-- part version: p_v0.7 -->
 <!-- altered:      2026-07-24 -->
+<!--
+p_v0.7: Grafiek 2-labels uniform gemaakt met Grafiek 1 — zie
+dashboard.html p_v1.5 voor de volledige toelichting.
+p_v0.7: Chart 2 labels made uniform with Chart 1 — see dashboard.html
+p_v1.5 for the full explanation.
+-->
 <!--
 p_v0.6: Grafiek 2 (Gemeten waarden) krijgt dezelfde klikbare, gevuld-
 rondje legenda als Grafiek 1. Grafiek 3 (prijzen) bewust ongewijzigd —
@@ -402,12 +408,12 @@ function renderMeasuredChart(measured, labels) {
         { type:'line', label:'Zon',         data:solar,
           borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.1),
           fill:true, tension:0.3, pointRadius:0, borderWidth:2, spanGaps:false },
-        { type:'line', label:'Verbruik',    data:consume,
+        { type:'line', label:'Eigen verbruik', data:consume,
           borderColor: COLORS.consume, backgroundColor:'transparent',
           tension:0.3, pointRadius:0, borderWidth:2, spanGaps:false },
-        { type:'bar',  label:'Netafname',   data:imp,
+        { type:'bar',  label:'Laden van het net', data:imp,
           backgroundColor: hexToRgba(COLORS.import_kw, 0.6) },
-        { type:'bar',  label:'Teruglevering',data:exp,
+        { type:'bar',  label:'Ontladen naar het net',data:exp,
           backgroundColor: hexToRgba(COLORS.export_kw, 0.6) },
         { type:'line', label:'Batterij SoC',data:soc,
           borderColor: COLORS.soc, backgroundColor:'transparent',

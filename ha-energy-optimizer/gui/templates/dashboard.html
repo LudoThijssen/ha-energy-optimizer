@@ -2,8 +2,20 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v1.4 -->
+<!-- part version: p_v1.5 -->
 <!-- altered:      2026-07-24 -->
+<!--
+p_v1.5: Grafiek 2-labels uniform gemaakt met Grafiek 1: "Verbruik" →
+"Eigen verbruik", "Netafname" → "Laden van het net", "Teruglevering" →
+"Ontladen naar het net". Let op: de onderliggende data blijft gemeten
+netstroom (incl. huishoudverbruik buiten batterij om), niet specifiek
+batterij-acties zoals in Grafiek 1 — bewuste naamkeuze voor uniformiteit.
+p_v1.5: Chart 2 labels made uniform with Chart 1: "Verbruik" → "Eigen
+verbruik", "Netafname" → "Laden van het net", "Teruglevering" → "Ontladen
+naar het net". Note: the underlying data remains measured grid flow
+(including household consumption outside the battery), not specifically
+battery actions as in Chart 1 — deliberate naming choice for uniformity.
+-->
 <!--
 p_v1.4: Grafiek 2 (Gemeten waarden) krijgt dezelfde klikbare, gevuld-
 rondje legenda als Grafiek 1 — statische HTML-legenda vervangen door
@@ -533,12 +545,12 @@ p_v1.2: Chart 1 revised per request:
           { type: 'line', label: 'Zon',          data: mSolar48,
             borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.1),
             fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
-          { type: 'line', label: 'Verbruik',      data: mConsume48,
+          { type: 'line', label: 'Eigen verbruik', data: mConsume48,
             borderColor: COLORS.consume, backgroundColor: 'transparent',
             tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
-          { type: 'bar',  label: 'Netafname',     data: mImport48,
+          { type: 'bar',  label: 'Laden van het net', data: mImport48,
             backgroundColor: hexToRgba(COLORS.import_kw, 0.6) },
-          { type: 'bar',  label: 'Teruglevering', data: mExport48,
+          { type: 'bar',  label: 'Ontladen naar het net', data: mExport48,
             backgroundColor: hexToRgba(COLORS.export_kw, 0.6) },
           { type: 'line', label: 'Batterij SoC',  data: mSoc48,
             borderColor: COLORS.soc, backgroundColor: 'transparent',
