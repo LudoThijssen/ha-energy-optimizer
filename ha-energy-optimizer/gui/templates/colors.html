@@ -2,8 +2,18 @@
 <!-- name:         colors.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/colors.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.6 -->
+<!-- altered:      2026-07-24 -->
+<!--
+p_v0.6: Positief/Negatief toegevoegd als instelbare kleuren (besparing/
+kosten) — was op meerdere pagina's hardcoded, en zelfs inconsistent
+(zowel #dc2626 als #ef4444 voor "negatief"). Nu persoonlijk instelbaar,
+belangrijk voor leesbaarheid bij individuele kleurperceptie-verschillen.
+p_v0.6: Positief/Negatief (saving/cost) added as configurable colors — was
+hardcoded across multiple pages, and even inconsistently (both #dc2626 and
+#ef4444 used for "negative"). Now personally configurable, important for
+readability given individual differences in color perception.
+-->
 {% block title %}Kleuren — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -23,9 +33,9 @@
       <div class="field">
         <label>Zon</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="color" name="solar" value="{{ c.get('solar', '#f59e0b') }}"
+          <input type="color" name="solar" value="{{ c.get('solar', defaults.solar) }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;">
-          <input type="text" id="txt-solar" value="{{ c.get('solar', '#f59e0b') }}"
+          <input type="text" id="txt-solar" value="{{ c.get('solar', defaults.solar) }}"
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('solar', this.value)">
         </div>
@@ -33,10 +43,10 @@
       <div class="field">
         <label>Verbruik</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="color" name="consume" value="{{ c.get('consume', '#6366f1') }}"
+          <input type="color" name="consume" value="{{ c.get('consume', defaults.consume) }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
                  oninput="syncText('consume', this.value)">
-          <input type="text" id="txt-consume" value="{{ c.get('consume', '#6366f1') }}"
+          <input type="text" id="txt-consume" value="{{ c.get('consume', defaults.consume) }}"
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('consume', this.value)">
         </div>
@@ -44,10 +54,10 @@
       <div class="field">
         <label>Netafname</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="color" name="import_kw" value="{{ c.get('import_kw', '#3b82f6') }}"
+          <input type="color" name="import_kw" value="{{ c.get('import_kw', defaults.import_kw) }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
                  oninput="syncText('import_kw', this.value)">
-          <input type="text" id="txt-import_kw" value="{{ c.get('import_kw', '#3b82f6') }}"
+          <input type="text" id="txt-import_kw" value="{{ c.get('import_kw', defaults.import_kw) }}"
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('import_kw', this.value)">
         </div>
@@ -57,10 +67,10 @@
       <div class="field">
         <label>Teruglevering</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="color" name="export_kw" value="{{ c.get('export_kw', '#10b981') }}"
+          <input type="color" name="export_kw" value="{{ c.get('export_kw', defaults.export_kw) }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
                  oninput="syncText('export_kw', this.value)">
-          <input type="text" id="txt-export_kw" value="{{ c.get('export_kw', '#10b981') }}"
+          <input type="text" id="txt-export_kw" value="{{ c.get('export_kw', defaults.export_kw) }}"
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('export_kw', this.value)">
         </div>
@@ -68,10 +78,10 @@
       <div class="field">
         <label>Batterij SoC</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="color" name="soc" value="{{ c.get('soc', '#8b5cf6') }}"
+          <input type="color" name="soc" value="{{ c.get('soc', defaults.soc) }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
                  oninput="syncText('soc', this.value)">
-          <input type="text" id="txt-soc" value="{{ c.get('soc', '#8b5cf6') }}"
+          <input type="text" id="txt-soc" value="{{ c.get('soc', defaults.soc) }}"
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('soc', this.value)">
         </div>
@@ -85,10 +95,10 @@
       <div class="field">
         <label>Ontladen</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="color" name="discharge" value="{{ c.get('discharge', '#ef4444') }}"
+          <input type="color" name="discharge" value="{{ c.get('discharge', defaults.discharge) }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
                  oninput="syncText('discharge', this.value)">
-          <input type="text" id="txt-discharge" value="{{ c.get('discharge', '#ef4444') }}"
+          <input type="text" id="txt-discharge" value="{{ c.get('discharge', defaults.discharge) }}"
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('discharge', this.value)">
         </div>
@@ -97,12 +107,46 @@
       <div class="field">
         <label>Zonne-lading</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="color" name="solar_charge" value="{{ c.get('solar_charge', '#f59e0b') }}"
+          <input type="color" name="solar_charge" value="{{ c.get('solar_charge', defaults.solar_charge) }}"
                  style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
                  oninput="syncText('solar_charge', this.value)">
-          <input type="text" id="txt-solar_charge" value="{{ c.get('solar_charge', '#f59e0b') }}"
+          <input type="text" id="txt-solar_charge" value="{{ c.get('solar_charge', defaults.solar_charge) }}"
                  style="width:100px; font-family:monospace;"
                  oninput="syncColor('solar_charge', this.value)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="mdi mdi-plus-minus-variant"></span> Resultaat</h2>
+    <div class="alert alert-info">
+      <span class="mdi mdi-information-outline"></span>
+      Kleur voor besparing/opbrengst (positief) en kosten (negatief), gebruikt op
+      Dashboard, Geschiedenis en Energie kosten. Persoonlijke voorkeur — kleurperceptie
+      verschilt per persoon en scherm.
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Positief (besparing / opbrengst)</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="positive" value="{{ c.get('positive', defaults.positive) }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('positive', this.value)">
+          <input type="text" id="txt-positive" value="{{ c.get('positive', defaults.positive) }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('positive', this.value)">
+        </div>
+      </div>
+      <div class="field">
+        <label>Negatief (kosten)</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" name="negative" value="{{ c.get('negative', defaults.negative) }}"
+                 style="width:48px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"
+                 oninput="syncText('negative', this.value)">
+          <input type="text" id="txt-negative" value="{{ c.get('negative', defaults.negative) }}"
+                 style="width:100px; font-family:monospace;"
+                 oninput="syncColor('negative', this.value)">
         </div>
       </div>
     </div>
@@ -113,32 +157,40 @@
     <h2><span class="mdi mdi-eye-outline"></span> Voorbeeld</h2>
     <div id="preview" style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; padding:8px 0;">
       <div style="display:flex; align-items:center; gap:6px;">
-        <div id="prev-solar" style="width:16px; height:16px; border-radius:3px; background:#f59e0b;"></div>
+        <div id="prev-solar" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('solar', defaults.solar) }};"></div>
         <span style="font-size:12px;">Zon</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <div id="prev-consume" style="width:16px; height:16px; border-radius:3px; background:#6366f1;"></div>
+        <div id="prev-consume" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('consume', defaults.consume) }};"></div>
         <span style="font-size:12px;">Verbruik</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <div id="prev-import_kw" style="width:16px; height:16px; border-radius:3px; background:#3b82f6;"></div>
+        <div id="prev-import_kw" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('import_kw', defaults.import_kw) }};"></div>
         <span style="font-size:12px;">Netafname / Nettoladen</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <div id="prev-export_kw" style="width:16px; height:16px; border-radius:3px; background:#10b981;"></div>
+        <div id="prev-export_kw" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('export_kw', defaults.export_kw) }};"></div>
         <span style="font-size:12px;">Teruglevering</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <div id="prev-soc" style="width:16px; height:4px; border-radius:2px; background:#8b5cf6;"></div>
+        <div id="prev-soc" style="width:16px; height:4px; border-radius:2px; background:{{ c.get('soc', defaults.soc) }};"></div>
         <span style="font-size:12px;">Batterij SoC</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <div id="prev-discharge" style="width:16px; height:16px; border-radius:3px; background:#ef4444;"></div>
+        <div id="prev-discharge" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('discharge', defaults.discharge) }};"></div>
         <span style="font-size:12px;">Ontladen</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <div id="prev-solar_charge" style="width:16px; height:16px; border-radius:3px; background:#f59e0b;"></div>
+        <div id="prev-solar_charge" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('solar_charge', defaults.solar_charge) }};"></div>
         <span style="font-size:12px;">Zonne-lading</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-positive" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('positive', defaults.positive) }};"></div>
+        <span style="font-size:12px;">Positief</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div id="prev-negative" style="width:16px; height:16px; border-radius:3px; background:{{ c.get('negative', defaults.negative) }};"></div>
+        <span style="font-size:12px;">Negatief</span>
       </div>
     </div>
   </div>
@@ -152,15 +204,13 @@
 </form>
 
 <script>
-const DEFAULTS = {
-  solar:        '#f59e0b',
-  consume:      '#6366f1',
-  import_kw:    '#3b82f6',
-  export_kw:    '#10b981',
-  soc:          '#8b5cf6',
-  discharge:    '#ef4444',
-  solar_charge: '#f59e0b',
-};
+// p_v0.5: DEFAULTS komt nu uit de server (app.py DEFAULT_COLORS) i.p.v.
+// hier nogmaals hardcoded te staan — dit was de derde plek waar dezelfde
+// 7 hex-waarden los van elkaar onderhouden moesten worden.
+// p_v0.5: DEFAULTS now comes from the server (app.py DEFAULT_COLORS)
+// instead of being hardcoded here again — this was the third place where
+// the same 7 hex values had to be maintained separately.
+const DEFAULTS = {{ defaults | tojson }};
 
 function syncText(name, value) {
   const txt = document.getElementById('txt-' + name);

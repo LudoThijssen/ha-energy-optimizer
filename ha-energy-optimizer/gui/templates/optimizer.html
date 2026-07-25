@@ -2,8 +2,18 @@
 <!-- name:         optimizer.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/optimizer.html -->
-<!-- part version: p_v0.13 -->
-<!-- altered:      2026-06-29 -->
+<!-- part version: p_v0.14 -->
+<!-- altered:      2026-07-24 -->
+<!--
+p_v0.14: beslistabel-kleuren gekoppeld aan de echte instellingen
+({{ colors.solar_charge }}/discharge/import_kw) i.p.v. eigen losse
+hardcoded hex-waarden die er toevallig op leken. "Inactief" blijft bewust
+neutraal grijs — daar bestaat geen kleurinstelling voor.
+p_v0.14: decision table colors now tied to the real settings
+({{ colors.solar_charge }}/discharge/import_kw) instead of their own
+separate hardcoded hex values that happened to look similar. "Inactief"
+(idle) intentionally stays neutral gray — no color setting exists for that.
+-->
 {% block title %}Drempelwaarden — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -150,17 +160,17 @@
       <tbody>
         <tr>
           <td>Zonne-overschot + batterij niet vol</td>
-          <td><span style="color:#16a34a;font-weight:500"><span class="mdi mdi-arrow-up-bold"></span> Opladen</span></td>
+          <td><span style="color:{{ colors.solar_charge if colors else '#16a34a' }};font-weight:500"><span class="mdi mdi-arrow-up-bold"></span> Opladen</span></td>
           <td>Gratis zonne-energie</td>
         </tr>
         <tr>
           <td>Prijs ≥ minimale ontlaadprijs</td>
-          <td><span style="color:#b45309;font-weight:500"><span class="mdi mdi-arrow-down-bold"></span> Ontladen</span></td>
+          <td><span style="color:{{ colors.discharge if colors else '#b45309' }};font-weight:500"><span class="mdi mdi-arrow-down-bold"></span> Ontladen</span></td>
           <td>Hoge prijs — opgeslagen energie verkopen</td>
         </tr>
         <tr>
           <td>Prijs ≤ maximale laadprijs</td>
-          <td><span style="color:#1d4ed8;font-weight:500"><span class="mdi mdi-transmission-tower"></span> Opladen vanaf net</span></td>
+          <td><span style="color:{{ colors.import_kw if colors else '#1d4ed8' }};font-weight:500"><span class="mdi mdi-transmission-tower"></span> Opladen vanaf net</span></td>
           <td>Lage prijs — goedkope energie inkopen</td>
         </tr>
         <tr>

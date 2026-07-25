@@ -2,7 +2,7 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.17
+# part version:  p_v0.19
 # altered:       2026-07-24
 #
 # Configuration GUI — Flask web server with HA ingress support.
@@ -14,6 +14,24 @@
 # p_v0.17: is_solar_charge/grid_charge_kw added to api_dashboard_data() —
 # see migration 016. Enables Chart 1 to show "charging from the grid"
 # separately from "charging from solar surplus".
+#
+# p_v0.18: DEFAULT_COLORS als losstaande module-constante (zie hieronder) —
+# was drievoudig hardcoded. optimizer()/energy_costs() routes laden nu ook
+# colors, zodat optimizer.html/energy_costs.html niet langer hun eigen
+# losse hex-waarden hoeven te gebruiken.
+# p_v0.18: DEFAULT_COLORS as a standalone module constant (see below) — was
+# hardcoded three times over. optimizer()/energy_costs() routes now also
+# load colors, so optimizer.html/energy_costs.html no longer need their own
+# separate hex values.
+#
+# p_v0.19: Positief/Negatief toegevoegd aan DEFAULT_COLORS. api_history_data()
+# uitgebreid met expected_consumption_kw/is_solar_charge/grid_charge_kw —
+# zelfde velden als api_dashboard_data(), zodat history.html's Grafiek 1
+# dezelfde zon/net-opsplitsing kan tonen als het Dashboard.
+# p_v0.19: Positive/Negative added to DEFAULT_COLORS. api_history_data()
+# extended with expected_consumption_kw/is_solar_charge/grid_charge_kw —
+# same fields as api_dashboard_data(), so history.html's Chart 1 can show
+# the same solar/grid split as the Dashboard.
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json
@@ -923,6 +941,7 @@ def schedule():
 
 @app.route("/optimizer", methods=["GET", "POST"])
 def optimizer():
+    options = _load_options()
     db = _get_db()
     config_row   = None
     battery_row  = None
@@ -991,6 +1010,7 @@ def optimizer():
     return render_template("optimizer.html", config=config_row,
                            battery=battery_row,
                            provider_incl_tax=provider_incl_tax,
+                           colors=_get_colors(options),
                            saved=request.args.get("saved"))
 
 
@@ -1071,6 +1091,37 @@ def reportlog():
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
+# p_v0.17: enige bron van waarheid voor standaardkleuren — voorheen stond
+# dezelfde set van 7 hex-waarden drievoudig hardcoded (hier, in
+# colors.html's Jinja value=-attributen, én in colors.html's JS
+# DEFAULTS-object). Nu wordt colors.html gerenderd MET deze constante
+# (zie de /colors route), zodat er nog maar één plek is om te wijzigen.
+# p_v0.17: single source of truth for default colors — previously the same
+# set of 7 hex values was hardcoded three times over (here, in colors.html's
+# Jinja value= attributes, and in colors.html's JS DEFAULTS object). Now
+# colors.html is rendered WITH this constant (see the /colors route), so
+# there's only one place left to change.
+DEFAULT_COLORS = {
+    "solar":        "#f59e0b",
+    "consume":      "#6366f1",
+    "import_kw":    "#3b82f6",
+    "export_kw":    "#10b981",
+    "soc":          "#8b5cf6",
+    "discharge":    "#ef4444",
+    "solar_charge": "#f59e0b",
+    # p_v0.19: instelbaar gemaakt op verzoek — kleurperceptie verschilt per
+    # persoon en scherm; deze twee stonden voorheen los hardcoded (en niet
+    # eens consistent: zowel #dc2626 als #ef4444 werden door elkaar gebruikt
+    # voor "negatief" op verschillende pagina's).
+    # p_v0.19: made configurable on request — color perception differs per
+    # person and screen; these two were previously hardcoded separately
+    # (and not even consistently: both #dc2626 and #ef4444 were used
+    # interchangeably for "negative" across different pages).
+    "positive":     "#16a34a",
+    "negative":     "#dc2626",
+}
+
+
 def _get_colors(options: dict) -> dict:
     """
     Get dashboard colors, preferring system_config (persistent) over
@@ -1079,16 +1130,7 @@ def _get_colors(options: dict) -> dict:
     Haal dashboard-kleuren op, system_config (persistent) heeft voorrang
     op options.json, terugval op standaardwaarden.
     """
-    default_colors = {
-        "solar":        "#f59e0b",
-        "consume":      "#6366f1",
-        "import_kw":    "#3b82f6",
-        "export_kw":    "#10b981",
-        "soc":          "#8b5cf6",
-        "discharge":    "#ef4444",
-        "solar_charge": "#f59e0b",
-    }
-    colors = {**default_colors, **options.get("colors", {})}
+    colors = {**DEFAULT_COLORS, **options.get("colors", {})}
 
     db = _get_db()
     if db:
@@ -1238,6 +1280,8 @@ def colors():
             "soc":          request.form.get("soc",          "#8b5cf6"),
             "discharge":    request.form.get("discharge",    "#ef4444"),
             "solar_charge": request.form.get("solar_charge", "#f59e0b"),
+            "positive":     request.form.get("positive",     "#16a34a"),
+            "negative":     request.form.get("negative",     "#dc2626"),
         }
         # Save to options.json (fast access) and system_config (persistent)
         # Opslaan in options.json (snelle toegang) en system_config (persistent)
@@ -1259,6 +1303,7 @@ def colors():
 
     return render_template("colors.html",
                            options=options,
+                           defaults=DEFAULT_COLORS,
                            saved=request.args.get("saved"))
 
 
@@ -1299,7 +1344,8 @@ def prices():
 @app.route("/energy-costs")
 def energy_costs():
     """Energy costs overview page / Energie kosten overzichtspagina."""
-    return render_template("energy_costs.html")
+    options = _load_options()
+    return render_template("energy_costs.html", colors=_get_colors(options))
 
 
 @app.route("/api/energy-costs")
@@ -1564,16 +1610,26 @@ def api_history_data():
             ]
 
             # Schedule / Schema
+            # p_v0.4: expected_consumption_kw, is_solar_charge, grid_charge_kw
+            # toegevoegd — zelfde velden als /api/dashboard-data, nodig om
+            # "Laden van het net" los te kunnen tonen van "Netto laden",
+            # net als op het Dashboard. Zie migratie 016.
+            # p_v0.4: expected_consumption_kw, is_solar_charge, grid_charge_kw
+            # added — same fields as /api/dashboard-data, needed to show
+            # "Charging from the grid" separately from "Net charging", same
+            # as on the Dashboard. See migration 016.
             cur.execute("""
                 SELECT DATE_FORMAT(schedule_for, '%H:00') AS hour,
                        action,
                        CAST(target_power_kw AS DECIMAL(10,3))     AS power_kw,
                        CAST(target_soc_pct AS DECIMAL(10,1))      AS soc_pct,
                        CAST(expected_solar_kw AS DECIMAL(10,3))   AS solar_kw,
+                       CAST(expected_consumption_kw AS DECIMAL(10,3)) AS consumption_kw,
                        CAST(expected_price AS DECIMAL(10,5))      AS price,
                        CAST(expected_saving AS DECIMAL(10,5))     AS saving,
                        CAST(expected_cost AS DECIMAL(10,5))       AS cost,
-                       reason
+                       reason, is_solar_charge,
+                       CAST(grid_charge_kw AS DECIMAL(10,3))      AS grid_charge_kw
                 FROM optimizer_schedule
                 WHERE DATE(schedule_for) = %(d)s
                 ORDER BY schedule_for
@@ -1585,10 +1641,13 @@ def api_history_data():
                     "power_kw": float(r["power_kw"] or 0),
                     "soc_pct":  float(r["soc_pct"] or 0),
                     "solar_kw": float(r["solar_kw"] or 0),
+                    "consumption_kw": float(r["consumption_kw"] or 0),
                     "price":    float(r["price"] or 0),
                     "saving":   float(r["saving"] or 0),
                     "cost":     float(r["cost"] or 0),
                     "reason":   r["reason"] or "",
+                    "is_solar_charge": bool(r["is_solar_charge"]),
+                    "grid_charge_kw":  float(r["grid_charge_kw"] or 0),
                 }
                 for r in cur.fetchall()
             ]

@@ -2,8 +2,18 @@
 <!-- name:         energy_costs.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/energy_costs.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-07-24 -->
+<!--
+p_v0.5: Huisverbruik/Netafname/Teruglevering/Positief/Negatief niet langer
+losse hardcoded hex-waarden — nu gekoppeld aan dezelfde instellingen als
+dashboard.html/history.html (colors.html). Gas/stadsverwarming hebben geen
+eigen categorie en behouden hun vaste kleur.
+p_v0.5: Huisverbruik/Netafname/Teruglevering/Positief/Negatief are no
+longer separate hardcoded hex values — now tied to the same settings as
+dashboard.html/history.html (colors.html). Gas/district heating have no
+category of their own and keep their fixed color.
+-->
 {% block title %}Energie kosten — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -69,15 +79,15 @@
 <div id="summary-row" style="display:none; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
     <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Huisverbruik (hypothetisch)</div>
-    <div id="sum-consumption" style="font-size:20px; font-weight:600; color:#6366f1;">—</div>
+    <div id="sum-consumption" style="font-size:20px; font-weight:600; color:{{ colors.consume }};">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
     <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Werkelijke kosten</div>
-    <div id="sum-actual" style="font-size:20px; font-weight:600; color:#dc2626;">—</div>
+    <div id="sum-actual" style="font-size:20px; font-weight:600; color:{{ colors.negative }};">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
     <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Besparing installatie</div>
-    <div id="sum-saving" style="font-size:20px; font-weight:600; color:#16a34a;">—</div>
+    <div id="sum-saving" style="font-size:20px; font-weight:600; color:{{ colors.positive }};">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
     <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Terugverdien %</div>
@@ -91,6 +101,30 @@
 </div>
 
 <script>
+// ── Colors from settings / Kleuren uit instellingen ────────────────────────
+// p_v0.5: Huisverbruik/Netafname/Teruglevering gebruikten voorheen eigen
+// losse hex-waarden — nu gekoppeld aan dezelfde instellingen als
+// dashboard.html/history.html. Gas/stadsverwarming hebben geen eigen
+// categorie in colors.html en blijven daarom vaste kleuren.
+// p_v0.5: Huisverbruik/Netafname/Teruglevering used their own separate hex
+// values before — now tied to the same settings as
+// dashboard.html/history.html. Gas/district heating have no category of
+// their own in colors.html and therefore keep fixed colors.
+const COLORS = {
+  consume:   "{{ colors.consume }}",
+  import_kw: "{{ colors.import_kw }}",
+  export_kw: "{{ colors.export_kw }}",
+  positive:  "{{ colors.positive }}",
+  negative:  "{{ colors.negative }}",
+};
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 // ── Configuratie ─────────────────────────────────────────────────────────
 const HAS_GAS     = {{ 'true' if system_config and system_config.has_gas else 'false' }};
 const HAS_HEATING = {{ 'true' if system_config and system_config.has_district_heating else 'false' }};
@@ -212,7 +246,7 @@ function renderSummary(d) {
   const saving = (tot.consumption_cost || 0) - (tot.actual_cost || 0);
   document.getElementById('sum-saving').textContent =
     (saving >= 0 ? '+' : '') + saving.toFixed(2) + ' €';
-  document.getElementById('sum-saving').style.color = saving >= 0 ? '#16a34a' : '#dc2626';
+  document.getElementById('sum-saving').style.color = saving >= 0 ? COLORS.positive : COLORS.negative;
 
   const roi = tot.consumption_cost > 0 ? (saving / tot.consumption_cost * 100) : 0;
   document.getElementById('sum-roi').textContent = roi.toFixed(1) + '%';
@@ -222,23 +256,37 @@ function renderSummary(d) {
 function renderTable(d) {
   const wrap = document.getElementById('table-wrap');
 
+  // p_v0.5: sectie-achtergronden nu afgeleid van de ingestelde categorie-
+  // kleuren (Huisverbruik→consume, Netafname→import_kw, Teruglevering→
+  // export_kw) i.p.v. losse hardcoded pastels. Gas/stadsverwarming hebben
+  // geen eigen instelling en behouden hun vaste tint.
+  // p_v0.5: section backgrounds now derived from the configured category
+  // colors (Huisverbruik→consume, Netafname→import_kw, Teruglevering→
+  // export_kw) instead of separate hardcoded pastels. Gas/district heating
+  // have no setting of their own and keep their fixed tint.
+  const bgConsume = hexToRgba(COLORS.consume, 0.08);
+  const bgImport  = hexToRgba(COLORS.import_kw, 0.08);
+  const bgExport  = hexToRgba(COLORS.export_kw, 0.08);
+  const bgGas     = '#fffbeb';
+  const bgHeating = '#fdf4ff';
+
   let hdr = '<thead><tr>'
     + '<th style="width:120px">Tijdstip</th>'
-    + '<th colspan="2" style="text-align:center; background:#eff6ff;">Huisverbruik</th>'
-    + '<th colspan="2" style="text-align:center; background:#fef2f2;">Netafname</th>'
-    + '<th colspan="2" style="text-align:center; background:#f0fdf4;">Teruglevering</th>';
-  if (HAS_GAS)     hdr += '<th colspan="2" style="text-align:center; background:#fffbeb;">Gas</th>';
-  if (HAS_HEATING) hdr += '<th colspan="2" style="text-align:center; background:#fdf4ff;">Stadsverwarming</th>';
+    + `<th colspan="2" style="text-align:center; background:${bgConsume};">Huisverbruik</th>`
+    + `<th colspan="2" style="text-align:center; background:${bgImport};">Netafname</th>`
+    + `<th colspan="2" style="text-align:center; background:${bgExport};">Teruglevering</th>`;
+  if (HAS_GAS)     hdr += `<th colspan="2" style="text-align:center; background:${bgGas};">Gas</th>`;
+  if (HAS_HEATING) hdr += `<th colspan="2" style="text-align:center; background:${bgHeating};">Stadsverwarming</th>`;
   hdr += '<th style="width:90px; text-align:right;">Werkelijk</th>'
        + '<th style="width:90px; text-align:right;">Besparing</th>'
        + '</tr>'
        + '<tr style="font-size:11px; color:#6b7280;">'
        + '<th></th>'
-       + '<th style="background:#eff6ff;">kWh</th><th style="background:#eff6ff;">€</th>'
-       + '<th style="background:#fef2f2;">kWh</th><th style="background:#fef2f2;">€</th>'
-       + '<th style="background:#f0fdf4;">kWh</th><th style="background:#f0fdf4;">€</th>';
-  if (HAS_GAS)     hdr += '<th style="background:#fffbeb;">m³</th><th style="background:#fffbeb;">€</th>';
-  if (HAS_HEATING) hdr += '<th style="background:#fdf4ff;">GJ</th><th style="background:#fdf4ff;">€</th>';
+       + `<th style="background:${bgConsume};">kWh</th><th style="background:${bgConsume};">€</th>`
+       + `<th style="background:${bgImport};">kWh</th><th style="background:${bgImport};">€</th>`
+       + `<th style="background:${bgExport};">kWh</th><th style="background:${bgExport};">€</th>`;
+  if (HAS_GAS)     hdr += `<th style="background:${bgGas};">m³</th><th style="background:${bgGas};">€</th>`;
+  if (HAS_HEATING) hdr += `<th style="background:${bgHeating};">GJ</th><th style="background:${bgHeating};">€</th>`;
   hdr += '<th></th><th></th></tr></thead>';
 
   let body = '<tbody>';
@@ -251,29 +299,35 @@ function renderTable(d) {
     const fmt    = (v, dec=2)  => v != null ? v.toFixed(dec) : '—';
     const fmtEur = (v)         => v != null ? v.toFixed(4)   : '—';
     const fmtSav = (v)         => v != null ? (v >= 0 ? '+' : '') + v.toFixed(4) : '—';
-    const savCol = (v)         => v != null ? (v >= 0 ? '#16a34a' : '#dc2626') : '#6b7280';
+    const savCol = (v)         => v != null ? (v >= 0 ? COLORS.positive : COLORS.negative) : '#6b7280';
 
     const saving = (r.consumption_cost || 0) - (r.actual_cost || 0);
 
+    // p_v0.5: kosten zijn altijd COLORS.negative, opbrengst (teruglevering)
+    // is altijd COLORS.positive — dit zijn financiële uitkomsten, geen
+    // energiecategorieën, dus bewust los van de kWh-kolommen ernaast.
+    // p_v0.5: costs are always COLORS.negative, revenue (export) is always
+    // COLORS.positive — these are financial outcomes, not energy
+    // categories, hence deliberately separate from the kWh columns next to them.
     let row = `<tr style="${style}">
       <td style="font-size:${isSub?'12':'13'}px; white-space:nowrap;">${r.label}</td>
-      <td style="font-size:13px; text-align:right; background:#eff6ff;">${fmt(r.consumption_kwh, 3)}</td>
-      <td style="font-size:13px; text-align:right; background:#eff6ff; color:#6366f1;">${fmtEur(r.consumption_cost)}</td>
-      <td style="font-size:13px; text-align:right; background:#fef2f2;">${fmt(r.import_kwh, 3)}</td>
-      <td style="font-size:13px; text-align:right; background:#fef2f2; color:#dc2626;">${fmtEur(r.import_cost)}</td>
-      <td style="font-size:13px; text-align:right; background:#f0fdf4;">${fmt(r.export_kwh, 3)}</td>
-      <td style="font-size:13px; text-align:right; background:#f0fdf4; color:#10b981;">${fmtEur(r.export_revenue)}</td>`;
+      <td style="font-size:13px; text-align:right; background:${bgConsume};">${fmt(r.consumption_kwh, 3)}</td>
+      <td style="font-size:13px; text-align:right; background:${bgConsume}; color:${COLORS.negative};">${fmtEur(r.consumption_cost)}</td>
+      <td style="font-size:13px; text-align:right; background:${bgImport};">${fmt(r.import_kwh, 3)}</td>
+      <td style="font-size:13px; text-align:right; background:${bgImport}; color:${COLORS.negative};">${fmtEur(r.import_cost)}</td>
+      <td style="font-size:13px; text-align:right; background:${bgExport};">${fmt(r.export_kwh, 3)}</td>
+      <td style="font-size:13px; text-align:right; background:${bgExport}; color:${COLORS.positive};">${fmtEur(r.export_revenue)}</td>`;
 
     if (HAS_GAS) {
-      row += `<td style="font-size:13px; text-align:right; background:#fffbeb;">${fmt(r.gas_m3, 3)}</td>
-              <td style="font-size:13px; text-align:right; background:#fffbeb; color:#f59e0b;">${fmtEur(r.gas_cost)}</td>`;
+      row += `<td style="font-size:13px; text-align:right; background:${bgGas};">${fmt(r.gas_m3, 3)}</td>
+              <td style="font-size:13px; text-align:right; background:${bgGas}; color:${COLORS.negative};">${fmtEur(r.gas_cost)}</td>`;
     }
     if (HAS_HEATING) {
-      row += `<td style="font-size:13px; text-align:right; background:#fdf4ff;">${fmt(r.heating_gj, 4)}</td>
-              <td style="font-size:13px; text-align:right; background:#fdf4ff; color:#8b5cf6;">${fmtEur(r.heating_cost)}</td>`;
+      row += `<td style="font-size:13px; text-align:right; background:${bgHeating};">${fmt(r.heating_gj, 4)}</td>
+              <td style="font-size:13px; text-align:right; background:${bgHeating}; color:${COLORS.negative};">${fmtEur(r.heating_cost)}</td>`;
     }
 
-    row += `<td style="font-size:13px; text-align:right; color:#dc2626; font-weight:${isSub?'700':'400'};">${fmtEur(r.actual_cost)}</td>
+    row += `<td style="font-size:13px; text-align:right; color:${COLORS.negative}; font-weight:${isSub?'700':'400'};">${fmtEur(r.actual_cost)}</td>
             <td style="font-size:13px; text-align:right; color:${savCol(saving)}; font-weight:${isSub?'700':'400'};">${fmtSav(saving)}</td>
           </tr>`;
     body += row;
