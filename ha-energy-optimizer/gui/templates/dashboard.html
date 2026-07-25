@@ -2,8 +2,21 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v1.3 -->
+<!-- part version: p_v1.4 -->
 <!-- altered:      2026-07-24 -->
+<!--
+p_v1.4: Grafiek 2 (Gemeten waarden) krijgt dezelfde klikbare, gevuld-
+rondje legenda als Grafiek 1 — statische HTML-legenda vervangen door
+Chart.js' eigen legenda. En passant "Verbruik gemeten" losgekoppelde
+hardcoded #6366f1 weggehaald (zat in de nu verwijderde statische legenda).
+Grafiek 3 (prijzen) bewust ongewijzigd — komt aan bod bij de in/verkoop-
+prijs-uitbreiding.
+p_v1.4: Chart 2 (Measured values) gets the same clickable, filled-dot
+legend as Chart 1 — static HTML legend replaced by Chart.js' own legend.
+Also removed a stray hardcoded #6366f1 for "Verbruik gemeten" (was in the
+now-removed static legend). Chart 3 (prices) deliberately unchanged — will
+be addressed with the buy/sell price extension.
+-->
 <!--
 p_v1.3: Positief/Negatief (besparing/kosten) nu instelbaar i.p.v. hardcoded
 — zie colors.html. Terzelfdertijd twee losstaande categorie-fouten
@@ -156,16 +169,10 @@ p_v1.2: Chart 1 revised per request:
   <h2><span class="mdi mdi-gauge"></span> Grafiek 2 — Gemeten waarden</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
     Werkelijke metingen — toekomstige uren = 0
+    <span style="margin-left:12px; color:#94a3b8;">| Klik op de legenda om een reeks te verbergen/tonen</span>
   </p>
   <div style="position:relative; height:200px; overflow-x:auto;">
     <canvas id="chart-measured"></canvas>
-  </div>
-  <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
-    <span style="color:var(--c-solar);">&#9646; Zon gemeten (kW)</span>
-    <span style="color:#6366f1;">&#9646; Verbruik gemeten (kW)</span>
-    <span style="color:var(--c-import);">&#9646; Netafname (kW)</span>
-    <span style="color:var(--c-export);">&#9646; Teruglevering (kW)</span>
-    <span style="color:var(--c-soc);">&#9644; Batterij SoC (%)</span>
   </div>
 </div>
 
@@ -540,6 +547,20 @@ p_v1.2: Chart 1 revised per request:
         ]
       },
       options: { ...commonOpts,
+        plugins: { ...commonOpts.plugins,
+          legend: {
+            display: true, position: 'bottom',
+            labels: {
+              boxWidth: 10, boxHeight: 10, font: { size: 11 },
+              usePointStyle: true, padding: 12,
+              generateLabels(chart) {
+                const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                items.forEach(item => { item.fillStyle = item.strokeStyle; });
+                return items;
+              }
+            }
+          }
+        },
         scales: { ...commonOpts.scales,
           y:  { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
           y2: { position: 'right', min: 0, max: 100,
