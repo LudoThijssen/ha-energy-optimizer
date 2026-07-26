@@ -359,7 +359,21 @@ class OptimizerEngine:
             # rounded-down hour.
             weather_h = weather.get(slot_dt.replace(minute=0, second=0, microsecond=0))
 
-            if not price:
+            # p_v0.9: `is None` i.p.v. `not price` — een geldige prijs van
+            # exact €0,00000/kWh (komt voor rond de middag bij veel zon) is
+            # in Python "falsy" als Decimal("0"), dus `not price` sloeg zo'n
+            # slot ONTERECHT over als "geen prijs gevonden". Dit was de
+            # oorzaak van het gat rond 12:00 in Grafiek 1 op zowel Dashboard
+            # als Geschiedenis (beide lezen optimizer_schedule, waar dan
+            # simpelweg geen rij voor bestond).
+            # p_v0.9: `is None` instead of `not price` — a genuine price of
+            # exactly €0.00000/kWh (occurs around midday with lots of
+            # solar) is "falsy" in Python as Decimal("0"), so `not price`
+            # WRONGLY skipped such a slot as "no price found". This was the
+            # cause of the gap around 12:00 in Chart 1 on both Dashboard
+            # and History (both read optimizer_schedule, where simply no
+            # row existed for that slot).
+            if price is None:
                 continue
 
             # ── Solar forecast / Zonverwachting ─────────────────────────────
