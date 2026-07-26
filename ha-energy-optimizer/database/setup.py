@@ -2,8 +2,28 @@
 # name:          setup.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/setup.py
-# part version:  p_v0.6
-# altered:       2026-07-16
+# part version:  p_v0.9
+# altered:       2026-07-25
+#
+# p_v0.9: 15/16/17 alsnog toegevoegd aan ALL_VERSIONS — 000_consolidated.sql
+# is bijgewerkt (p_v0.2) met het kwartier-schema en zonder price_profile,
+# dus een verse installatie krijgt nu direct het juiste eindschema. De
+# eerdere waarschuwing hierover (p_v0.7) is hiermee vervallen.
+#
+# LET OP: dit is nog een handmatige aanvulling per migratie, GEEN volledige
+# samenvoeging van alle losse ALTER-statements uit 001-014 in de
+# CREATE TABLE-definities — die grotere opschoning van database + migraties
+# samen staat gepland voor v0.14.
+#
+# p_v0.9: 15/16/17 added to ALL_VERSIONS after all — 000_consolidated.sql
+# has been updated (p_v0.2) with the quarter-hour schema and without
+# price_profile, so a fresh install now gets the correct end-state schema
+# directly. The earlier warning about this (p_v0.7) is now resolved.
+#
+# NOTE: this is still a manual per-migration addition, NOT a full merge of
+# all the separate ALTER statements from 001-014 into the CREATE TABLE
+# definitions — that larger cleanup of database + migrations together is
+# planned for v0.14.
 #
 from pathlib import Path
 from .connection import DatabaseConnection
@@ -14,7 +34,7 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 # hoort hier bewust niet bij — zie onderstaande toelichting).
 # All regular migration versions (007 is a one-time data correction and
 # is deliberately excluded here — see note below).
-ALL_VERSIONS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14]
+ALL_VERSIONS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
 
 
 def run_migrations(db: DatabaseConnection) -> None:
@@ -62,6 +82,9 @@ def run_migrations(db: DatabaseConnection) -> None:
         _apply(db, 12, MIGRATIONS_DIR / "012_consumption_learning.sql")
         _apply(db, 13, MIGRATIONS_DIR / "013_translation_strings.sql")
         _apply(db, 14, MIGRATIONS_DIR / "014_reason_key.sql")
+        _apply(db, 15, MIGRATIONS_DIR / "015_quarter_hour_slots.sql")
+        _apply(db, 16, MIGRATIONS_DIR / "016_grid_solar_charge_split.sql")
+        _apply(db, 17, MIGRATIONS_DIR / "017_drop_price_profile.sql")
 
     # Vul vertalingstabel met standaardteksten (INSERT IGNORE — overschrijft geen aanpassingen)
     # Fill translation table with default texts (INSERT IGNORE — does not overwrite customisations)

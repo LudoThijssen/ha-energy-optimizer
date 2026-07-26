@@ -2,26 +2,44 @@
 -- name:          000_consolidated.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/000_consolidated.sql
--- part version:  p_v0.1
--- altered:       2026-07-16
+-- part version:  p_v0.2
+-- altered:       2026-07-25
 --
--- Volledig eindschema (resultaat van migraties 001 t/m 014) in één keer.
+-- Volledig eindschema (resultaat van migraties 001 t/m 017) in één keer.
 -- Wordt UITSLUITEND gebruikt door setup.py bij een verse installatie
 -- (lege database, geen _migrations tabel). Bestaande installaties blijven
--- de incrementele migraties 001-014 doorlopen zoals voorheen.
+-- de incrementele migraties 001-017 doorlopen zoals voorheen.
 --
--- Full end-state schema (result of migrations 001 through 014) in one go.
+-- Full end-state schema (result of migrations 001 through 017) in one go.
 -- Used ONLY by setup.py on a fresh installation (empty database, no
 -- _migrations table). Existing installations keep running the incremental
--- migrations 001-014 as before.
+-- migrations 001-017 as before.
 --
 -- LET OP: als dit bestand wordt gebruikt, moet setup.py de _migrations
--- tabel vullen met de versienummers 1,2,3,4,5,6,8,9,10,11,12,13,14 zodat
--- geen enkele incrementele migratie later opnieuw geprobeerd wordt.
+-- tabel vullen met de versienummers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17
+-- zodat geen enkele incrementele migratie later opnieuw geprobeerd wordt.
 --
 -- NOTE: if this file is used, setup.py must fill the _migrations table
--- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14 so no incremental
--- migration is ever attempted afterwards.
+-- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17 so no
+-- incremental migration is ever attempted afterwards.
+--
+-- p_v0.2: bijgewerkt t/m migratie 017 — slot_of_day (kwartier-resolutie)
+-- i.p.v. hour_of_day in consumption_profile/solar_profile/solar_learning/
+-- consumption_learning, is_solar_charge/grid_charge_kw op
+-- optimizer_schedule, schedule_interval_minutes op system_config, en
+-- price_profile is niet meer opgenomen (ongebruikt, zie migratie 017).
+-- Dit is NOG GEEN volledige samenvoeging van alle losse ALTER-statements
+-- uit 001-014 in de CREATE TABLE-definities zelf — dat is gepland voor
+-- v0.14 (grotere opschoning van database + migraties samen).
+--
+-- p_v0.2: updated through migration 017 — slot_of_day (quarter-hour
+-- resolution) instead of hour_of_day in consumption_profile/solar_profile/
+-- solar_learning/consumption_learning, is_solar_charge/grid_charge_kw on
+-- optimizer_schedule, schedule_interval_minutes on system_config, and
+-- price_profile is no longer included (unused, see migration 017).
+-- This is NOT YET a full merge of all the separate ALTER statements from
+-- 001-014 into the CREATE TABLE definitions themselves — that's planned
+-- for v0.14 (larger cleanup of database + migrations together).
 
 CREATE TABLE IF NOT EXISTS `system_config` (
     `id`                              INT           NOT NULL AUTO_INCREMENT,
@@ -77,6 +95,8 @@ CREATE TABLE IF NOT EXISTS `system_config` (
         COMMENT 'Fixed district heating price in €/GJ incl. VAT / Vaste stadsverwarmingprijs in €/GJ incl. BTW',
     `heating_price_entity_id`         VARCHAR(256)  DEFAULT NULL
         COMMENT 'Optional HA entity for dynamic heating price / Optionele HA-entiteit voor dynamische stadsverwarmingprijs',
+    `schedule_interval_minutes`       SMALLINT      NOT NULL DEFAULT 15
+        COMMENT 'Schema-tijdstap in minuten / Schedule time step in minutes',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
@@ -247,6 +267,10 @@ CREATE TABLE IF NOT EXISTS `optimizer_schedule` (
         COMMENT 'Parameters voor vertaling bijv. {"price": 0.12} / Translation params',
     `executed`                TINYINT(1)    NOT NULL DEFAULT 0,
     `executed_at`             DATETIME,
+    `is_solar_charge`         TINYINT(1)    NOT NULL DEFAULT 0
+        COMMENT 'Laadactie (deels) uit zon-overschot / Charge action (partly) from solar surplus',
+    `grid_charge_kw`          DECIMAL(6,3)  NOT NULL DEFAULT 0.000
+        COMMENT 'Vermogen (kW) dat specifiek uit het net wordt geladen / Power (kW) specifically charged from the grid',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
@@ -265,47 +289,32 @@ CREATE TABLE IF NOT EXISTS `consumption_profile` (
     `id`          INT          NOT NULL AUTO_INCREMENT,
     `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `day_of_week` TINYINT      NOT NULL COMMENT '0=Monday/maandag, 6=Sunday/zondag',
-    `hour_of_day` TINYINT      NOT NULL COMMENT '0-23 local time / lokale tijd',
+    `slot_of_day` TINYINT      NOT NULL COMMENT 'Kwartier-slot van de dag (0..95) / Quarter slot of day (0..95)',
     `avg_kw`      DECIMAL(6,3) NOT NULL DEFAULT 0.000 COMMENT 'Average consumption kW / Gemiddeld verbruik kW',
     `min_kw`      DECIMAL(6,3) NOT NULL DEFAULT 0.000,
     `max_kw`      DECIMAL(6,3) NOT NULL DEFAULT 0.000,
     `samples`     INT          NOT NULL DEFAULT 0 COMMENT 'Number of measurements / Aantal metingen',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_day_hour` (`day_of_week`, `hour_of_day`)
+    UNIQUE KEY `unique_day_slot` (`day_of_week`, `slot_of_day`)
 ) ENGINE=InnoDB
-  COMMENT='Average energy consumption per weekday/hour / Gemiddeld verbruik per weekdag/uur';
+  COMMENT='Average energy consumption per weekday/quarter-slot / Gemiddeld verbruik per weekdag/kwartier-slot';
 
 CREATE TABLE IF NOT EXISTS `solar_profile` (
     `id`               INT          NOT NULL AUTO_INCREMENT,
     `updated_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `month`            TINYINT      NOT NULL COMMENT '1=January/januari, 12=December/december',
-    `hour_of_day`      TINYINT      NOT NULL COMMENT '0-23 local time / lokale tijd',
+    `slot_of_day`      TINYINT      NOT NULL COMMENT 'Kwartier-slot van de dag (0..95) / Quarter slot of day (0..95)',
     `avg_kw`           DECIMAL(6,3) NOT NULL DEFAULT 0.000 COMMENT 'Average solar output kW / Gemiddelde zonne-opbrengst kW',
     `max_kw`           DECIMAL(6,3) NOT NULL DEFAULT 0.000,
     `avg_sunshine_pct` DECIMAL(5,2)          DEFAULT NULL COMMENT 'Average sunshine percentage / Gemiddeld zonpercentage',
     `samples`          INT          NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_month_hour` (`month`, `hour_of_day`)
+    UNIQUE KEY `unique_month_slot` (`month`, `slot_of_day`)
 ) ENGINE=InnoDB
-  COMMENT='Expected solar output per month/hour / Verwachte zonne-opbrengst per maand/uur';
-
-CREATE TABLE IF NOT EXISTS `price_profile` (
-    `id`          INT          NOT NULL AUTO_INCREMENT,
-    `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    `month`       TINYINT      NOT NULL COMMENT '1=January, 12=December',
-    `day_of_week` TINYINT      NOT NULL COMMENT '0=Monday, 6=Sunday',
-    `hour_of_day` TINYINT      NOT NULL COMMENT '0-23 local time',
-    `avg_price`   DECIMAL(8,5) NOT NULL DEFAULT 0.00000 COMMENT 'Average price €/kWh / Gemiddelde prijs €/kWh',
-    `min_price`   DECIMAL(8,5) NOT NULL DEFAULT 0.00000,
-    `max_price`   DECIMAL(8,5) NOT NULL DEFAULT 0.00000,
-    `samples`     INT          NOT NULL DEFAULT 0,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_month_dow_hour` (`month`, `day_of_week`, `hour_of_day`)
-) ENGINE=InnoDB
-  COMMENT='Average price patterns per month/weekday/hour / Gemiddelde prijspatronen per maand/weekdag/uur';
+  COMMENT='Expected solar output per month/quarter-slot / Verwachte zonne-opbrengst per maand/kwartier-slot';
 
 CREATE TABLE IF NOT EXISTS `solar_learning` (
-    `hour_of_day`     TINYINT      NOT NULL COMMENT 'Uur van de dag (0..23) / Hour of day (0..23)',
+    `slot_of_day`     TINYINT      NOT NULL COMMENT 'Kwartier-slot van de dag (0..95) / Quarter slot of day (0..95)',
     `week_block`      TINYINT      NOT NULL COMMENT 'Blok van 2 weken (1..26) / 2-week block (1..26)',
     `irradiance_low`  DECIMAL(8,3) NOT NULL DEFAULT 0 COMMENT 'Laagste gemeten instraling W/m² / Lowest measured irradiance W/m²',
     `irradiance_high` DECIMAL(8,3) NOT NULL DEFAULT 0 COMMENT 'Hoogste gemeten instraling W/m² / Highest measured irradiance W/m²',
@@ -313,20 +322,20 @@ CREATE TABLE IF NOT EXISTS `solar_learning` (
     `solar_kwh_high`  DECIMAL(8,4) NOT NULL DEFAULT 0 COMMENT 'Hoogste gemeten opbrengst kWh / Highest measured yield kWh',
     `sample_count`    INT          NOT NULL DEFAULT 0 COMMENT 'Aantal metingen / Number of measurements',
     `updated_at`      DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`hour_of_day`, `week_block`)
-) ENGINE=InnoDB COMMENT='Zon-efficiëntie leermodel / Solar efficiency learning model';
+    PRIMARY KEY (`slot_of_day`, `week_block`)
+) ENGINE=InnoDB COMMENT='Zon-efficiëntie leermodel (kwartier) / Solar efficiency learning model (quarter hour)';
 
 CREATE TABLE IF NOT EXISTS `consumption_learning` (
     `month_of_year` TINYINT      NOT NULL COMMENT 'Maand (1..12) / Month (1..12)',
     `day_of_week`   TINYINT      NOT NULL COMMENT 'Dag van de week (0=ma..6=zo) / Day of week (0=Mon..6=Sun)',
-    `hour_of_day`   TINYINT      NOT NULL COMMENT 'Uur van de dag (0..23) / Hour of day (0..23)',
+    `slot_of_day`   TINYINT      NOT NULL COMMENT 'Kwartier-slot van de dag (0..95) / Quarter slot of day (0..95)',
     `kwh_avg`       DECIMAL(8,4) NOT NULL DEFAULT 0 COMMENT 'Rollend gewogen gemiddelde kWh / Rolling weighted average kWh',
     `kwh_min`       DECIMAL(8,4) NOT NULL DEFAULT 0 COMMENT 'Laagste gemeten kWh / Lowest measured kWh',
     `kwh_max`       DECIMAL(8,4) NOT NULL DEFAULT 0 COMMENT 'Hoogste gemeten kWh / Highest measured kWh',
     `sample_count`  INT          NOT NULL DEFAULT 0 COMMENT 'Aantal metingen (de deler) / Number of measurements (the divisor)',
     `updated_at`    DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`month_of_year`, `day_of_week`, `hour_of_day`)
-) ENGINE=InnoDB COMMENT='Huisverbruik leermodel / Household consumption learning model';
+    PRIMARY KEY (`month_of_year`, `day_of_week`, `slot_of_day`)
+) ENGINE=InnoDB COMMENT='Huisverbruik leermodel (kwartier) / Household consumption learning model (quarter hour)';
 
 CREATE TABLE IF NOT EXISTS `translation_strings` (
     `string_key` VARCHAR(8)   NOT NULL COMMENT 'Sleutel bijv. RS01 / Key e.g. RS01',
