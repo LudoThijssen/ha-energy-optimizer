@@ -2,8 +2,25 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.9
-# altered:       2026-07-23
+# part version:  p_v0.10
+# altered:       2026-07-26
+#
+# p_v0.10: HourForecast -> ForecastSlot, WindowHour -> WindowSlot, veld
+# `hour` -> `slot_start` — puur een naamswijziging, zie optimizer/models.py
+# p_v0.7 voor de volledige toelichting. Daarnaast: price_sell_excl
+# toegevoegd aan WindowSlot en daadwerkelijk gebruikt in de
+# negatieve-exportprijs-check (run()) en _reserve_for_future_negative_export
+# — deze vergeleken voorheen de INKOOPprijs met de export-drempel, wat een
+# verkeerde koppeling was zolang er geen aparte verkoopprijs bestond. Zie
+# migratie 018.
+#
+# p_v0.10: HourForecast -> ForecastSlot, WindowHour -> WindowSlot, field
+# `hour` -> `slot_start` — purely a naming change, see optimizer/models.py
+# p_v0.7 for the full explanation. Also: price_sell_excl added to
+# WindowSlot and actually used in the negative-export-price check (run())
+# and _reserve_for_future_negative_export — these previously compared the
+# BUY price against the export threshold, which was a mismatch for as long
+# as no separate sell price existed. See migration 018.
 #
 # Vervangt de combinatie van strategy.py decide() + engine._calculate().
 # Implementeert de 5-stappen beslislogica uit het technisch ontwerp v0.3:
@@ -44,7 +61,7 @@ from typing import Optional
 
 from database.connection import DatabaseConnection
 from collectors.consumption_learner import ConsumptionLearner
-from .models import HourForecast, ScheduleSlot
+from .models import ForecastSlot, ScheduleSlot
 from translations.translator import build_translator
 from config.timeslot import SLOT_MINUTES, SLOT_HOURS, SLOT_TO_MEASUREMENT_FACTOR
 
@@ -85,13 +102,20 @@ class PriceConfig:
 
 
 @dataclass
-class WindowHour:
+class WindowSlot:
     """
     Eén uur in het beslissingsvenster met alle relevante data.
     One hour in the decision window with all relevant data.
     """
-    forecast:       HourForecast
+    forecast:       ForecastSlot
     price_excl:     Decimal
+    # p_v0.9: verkoopprijs (excl. BTW) — apart van price_excl (inkoop). Start
+    # van het daadwerkelijk gebruiken van de in/verkoopprijs-splitsing, zie
+    # migratie 018 en optimizer/models.py p_v0.6 (ForecastSlot).
+    # p_v0.9: sell price (excl. VAT) — separate from price_excl (buy).
+    # Start of actually using the buy/sell price split, see migration 018
+    # and optimizer/models.py p_v0.6 (ForecastSlot).
+    price_sell_excl: Decimal
     surplus_kwh:    Decimal          # zon - verbruik (positief = overschot)
     tekort_kwh:     Decimal          # verbruik - zon (positief = tekort)
     action:         str   = "idle"
@@ -126,7 +150,7 @@ class DecisionEngine:
 
     def run(
         self,
-        forecasts: list[HourForecast],
+        forecasts: list[ForecastSlot],
         battery_temp_c: Optional[Decimal] = None,
         off_grid_entity_id: Optional[str] = None,
     ) -> list[ScheduleSlot]:
@@ -135,7 +159,7 @@ class DecisionEngine:
         Process the forecasts and determine the optimal action per hour.
 
         Args:
-            forecasts:          lijst van HourForecast objecten (48 uur aan
+            forecasts:          lijst van ForecastSlot objecten (48 uur aan
                                  kwartier-slots, dus 192 objecten)
             battery_temp_c:     huidige batterijtemperatuur voor vermogensbeperking
             off_grid_entity_id: HA entity_id van de off-grid sensor (optioneel)
@@ -178,8 +202,8 @@ class DecisionEngine:
             price = wh.price_excl
 
             # Bereken dynamische SoC drempels voor dit uur
-            nacht_soc = self._nacht_soc(wh.forecast.hour, reserve_soc)
-            dag_soc   = self._dag_soc(wh.forecast.hour, reserve_soc)
+            nacht_soc = self._nacht_soc(wh.forecast.slot_start, reserve_soc)
+            dag_soc   = self._dag_soc(wh.forecast.slot_start, reserve_soc)
 
             # Hoge prijs? → probeer te ontladen
             if price >= price_factor_high and not off_grid:
@@ -192,7 +216,15 @@ class DecisionEngine:
             if wh.surplus_kwh > Decimal("0.05"):
                 grid_top_up = Decimal("0")
 
-                if price < self._price.negative_export_threshold_excl and soc < self._bat.max_soc_pct:
+                # p_v0.9: price_sell_excl i.p.v. price (inkoop) — dit gaat
+                # over de vraag of EXPORTEREN geld kost, dus de verkoopprijs
+                # is hier de relevante prijs, niet de inkoopprijs. Zie
+                # migratie 018 / ForecastSlot.price_sell_per_kwh.
+                # p_v0.9: price_sell_excl instead of price (buy) — this is
+                # about whether EXPORTING costs money, so the sell price is
+                # the relevant price here, not the buy price. See migration
+                # 018 / ForecastSlot.price_sell_per_kwh.
+                if wh.price_sell_excl < self._price.negative_export_threshold_excl and soc < self._bat.max_soc_pct:
                     # Exporteren zou hier geld kosten. Kijk hoeveel ruimte er
                     # NODIG is voor toekomstige uren die ook negatief geprijsd
                     # zijn met eigen zonoverschot — die ruimte laten we vrij,
@@ -232,10 +264,14 @@ class DecisionEngine:
                     wh.is_solar_charge = True
                     wh.grid_top_up_kwh = grid_top_up
                     if grid_top_up > Decimal("0.05"):
+                        # p_v0.9: verkoopprijs in de melding — dát was de
+                        # prijs die de net-bijlaad-beslissing triggerde.
+                        # p_v0.9: sell price in the notification — that was
+                        # the price that triggered the grid top-up decision.
                         self._set_reason(wh, "RS16", {
                             "surplus_kw": wh.surplus_kwh,
                             "grid_kw":    grid_top_up,
-                            "price":      price
+                            "price":      wh.price_sell_excl
                         })
                     else:
                         self._set_reason(wh, "RS01", {"surplus_kw": wh.surplus_kwh})
@@ -340,7 +376,7 @@ class DecisionEngine:
         return charge_kw, discharge_kw
 
     def _price_factors(
-        self, forecasts: list[HourForecast]
+        self, forecasts: list[ForecastSlot]
     ) -> tuple[Decimal, Decimal]:
         """
         Bepaal drempelwaarden voor hoge en lage prijzen op basis van het venster.
@@ -374,30 +410,32 @@ class DecisionEngine:
         ).quantize(Decimal("0.1"))
         return max(reserve, self._bat.min_soc_pct)
 
-    def _build_window(self, forecasts: list[HourForecast]) -> list[WindowHour]:
+    def _build_window(self, forecasts: list[ForecastSlot]) -> list[WindowSlot]:
         """
         Bouw het beslissingsvenster op vanuit de prognoses.
         Build the decision window from the forecasts.
         """
         window = []
         for f in forecasts:
-            price_excl  = self._to_excl(f.price_per_kwh)
+            price_excl      = self._to_excl(f.price_per_kwh)
+            price_sell_excl = self._to_excl(f.price_sell_per_kwh)
             surplus     = max(Decimal("0"), f.solar_kw - f.consumption_kw)
             tekort      = max(Decimal("0"), f.consumption_kw - f.solar_kw)
-            window.append(WindowHour(
+            window.append(WindowSlot(
                 forecast=f,
                 price_excl=price_excl,
+                price_sell_excl=price_sell_excl,
                 surplus_kwh=surplus,
                 tekort_kwh=tekort,
             ))
         return window
 
-    def _mark_executed(self, window: list[WindowHour]) -> None:
+    def _mark_executed(self, window: list[WindowSlot]) -> None:
         """
         Markeer uren die al uitgevoerd zijn (rolling horizon bescherming).
         Mark hours that are already executed (rolling horizon protection).
         """
-        hours = [wh.forecast.hour for wh in window]
+        hours = [wh.forecast.slot_start for wh in window]
         if not hours:
             return
         try:
@@ -412,7 +450,7 @@ class DecisionEngine:
                     row["schedule_for"]: row for row in cur.fetchall()
                 }
             for wh in window:
-                row = executed_rows.get(wh.forecast.hour)
+                row = executed_rows.get(wh.forecast.slot_start)
                 if row is not None:
                     wh.executed = True
                     wh.action   = row["action"]
@@ -473,7 +511,7 @@ class DecisionEngine:
         soc_nodig = (vroeg_kwh / (self._bat.usable_kwh * self._bat.efficiency) * 100)
         return max(soc_nodig, reserve_soc).quantize(Decimal("0.1"))
 
-    def _soc_einde_dag(self, window: list[WindowHour], soc_nu: Decimal) -> Decimal:
+    def _soc_einde_dag(self, window: list[WindowSlot], soc_nu: Decimal) -> Decimal:
         """
         Schat de SoC aan het einde van de dag op basis van huidige acties en surplus.
         Estimate SoC at end of day based on current actions and surplus.
@@ -488,7 +526,7 @@ class DecisionEngine:
         soc = soc_nu
         now_date = datetime.now().date()
         for wh in window:
-            if wh.forecast.hour.date() != now_date:
+            if wh.forecast.slot_start.date() != now_date:
                 break
             if wh.action == "charge":
                 soc = min(soc + wh.power_kw * self._bat.efficiency * SLOT_HOURS
@@ -498,7 +536,7 @@ class DecisionEngine:
                           / self._bat.usable_kwh * 100, self._bat.min_soc_pct)
         return soc
 
-    def _soc_zonsopgang(self, window: list[WindowHour], soc_nu: Decimal) -> Decimal:
+    def _soc_zonsopgang(self, window: list[WindowSlot], soc_nu: Decimal) -> Decimal:
         """
         Schat de SoC bij zonsopgang morgen (06:00).
         Estimate SoC at tomorrow's sunrise (06:00).
@@ -509,7 +547,7 @@ class DecisionEngine:
         soc = soc_nu
         target_hour = (datetime.now() + timedelta(days=1)).replace(hour=6, minute=0, second=0)
         for wh in window:
-            if wh.forecast.hour >= target_hour:
+            if wh.forecast.slot_start >= target_hour:
                 break
             if wh.action == "charge":
                 soc = min(soc + wh.power_kw * self._bat.efficiency * SLOT_HOURS
@@ -521,8 +559,8 @@ class DecisionEngine:
 
     def _mogelijk_ontladen(
         self,
-        wh: WindowHour,
-        window: list[WindowHour],
+        wh: WindowSlot,
+        window: list[WindowSlot],
         soc: Decimal,
         reserve_soc: Decimal,
         nacht_soc: Decimal,
@@ -542,8 +580,8 @@ class DecisionEngine:
 
     def _ontladen(
         self,
-        wh: WindowHour,
-        window: list[WindowHour],
+        wh: WindowSlot,
+        window: list[WindowSlot],
         soc: Decimal,
         reserve_soc: Decimal,
         nacht_soc: Decimal,
@@ -641,8 +679,8 @@ class DecisionEngine:
 
     def _mogelijk_laden(
         self,
-        wh: WindowHour,
-        window: list[WindowHour],
+        wh: WindowSlot,
+        window: list[WindowSlot],
         soc: Decimal,
         doel_soc: Decimal,
         off_grid: bool,
@@ -676,8 +714,8 @@ class DecisionEngine:
 
     def _laden(
         self,
-        wh: WindowHour,
-        window: list[WindowHour],
+        wh: WindowSlot,
+        window: list[WindowSlot],
         soc: Decimal,
         doel_soc: Decimal,
         off_grid: bool,
@@ -745,7 +783,7 @@ class DecisionEngine:
 
     # ── Stap 4: Anti-cycling ──────────────────────────────────────────────────
 
-    def _set_reason(self, wh: "WindowHour", key: str, params: dict | None = None) -> None:
+    def _set_reason(self, wh: "WindowSlot", key: str, params: dict | None = None) -> None:
         """
         Zet reason tekst en sla key+params op voor hervertaling.
         Set reason text and store key+params for re-translation.
@@ -754,7 +792,7 @@ class DecisionEngine:
         wh.reason_params = params or {}
         wh.reason        = self._tr.get(key, params)
 
-    def _anti_cycling(self, window: list[WindowHour]) -> None:
+    def _anti_cycling(self, window: list[WindowSlot]) -> None:
         """
         Blokkeer ontladen als de prijs te dicht bij een recente laadprijs ligt.
         Block discharging if the price is too close to a recent charge price.
@@ -784,10 +822,10 @@ class DecisionEngine:
 
     # ── Stap 5: Omzetten naar slots / Step 5: Convert to slots ───────────────
 
-    def _to_slots(self, window: list[WindowHour]) -> list[ScheduleSlot]:
+    def _to_slots(self, window: list[WindowSlot]) -> list[ScheduleSlot]:
         """
-        Zet WindowHour objecten om naar ScheduleSlot objecten.
-        Convert WindowHour objects to ScheduleSlot objects.
+        Zet WindowSlot objecten om naar ScheduleSlot objecten.
+        Convert WindowSlot objects to ScheduleSlot objects.
         """
         slots = []
         soc = window[0].forecast.soc_pct if window else Decimal("50")
@@ -815,7 +853,7 @@ class DecisionEngine:
                 grid_charge_kw = Decimal("0")
 
             slots.append(ScheduleSlot(
-                hour                   = wh.forecast.hour,
+                slot_start             = wh.forecast.slot_start,
                 action                 = wh.action,
                 target_power_kw        = wh.power_kw,
                 target_soc_pct         = soc,
@@ -847,7 +885,7 @@ class DecisionEngine:
         return slots
 
     def _reserve_for_future_negative_export(
-        self, window: list["WindowHour"], current_index: int
+        self, window: list["WindowSlot"], current_index: int
     ) -> Decimal:
         """
         Som van het verwachte zonoverschot in latere uren die ook onder de
@@ -864,7 +902,11 @@ class DecisionEngine:
         for w in window[current_index + 1:]:
             if w.executed:
                 continue
-            if (w.price_excl < self._price.negative_export_threshold_excl
+            # p_v0.9: price_sell_excl i.p.v. price_excl (inkoop) — zelfde
+            # reden als bij de hoofdcheck in run(): dit gaat over export.
+            # p_v0.9: price_sell_excl instead of price_excl (buy) — same
+            # reason as the main check in run(): this is about export.
+            if (w.price_sell_excl < self._price.negative_export_threshold_excl
                     and w.surplus_kwh > Decimal("0")):
                 # w.surplus_kwh is (ondanks de naam) een vermogen (kW) —
                 # × SLOT_HOURS om de werkelijke energie van dát slot te

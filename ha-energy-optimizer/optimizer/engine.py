@@ -1,8 +1,32 @@
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
-# part version:  p_v0.8
-# altered:       2026-07-23
+# part version:  p_v0.10
+# altered:       2026-07-26
+#
+# p_v0.10: drie wijzigingen in deze versie:
+#   1. `if not price:` -> `if price is None:` in _build_forecasts() — een
+#      geldige prijs van exact €0,00000/kWh (komt voor rond de middag bij
+#      veel zon) is in Python "falsy" als Decimal("0"), dus `not price`
+#      sloeg zo'n slot ONTERECHT over. Was de oorzaak van het gat rond
+#      12:00 in Grafiek 1 op zowel Dashboard als Geschiedenis.
+#   2. HourForecast -> ForecastSlot, veld `hour` -> `slot_start` — puur een
+#      naamswijziging, zie optimizer/models.py p_v0.7.
+#   3. TODO opgelost in _calculate(): export_price gebruikt nu de echte
+#      verkoopprijs (ForecastSlot.price_sell_per_kwh) i.p.v. een duplicaat
+#      van de inkoopprijs. Zie migratie 018.
+#
+# p_v0.10: three changes in this version:
+#   1. `if not price:` -> `if price is None:` in _build_forecasts() — a
+#      genuine price of exactly €0.00000/kWh (occurs around midday with
+#      lots of solar) is "falsy" in Python as Decimal("0"), so `not price`
+#      WRONGLY skipped such a slot. Was the cause of the gap around 12:00
+#      in Chart 1 on both Dashboard and History.
+#   2. HourForecast -> ForecastSlot, field `hour` -> `slot_start` — purely
+#      a naming change, see optimizer/models.py p_v0.7.
+#   3. TODO resolved in _calculate(): export_price now uses the real sell
+#      price (ForecastSlot.price_sell_per_kwh) instead of a duplicate of
+#      the buy price. See migration 018.
 #
 # Optimization engine — orchestrates the full planning cycle.
 # Optimalisatie-engine — orkestreert de volledige planningscyclus.
@@ -48,7 +72,7 @@ from database.repository import (
 from config.config import AppConfig
 from config.timeslot import SLOT_MINUTES, SLOT_HOURS, SLOTS_PER_HOUR, slot_start
 from reporter.reporter import Reporter
-from .models import HourForecast, ScheduleSlot
+from .models import ForecastSlot, ScheduleSlot
 from .strategy import (
     Strategy, DayPriceStats, SolarOutlook, DayBalancePlan,
     build_strategy_from_db,
@@ -251,7 +275,7 @@ class OptimizerEngine:
 
     def _build_forecasts(
         self, actual_soc: Decimal | None = None
-    ) -> list[HourForecast]:
+    ) -> list[ForecastSlot]:
         """
         Build 48-hour forecasts (as quarter-hour slots) combining price,
         weather and learning model data. Uses SolarLearner and
@@ -278,16 +302,26 @@ class OptimizerEngine:
         # Key is the exact DB timestamp — with Tibber (still hour-only, see
         # module header) these are whole hours; once Tibber delivers
         # quarter-hour prices, quarter keys will land here automatically.
+        # p_v0.9: waarde is nu een (koop, verkoop)-tuple i.p.v. losse
+        # Decimal — start van het daadwerkelijk gebruiken van de
+        # in/verkoopprijs-splitsing (zie migratie 018).
+        # p_v0.9: value is now a (buy, sell) tuple instead of a plain
+        # Decimal — start of actually using the buy/sell price split (see
+        # migration 018).
         prices = {}
         for target_date in [date.today(), date.today() + timedelta(days=1)]:
             with self._db.cursor() as cur:
                 cur.execute("""
-                    SELECT price_hour, price_per_kwh FROM energy_prices
+                    SELECT price_hour, price_per_kwh, price_sell_per_kwh
+                    FROM energy_prices
                     WHERE DATE(price_hour) = %(d)s AND energy_type = 'electricity'
                     ORDER BY price_hour
                 """, {"d": target_date})
                 for row in cur.fetchall():
-                    prices[row["price_hour"]] = Decimal(str(row["price_per_kwh"]))
+                    prices[row["price_hour"]] = (
+                        Decimal(str(row["price_per_kwh"])),
+                        Decimal(str(row["price_sell_per_kwh"])),
+                    )
 
         # Load weather forecasts / Laad weersvoorspellingen
         # Weerdata blijft per uur binnenkomen (bron levert geen kwartier-
@@ -375,6 +409,7 @@ class OptimizerEngine:
             # row existed for that slot).
             if price is None:
                 continue
+            price_buy, price_sell = price
 
             # ── Solar forecast / Zonverwachting ─────────────────────────────
             # Prioriteit: 1) SolarLearner 2) legacy profiel 3) irradiance 4) 0
@@ -442,9 +477,10 @@ class OptimizerEngine:
                     slot_idx, _FALLBACK_CONSUMPTION_KW
                 )
 
-            forecasts.append(HourForecast(
-                hour=slot_dt,
-                price_per_kwh=price,
+            forecasts.append(ForecastSlot(
+                slot_start=slot_dt,
+                price_per_kwh=price_buy,
+                price_sell_per_kwh=price_sell,
                 solar_kw=solar_kw,
                 consumption_kw=consumption_kw,
                 soc_pct=current_soc,
@@ -615,7 +651,7 @@ class OptimizerEngine:
 
     def _calculate(
         self,
-        forecasts: list[HourForecast],
+        forecasts: list[ForecastSlot],
         strategy: Strategy,
         day_stats: DayPriceStats,
         solar_outlook: SolarOutlook | None,
@@ -646,7 +682,14 @@ class OptimizerEngine:
 
             action, power, reason, notifications, is_solar_charge = strategy.decide(
                 current_price=forecast.price_per_kwh,
-                export_price=forecast.price_per_kwh,   # TODO: separate export price feed
+                # p_v0.9: TODO opgelost — gebruikt nu de echte verkoopprijs
+                # i.p.v. een duplicaat van de inkoopprijs (zie migratie 018,
+                # optimizer/models.py p_v0.6 ForecastSlot.price_sell_per_kwh).
+                # p_v0.9: TODO resolved — now uses the real sell price
+                # instead of a duplicate of the buy price (see migration
+                # 018, optimizer/models.py p_v0.6
+                # ForecastSlot.price_sell_per_kwh).
+                export_price=forecast.price_sell_per_kwh,
                 solar_kw=forecast.solar_kw,
                 consumption_kw=forecast.consumption_kw,
                 soc_pct=soc,
@@ -662,7 +705,7 @@ class OptimizerEngine:
             cost   = strategy.calc_cost(action, power, price_excl_now, is_solar_charge)
 
             slots.append(ScheduleSlot(
-                hour=forecast.hour,
+                slot_start=forecast.slot_start,
                 action=action,
                 target_power_kw=power,
                 target_soc_pct=soc,
@@ -675,7 +718,7 @@ class OptimizerEngine:
             ))
 
             all_notifications.extend(
-                (forecast.hour, msg) for msg in notifications
+                (forecast.slot_start, msg) for msg in notifications
             )
 
             # Track last charge price for anti-cycling check
@@ -730,7 +773,7 @@ class OptimizerEngine:
     def _to_db_slots(self, slots: list[ScheduleSlot]) -> list[OptimizerSlot]:
         return [
             OptimizerSlot(
-                schedule_for=s.hour,
+                schedule_for=s.slot_start,
                 action=s.action,
                 target_power_kw=s.target_power_kw,
                 target_soc_pct=s.target_soc_pct,
