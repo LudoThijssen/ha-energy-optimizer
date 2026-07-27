@@ -1,8 +1,11 @@
 # name:          repository.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
-# part version:  p_v0.5
-# altered:       2026-07-24
+# part version:  p_v0.7
+# altered:       2026-07-26
+#
+# p_v0.7: PriceRepository uitgebreid met price_sell_per_kwh — start van de
+# in/verkoopprijs-splitsing, zie migratie 018.
 #
 # Repository classes for all database operations.
 # Exact column names match the SQL migrations 001-004.
@@ -13,10 +16,24 @@
 # OptimizerRepository.save_slot()/get_current_slot() — zie migratie 016.
 # p_v0.5: is_solar_charge/grid_charge_kw added to
 # OptimizerRepository.save_slot()/get_current_slot() — see migration 016.
+#
+# p_v0.6: get_average_power_for_hour() in SolarRepository/
+# HomeConsumptionRepository middelde nog over een vast venster van 60
+# minuten, ongeacht welk tijdstip werd meegegeven. Nu SLOT_MINUTES
+# (kwartier), zodat een vergelijking met één schema-slot (zie
+# engine.py::_check_forecast_deviation) ook echt over dat ene slot middelt
+# i.p.v. over het hele omvattende uur.
+# p_v0.6: get_average_power_for_hour() in SolarRepository/
+# HomeConsumptionRepository still averaged over a fixed 60-minute window,
+# regardless of the timestamp passed in. Now SLOT_MINUTES (quarter hour),
+# so a comparison against one schedule slot (see
+# engine.py::_check_forecast_deviation) actually averages over that one
+# slot instead of the whole enclosing hour.
 
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 from database.connection import DatabaseConnection
+from config.timeslot import SLOT_MINUTES
 from database.models import (
     BatteryStatus, SolarProduction, HomeConsumption,
     WeatherForecast, OptimizerSlot, ReportEntry,
@@ -145,18 +162,21 @@ class SolarRepository:
 
     def get_average_power_for_hour(self, hour: "datetime") -> "Decimal | None":
         """
-        Return average solar power (kW) measured during the given hour.
-        Returns None if no measurements exist for that hour.
+        Return average solar power (kW) measured during the given slot.
+        Returns None if no measurements exist for that slot.
 
-        Geeft gemiddeld zonnestroom (kW) gemeten tijdens het opgegeven uur.
-        Geeft None terug als er geen metingen zijn voor dat uur.
+        Geeft gemiddeld zonnestroom (kW) gemeten tijdens het opgegeven slot.
+        Geeft None terug als er geen metingen zijn voor dat slot.
+
+        p_v0.6: venster is nu SLOT_MINUTES i.p.v. een vast heel uur.
+        p_v0.6: window is now SLOT_MINUTES instead of a fixed whole hour.
         """
         with self._db.cursor() as cur:
             cur.execute(
                 "SELECT AVG(power_kw) AS avg_kw "
                 "FROM solar_production "
                 "WHERE measured_at >= %(start)s AND measured_at < %(end)s",
-                {"start": hour, "end": hour.replace(minute=59, second=59)}
+                {"start": hour, "end": hour + timedelta(minutes=SLOT_MINUTES)}
             )
             row = cur.fetchone()
             if row and row["avg_kw"] is not None:
@@ -222,18 +242,21 @@ class HomeConsumptionRepository:
 
     def get_average_power_for_hour(self, hour: "datetime") -> "Decimal | None":
         """
-        Return average total consumption power (kW) during the given hour.
-        Returns None if no measurements exist for that hour.
+        Return average total consumption power (kW) during the given slot.
+        Returns None if no measurements exist for that slot.
 
-        Geeft gemiddeld totaal verbruiksvermogen (kW) tijdens het opgegeven uur.
-        Geeft None terug als er geen metingen zijn voor dat uur.
+        Geeft gemiddeld totaal verbruiksvermogen (kW) tijdens het opgegeven slot.
+        Geeft None terug als er geen metingen zijn voor dat slot.
+
+        p_v0.6: venster is nu SLOT_MINUTES i.p.v. een vast heel uur.
+        p_v0.6: window is now SLOT_MINUTES instead of a fixed whole hour.
         """
         with self._db.cursor() as cur:
             cur.execute(
                 "SELECT AVG(total_consumption_kw) AS avg_kw "
                 "FROM home_consumption "
                 "WHERE measured_at >= %(start)s AND measured_at < %(end)s",
-                {"start": hour, "end": hour.replace(minute=59, second=59)}
+                {"start": hour, "end": hour + timedelta(minutes=SLOT_MINUTES)}
             )
             row = cur.fetchone()
             if row and row["avg_kw"] is not None:
@@ -248,7 +271,14 @@ class PriceRepository:
     """
     energy_prices columns:
     id, created_at, price_hour, energy_type, price_per_kwh,
-    price_incl_tax, source
+    price_sell_per_kwh, price_incl_tax, source
+
+    p_v0.6: price_sell_per_kwh toegevoegd — zie migratie 018 en
+    database/models.py p_v0.6 (EnergyPrice.__post_init__ dupliceert 'm
+    automatisch als een provider 'm niet meegeeft).
+    p_v0.6: price_sell_per_kwh added — see migration 018 and
+    database/models.py p_v0.6 (EnergyPrice.__post_init__ auto-duplicates
+    it if a provider doesn't supply it).
     """
 
     def __init__(self, db: DatabaseConnection):
@@ -268,19 +298,32 @@ class PriceRepository:
             for p in prices:
                 if hasattr(p, '__dict__'):
                     p = {k: v for k, v in p.__dict__.items() if not k.startswith('_')}
+                # p_v0.6: als price_sell_per_kwh ontbreekt (bijv. een kale
+                # dict zonder die sleutel, i.p.v. een EnergyPrice-object
+                # met __post_init__), hier ook dupliceren als terugval.
+                # p_v0.6: if price_sell_per_kwh is missing (e.g. a plain
+                # dict without that key, instead of an EnergyPrice object
+                # with __post_init__), duplicate here too as a fallback.
+                sell_price = p.get("price_sell_per_kwh")
+                if sell_price is None:
+                    sell_price = p["price_per_kwh"]
+
                 cur.execute("""
                     INSERT INTO energy_prices
                         (price_hour, energy_type, price_per_kwh,
-                         price_incl_tax, source)
-                    VALUES (%(hour)s, %(type)s, %(price)s, %(incl)s, %(source)s)
+                         price_sell_per_kwh, price_incl_tax, source)
+                    VALUES (%(hour)s, %(type)s, %(price)s,
+                            %(sell)s, %(incl)s, %(source)s)
                     ON DUPLICATE KEY UPDATE
-                        price_per_kwh  = VALUES(price_per_kwh),
-                        price_incl_tax = VALUES(price_incl_tax),
-                        source         = VALUES(source)
+                        price_per_kwh      = VALUES(price_per_kwh),
+                        price_sell_per_kwh = VALUES(price_sell_per_kwh),
+                        price_incl_tax     = VALUES(price_incl_tax),
+                        source             = VALUES(source)
                 """, {
                     "hour":   p["price_hour"],
                     "type":   p.get("energy_type", "electricity"),
                     "price":  p["price_per_kwh"],
+                    "sell":   sell_price,
                     "incl":   1 if p.get("price_incl_tax") else 0,
                     "source": p.get("source", "api"),
                 })
@@ -290,7 +333,8 @@ class PriceRepository:
     def get_for_date(self, target_date: date) -> list[dict]:
         with self._db.cursor() as cur:
             cur.execute("""
-                SELECT price_hour, energy_type, price_per_kwh, price_incl_tax
+                SELECT price_hour, energy_type, price_per_kwh,
+                       price_sell_per_kwh, price_incl_tax
                 FROM energy_prices
                 WHERE DATE(price_hour) = %(d)s
                   AND energy_type = 'electricity'

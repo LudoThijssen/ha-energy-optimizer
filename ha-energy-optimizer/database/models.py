@@ -2,18 +2,29 @@
 # name:          models.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/models.py
-# part version:  p_v0.5
-# altered:       2026-07-24
+# part version:  p_v0.6
+# altered:       2026-07-26
 #
 # p_v0.5: is_solar_charge / grid_charge_kw toegevoegd aan OptimizerSlot —
-# zie migratie 016 en optimizer/models.py p_v0.5 (ScheduleSlot). Maakt het
-# mogelijk om in de GUI "laden van het net" te tonen los van "laden vanuit
-# zon-overschot" binnen dezelfde laadactie.
-#
+# zie migratie 016 en optimizer/models.py p_v0.5 (ScheduleSlot).
 # p_v0.5: is_solar_charge / grid_charge_kw added to OptimizerSlot — see
-# migration 016 and optimizer/models.py p_v0.5 (ScheduleSlot). Enables the
-# GUI to show "charging from the grid" separately from "charging from solar
-# surplus" within the same charge action.
+# migration 016 and optimizer/models.py p_v0.5 (ScheduleSlot).
+#
+# p_v0.6: price_sell_per_kwh toegevoegd aan EnergyPrice — start van de
+# in/verkoopprijs-splitsing (zie migratie 018). __post_init__ dupliceert
+# automatisch price_per_kwh naar price_sell_per_kwh als een provider die
+# niet expliciet meegeeft — bestaande providers (tibber.py, energyzero.py,
+# etc.) hoeven dus NIET aangepast te worden om te blijven werken. Zodra een
+# provider wél een eigen verkoopprijs kan leveren, geeft die 'm gewoon mee
+# aan de constructor en overschrijft dat de duplicatie.
+#
+# p_v0.6: price_sell_per_kwh added to EnergyPrice — start of the buy/sell
+# price split (see migration 018). __post_init__ automatically duplicates
+# price_per_kwh into price_sell_per_kwh for any provider that doesn't pass
+# it explicitly — existing providers (tibber.py, energyzero.py, etc.) do
+# NOT need to be changed to keep working. Once a provider can supply its
+# own sell price, it simply passes it to the constructor and that
+# overrides the duplication.
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -27,7 +38,18 @@ class EnergyPrice:
     price_per_kwh: Decimal
     price_incl_tax: bool
     source: str
+    # p_v0.6: verkoopprijs (teruglevering) — None laten om automatisch te
+    # dupliceren van price_per_kwh, of expliciet meegeven zodra een
+    # provider een eigen verkoopprijs levert.
+    # p_v0.6: sell (feed-in) price — leave None to auto-duplicate from
+    # price_per_kwh, or pass explicitly once a provider supplies its own
+    # sell price.
+    price_sell_per_kwh: Decimal | None = None
     id: int | None = None
+
+    def __post_init__(self):
+        if self.price_sell_per_kwh is None:
+            self.price_sell_per_kwh = self.price_per_kwh
 
 
 @dataclass
