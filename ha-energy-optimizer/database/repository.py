@@ -1,8 +1,16 @@
 # name:          repository.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
-# part version:  p_v0.7
-# altered:       2026-07-26
+# part version:  p_v0.8
+# altered:       2026-07-28
+#
+# p_v0.8: SQL NOW() vervangen door een Python-berekende now_local()-
+# parameter op 4 plekken (get_average_hourly_kwh, get_current_slot,
+# mark_executed, mark_notified). NOW() leest de klok van de DATABASE-
+# SERVER, een apart proces met mogelijk een eigen tijdzone-afwijking, los
+# van het probleem in de Python-container (zie config/localtime.py). Door
+# overal now_local() te gebruiken is er nu precies één kloksbron voor de
+# hele add-on i.p.v. twee die stilzwijgend uit elkaar konden lopen.
 #
 # p_v0.7: PriceRepository uitgebreid met price_sell_per_kwh — start van de
 # in/verkoopprijs-splitsing, zie migratie 018.
@@ -34,6 +42,7 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 from database.connection import DatabaseConnection
 from config.timeslot import SLOT_MINUTES
+from config.localtime import now_local
 from database.models import (
     BatteryStatus, SolarProduction, HomeConsumption,
     WeatherForecast, OptimizerSlot, ReportEntry,
@@ -234,8 +243,8 @@ class HomeConsumptionRepository:
             cur.execute("""
                 SELECT COALESCE(AVG(total_consumption_kw), 0.5) AS avg_kw
                 FROM home_consumption
-                WHERE measured_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-            """)
+                WHERE measured_at >= %(cutoff)s
+            """, {"cutoff": now_local() - timedelta(days=30)})
             row = cur.fetchone()
             return Decimal(str(row["avg_kw"])) if row else Decimal("0.5")
 
@@ -529,9 +538,9 @@ class OptimizerRepository:
                        reason, executed, executed_at,
                        is_solar_charge, grid_charge_kw
                 FROM optimizer_schedule
-                WHERE schedule_for <= NOW() AND executed = 0
+                WHERE schedule_for <= %(now)s AND executed = 0
                 ORDER BY schedule_for DESC LIMIT 1
-            """)
+            """, {"now": now_local()})
             row = cur.fetchone()
             return OptimizerSlot(**row) if row else None
 
@@ -539,8 +548,8 @@ class OptimizerRepository:
         with self._db.cursor() as cur:
             cur.execute(
                 "UPDATE optimizer_schedule "
-                "SET executed=1, executed_at=NOW() WHERE id=%(id)s",
-                {"id": slot_id}
+                "SET executed=1, executed_at=%(now)s WHERE id=%(id)s",
+                {"id": slot_id, "now": now_local()}
             )
 
     def get_schedule_for_date(self, target_date: date) -> list[dict]:
@@ -614,8 +623,8 @@ class ReportRepository:
         with self._db.cursor() as cur:
             cur.execute(
                 "UPDATE report_log "
-                "SET notified=1, notified_at=NOW() WHERE id=%(id)s",
-                {"id": entry_id}
+                "SET notified=1, notified_at=%(now)s WHERE id=%(id)s",
+                {"id": entry_id, "now": now_local()}
             )
 
 #

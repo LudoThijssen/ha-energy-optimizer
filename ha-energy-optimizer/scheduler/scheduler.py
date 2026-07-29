@@ -2,13 +2,30 @@
 # name:          scheduler.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/scheduler/scheduler.py
-# part version:  p_v0.3
-# altered:       2026-06-21
-# 
+# part version:  p_v0.4
+# altered:       2026-07-28
+#
+# p_v0.4: datetime.now() -> now_local(config.location.timezone). Kritiek:
+# dit bepaalt exact wanneer optimizer.run_time, evening_planning_time,
+# daily_report_time en profile_update_time daadwerkelijk afgaan. Als de
+# container-klok verkeerd staat (bekend HA Supervisor-probleem, zie
+# config/localtime.py), vuurden deze dagelijkse taken op het verkeerde
+# werkelijke moment — bijv. de avondplanning om "21:00" volgens de
+# container terwijl het lokaal pas 19:00 was.
+#
+# p_v0.4: datetime.now() -> now_local(config.location.timezone). Critical:
+# this determines exactly when optimizer.run_time, evening_planning_time,
+# daily_report_time and profile_update_time actually fire. If the
+# container clock is wrong (known HA Supervisor issue, see
+# config/localtime.py), these daily tasks fired at the wrong real-world
+# moment — e.g. the evening planning at "21:00" per the container while it
+# was only 19:00 locally.
+#
 import asyncio
 import logging
 from datetime import datetime, time
 from config.config import AppConfig
+from config.localtime import now_local
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +61,9 @@ class TaskScheduler:
     async def _run_daily(self, time_str: str, task: callable) -> None:
         h, m = map(int, time_str.split(":"))
         target = time(h, m)
+        tz_name = getattr(self._config.location, "timezone", "Europe/Amsterdam")
         while True:
-            seconds_until = _seconds_until(datetime.now(), target)
+            seconds_until = _seconds_until(now_local(tz_name), target)
             await asyncio.sleep(seconds_until)
             try:
                 task()
@@ -62,3 +80,5 @@ def _seconds_until(now: datetime, target: time) -> float:
     if delta <= 0:
         delta += 86400
     return delta
+
+#

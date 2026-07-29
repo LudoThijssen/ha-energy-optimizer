@@ -71,6 +71,7 @@ from database.repository import (
 )
 from config.config import AppConfig
 from config.timeslot import SLOT_MINUTES, SLOT_HOURS, SLOTS_PER_HOUR, slot_start
+from config.localtime import now_local
 from reporter.reporter import Reporter
 from .models import ForecastSlot, ScheduleSlot
 from .strategy import (
@@ -125,11 +126,25 @@ class OptimizerEngine:
         self._consumption_repo = HomeConsumptionRepository(db)
         self._tr             = build_translator(db)
 
+        # p_v0.10: gedeelde helper voor de lokale kloktijd — zie
+        # config/localtime.py voor waarom dit niet gewoon datetime.now() is.
+        # p_v0.10: shared helper for the local wall-clock time — see
+        # config/localtime.py for why this isn't just datetime.now().
+        self._tz_name = getattr(config.location, "timezone", "Europe/Amsterdam")
+
         # Day balance plan is calculated in the evening and held in memory
         # until the next evening. It is also persisted to the schedule table.
         # Dagbalansplan wordt 's avonds berekend en in geheugen gehouden
         # tot de volgende avond. Het wordt ook opgeslagen in de schedule-tabel.
         self._day_balance_plan: DayBalancePlan | None = None
+
+    def _now(self) -> datetime:
+        """Lokale kloktijd, onafhankelijk van de container-systeemklok."""
+        return now_local(self._tz_name)
+
+    def _today(self) -> date:
+        """Lokale datum van vandaag, onafhankelijk van de container-systeemklok."""
+        return self._now().date()
 
     # ── Evening planning / Avondplanning ─────────────────────────────────────
 
@@ -293,7 +308,7 @@ class OptimizerEngine:
         solar_learner       = SolarLearner(self._db)
         consumption_learner = ConsumptionLearner(self._db)
 
-        now = slot_start(datetime.now())
+        now = slot_start(self._now())
 
         # Load prices for today and tomorrow / Laad prijzen voor vandaag en morgen
         # Sleutel is de exacte DB-timestamp — bij Tibber (nog steeds
@@ -309,7 +324,7 @@ class OptimizerEngine:
         # Decimal — start of actually using the buy/sell price split (see
         # migration 018).
         prices = {}
-        for target_date in [date.today(), date.today() + timedelta(days=1)]:
+        for target_date in [self._today(), self._today() + timedelta(days=1)]:
             with self._db.cursor() as cur:
                 cur.execute("""
                     SELECT price_hour, price_per_kwh, price_sell_per_kwh
@@ -492,7 +507,7 @@ class OptimizerEngine:
         Get remaining hours' prices for tonight (for day balance planning).
         Haal resterende uurprijzen van vanavond op (voor dagbalansplanning).
         """
-        now = slot_start(datetime.now())
+        now = slot_start(self._now())
         midnight = now.replace(hour=23, minute=59)
 
         with self._db.cursor() as cur:
@@ -523,7 +538,7 @@ class OptimizerEngine:
         _DEVIATION_THRESHOLD_PCT = Decimal("10")  # warn above 10% deviation
 
         try:
-            now = slot_start(datetime.now())
+            now = slot_start(self._now())
             with self._db.cursor() as cur:
                 cur.execute("""
                     SELECT target_soc_pct FROM optimizer_schedule
@@ -581,7 +596,7 @@ class OptimizerEngine:
             # otherwise a quarter-hour forecast gets compared against an
             # hourly average here — not broken (no error), just less
             # precise than intended.
-            last_slot = slot_start(datetime.now()) - timedelta(minutes=SLOT_MINUTES)
+            last_slot = slot_start(self._now()) - timedelta(minutes=SLOT_MINUTES)
 
             with self._db.cursor() as cur:
                 cur.execute(

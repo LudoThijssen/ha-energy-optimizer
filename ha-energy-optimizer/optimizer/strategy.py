@@ -1,12 +1,19 @@
-# 
 # name:          strategy.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/strategy.py
-# part version:  p_v0.4
-# altered:       2026-07-05
+# part version:  p_v0.5
+# altered:       2026-07-25
 #
 # Decision rules for home battery optimization with a dynamic electricity contract.
 # Beslisregels voor thuisbatterij-optimalisatie met een dynamisch stroomcontract.
+#
+# p_v0.5: calc_saving()/calc_cost() gecorrigeerd met × SLOT_HOURS — dit is
+# het terugvalpad (draait alleen als DecisionEngine een fout geeft) en had
+# nog dezelfde 1-uur-aanname als decision_engine.py vóór de kwartier-fix.
+# p_v0.5: calc_saving()/calc_cost() corrected with × SLOT_HOURS — this is
+# the fallback path (only runs when DecisionEngine errors out) and still
+# had the same 1-hour assumption decision_engine.py had before the
+# quarter-hour fix.
 #
 # ── Priority order / Prioriteitsvolgorde ────────────────────────────────────
 #
@@ -35,6 +42,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 import logging
+
+from config.timeslot import SLOT_HOURS
+from config.localtime import now_local
 
 logger = logging.getLogger(__name__)
 
@@ -429,9 +439,17 @@ class Strategy:
         ):
             # Are we in one of the planned best discharge hours?
             # Zitten we in een van de geplande beste ontlaaduren?
-            from datetime import datetime
-            current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
-            if current_hour in day_balance_plan.best_hours:
+            # p_v0.5: slot_start() i.p.v. afronden op het hele uur — anders
+            # matcht dit nooit meer dan 1 van elke 4 kwartier-slots, zodra
+            # today_prices_excl kwartier-tijdstippen bevat (na de Tibber-
+            # kwartier-omschakeling).
+            # p_v0.5: slot_start() instead of rounding to the whole hour —
+            # otherwise this would only ever match 1 out of every 4 quarter
+            # slots, once today_prices_excl contains quarter-hour timestamps
+            # (after the Tibber quarter-hour switch).
+            from config.timeslot import slot_start
+            current_slot = slot_start(now_local())
+            if current_slot in day_balance_plan.best_hours:
                 power = power_limits.discharge_kw
                 return (
                     "discharge",
@@ -741,10 +759,19 @@ class Strategy:
         Voor 'laden' is dit alleen het toekomstige rendementsverlies dat
         vermeden wordt t.o.v. een slechter alternatief — NIET de kosten
         van de elektriciteit zelf. Zie calc_cost() daarvoor.
+
+        p_v0.5: × SLOT_HOURS toegevoegd — power_kw is een vermogen, de
+        besparing moet berekend worden over de energie van dit ene
+        schema-slot (power_kw × SLOT_HOURS), niet over power_kw alsof dat
+        al kWh is. Zelfde correctie als decision_engine.py::_calc_saving.
+        p_v0.5: × SLOT_HOURS added — power_kw is a power rating, the saving
+        must be calculated over this one schedule slot's energy
+        (power_kw × SLOT_HOURS), not over power_kw as if it were already
+        kWh. Same correction as decision_engine.py::_calc_saving.
         """
         if action == "discharge":
-            energy_out = power_kw * self.efficiency
-            saving = (energy_out * price_excl) - (self.depreciation_per_kwh * power_kw)
+            energy_out = power_kw * self.efficiency * SLOT_HOURS
+            saving = (energy_out * price_excl) - (self.depreciation_per_kwh * power_kw * SLOT_HOURS)
         elif action == "charge":
             if is_solar_charge:
                 # Solar charging is free — no cost, so no "saving" framing needed.
@@ -752,8 +779,8 @@ class Strategy:
                 saving = Decimal("0")
             else:
                 saving = max(
-                    (power_kw * price_excl * (Decimal("1") - Decimal("1") / self.efficiency)
-                     - self.depreciation_per_kwh * power_kw),
+                    (power_kw * SLOT_HOURS * price_excl * (Decimal("1") - Decimal("1") / self.efficiency)
+                     - self.depreciation_per_kwh * power_kw * SLOT_HOURS),
                     Decimal("0"),
                 )
         else:
@@ -769,25 +796,28 @@ class Strategy:
         is_solar_charge: bool = False,
     ) -> Decimal:
         """
-        Calculate the actual cost incurred this hour for the given action.
-        Bereken de werkelijke kosten voor deze actie dit uur.
+        Calculate the actual cost incurred this slot for the given action.
+        Bereken de werkelijke kosten voor deze actie dit slot.
 
-        - 'charge' from grid: cost = power × price (money spent now, excl. VAT)
+        - 'charge' from grid: cost = power × SLOT_HOURS × price (money spent now, excl. VAT)
         - 'charge' from solar surplus: cost = 0 (already-produced free energy)
-        - 'discharge' / 'idle' / 'self_consume': cost = 0 (no purchase this hour)
+        - 'discharge' / 'idle' / 'self_consume': cost = 0 (no purchase this slot)
 
-        - 'laden' vanaf net: kosten = vermogen × prijs (nu uitgegeven geld, excl. BTW)
+        - 'laden' vanaf net: kosten = vermogen × SLOT_HOURS × prijs (nu uitgegeven geld, excl. BTW)
         - 'laden' van zonne-overschot: kosten = 0 (al geproduceerde gratis energie)
-        - 'ontladen' / 'rust' / 'zelf verbruik': kosten = 0 (geen aankoop dit uur)
+        - 'ontladen' / 'rust' / 'zelf verbruik': kosten = 0 (geen aankoop dit slot)
 
         Note: this is cost EXCL. VAT, consistent with price_excl throughout
         the strategy. The GUI may add VAT for display if desired.
 
         Let op: dit zijn kosten EXCL. BTW, consistent met price_excl door de
         hele strategie. De GUI kan voor weergave BTW toevoegen indien gewenst.
+
+        p_v0.5: × SLOT_HOURS toegevoegd — zie calc_saving() hierboven.
+        p_v0.5: × SLOT_HOURS added — see calc_saving() above.
         """
         if action == "charge" and not is_solar_charge:
-            cost = power_kw * price_excl
+            cost = power_kw * SLOT_HOURS * price_excl
         else:
             cost = Decimal("0")
 
@@ -931,8 +961,8 @@ def _build_solar_outlook(db) -> "SolarOutlook | None":
     Build tomorrow's solar outlook from weather forecast data.
     Bouw de zonnerverwachting van morgen op basis van weersvoorspellingsdata.
     """
-    from datetime import date, timedelta
-    tomorrow = date.today() + timedelta(days=1)
+    from datetime import timedelta
+    tomorrow = now_local().date() + timedelta(days=1)
 
     with db.cursor() as cur:
         cur.execute("""

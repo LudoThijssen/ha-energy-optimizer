@@ -2,14 +2,36 @@
 # name:          ha_collector.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/ha_collector.py
-# part version:  p_v0.5
-# altered:       2026-07-05
+# part version:  p_v0.6
+# altered:       2026-07-28
+#
+# p_v0.6: datetime.now() -> self._now() (now_local(config.location.timezone))
+# op alle vier de meetpunten (batterij, zon, verbruik, leermodel-update).
+# Kritiek voor de leermodellen: SolarLearner/ConsumptionLearner bucketen op
+# slot_of_day — als de container-klok verkeerd staat (bekend HA
+# Supervisor-probleem, zie config/localtime.py), belandt een meting van
+# bijv. 14:00 in het slot van 12:00, en leert het model structureel het
+# verkeerde patroon voor het verkeerde kwartier.
+#
+# En passant: dubbele `from translations.translator import build_translator`
+# en dubbele `self._tr = build_translator(db)` opgeruimd (onschuldig maar
+# overbodig).
+#
+# p_v0.6: datetime.now() -> self._now() (now_local(config.location.timezone))
+# at all four measurement points (battery, solar, consumption, learner
+# update). Critical for the learning models: SolarLearner/ConsumptionLearner
+# bucket by slot_of_day — if the container clock is wrong (known HA
+# Supervisor issue, see config/localtime.py), a measurement taken at e.g.
+# 14:00 lands in the 12:00 slot, and the model structurally learns the
+# wrong pattern for the wrong quarter.
+#
+# Along the way: cleaned up a duplicate
+# `from translations.translator import build_translator` and duplicate
+# `self._tr = build_translator(db)` (harmless but redundant).
 #
 import requests
-from datetime import datetime
 from decimal import Decimal
 from .base import BaseCollector, CollectorTemporaryError, CollectorConfigError, validate_reading
-from translations.translator import build_translator
 from translations.translator import build_translator
 from .solar_learner import SolarLearner
 from .consumption_learner import ConsumptionLearner
@@ -17,6 +39,7 @@ from database.connection import DatabaseConnection
 from database.models import HomeConsumption, BatteryStatus, SolarProduction
 from database.repository import BatteryRepository, SolarRepository, HomeConsumptionRepository
 from config.config import AppConfig
+from config.localtime import now_local
 
 
 class HaCollector(BaseCollector):
@@ -32,7 +55,11 @@ class HaCollector(BaseCollector):
         self._solar_learner = SolarLearner(db)
         self._consumption_learner = ConsumptionLearner(db)
         self._tr = build_translator(db)
-        self._tr = build_translator(db)
+
+    def _now(self):
+        """Lokale kloktijd, onafhankelijk van de container-systeemklok."""
+        tz_name = getattr(self._config.location, "timezone", "Europe/Amsterdam")
+        return now_local(tz_name)
         self._base_url = f"http://{config.ha.host}:{config.ha.port}"
         self._headers = {
             "Authorization": f"Bearer {config.ha.token}",
@@ -178,7 +205,7 @@ class HaCollector(BaseCollector):
         if soc is None and power is None:
             return
         self._battery_repo.save(BatteryStatus(
-            measured_at=datetime.now(),
+            measured_at=self._now(),
             soc_pct=soc,
             power_kw=power,
             temperature_c=readings.get("battery_temperature"),
@@ -198,7 +225,7 @@ class HaCollector(BaseCollector):
             energy_kwh = energy_wh / Decimal("1000")
 
         self._solar_repo.save(SolarProduction(
-            measured_at=datetime.now(),
+            measured_at=self._now(),
             power_kw=power,
             energy_kwh=energy_kwh,
         ))
@@ -261,7 +288,7 @@ class HaCollector(BaseCollector):
             )
 
         self._consumption_repo.save(HomeConsumption(
-            measured_at=datetime.now(),
+            measured_at=self._now(),
             grid_import_kw=grid_import,
             grid_export_kw=grid_export,
             total_consumption_kw=total,
@@ -278,7 +305,7 @@ class HaCollector(BaseCollector):
         """
         import logging
         log = logging.getLogger(__name__)
-        now = datetime.now()
+        now = self._now()
 
         # Zon-leermodel bijwerken / Update solar learning model
         # Instraling komt uit weather_forecast tabel (meest recente waarde)
@@ -337,3 +364,5 @@ class HaCollector(BaseCollector):
 
             except Exception as e:
                 log.warning(f"[ha_collector] {self._tr.get('LG04', {'error': str(e)})}")
+
+#

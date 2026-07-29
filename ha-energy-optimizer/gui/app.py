@@ -2,8 +2,13 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.19
-# altered:       2026-07-24
+# part version:  p_v0.20
+# altered:       2026-07-28
+#
+# p_v0.20: date.today()/SQL NOW() vervangen door now_local() op alle
+# plekken (api_energy_costs, api_history_data, api_dashboard_data) — zie
+# config/localtime.py voor de reden (bekend HA Supervisor tijdzone-
+# probleem, container-klok niet te vertrouwen).
 #
 # Configuration GUI — Flask web server with HA ingress support.
 # Configuratie-GUI — Flask webserver met HA ingress-ondersteuning.
@@ -1358,13 +1363,14 @@ def api_energy_costs():
     """
     import json as _json2
     from datetime import date as _date, timedelta as _td
+    from config.localtime import now_local
 
     db = _get_db()
     if not db:
         return jsonify({"ok": False, "message": "Database niet verbonden"})
 
     mode     = request.args.get("mode", "day")
-    date_str = request.args.get("date", str(_date.today()))
+    date_str = request.args.get("date", str(now_local().date()))
 
     try:
         base_date = _date.fromisoformat(date_str)
@@ -1582,11 +1588,12 @@ def api_history_data():
     JSON-endpoint voor historische gegevens voor een opgegeven datum.
     """
     from datetime import date as _date
+    from config.localtime import now_local
     db = _get_db()
     if not db:
         return jsonify({"ok": False, "message": "Database niet verbonden"})
 
-    date_str = request.args.get("date", str(_date.today()))
+    date_str = request.args.get("date", str(now_local().date()))
     try:
         _date.fromisoformat(date_str)
     except ValueError:
@@ -1743,6 +1750,9 @@ def api_dashboard_data():
     JSON endpoint for live dashboard data.
     JSON-endpoint voor live dashboardgegevens.
     """
+    from datetime import timedelta as _td
+    from config.localtime import now_local
+
     db = _get_db()
     data = {
         "live":     {},
@@ -1753,6 +1763,15 @@ def api_dashboard_data():
 
     if not db:
         return jsonify(data)
+
+    # p_v0.19: één now_local()-berekening voor de hele route, hergebruikt
+    # bij alle drie de plekken die voorheen SQL NOW() gebruikten — zie
+    # config/localtime.py en repository.py p_v0.8 voor de reden.
+    # p_v0.19: one now_local() computation for the whole route, reused at
+    # all three places that previously used SQL NOW() — see
+    # config/localtime.py and repository.py p_v0.8 for the reason.
+    _now = now_local()
+    _today_midnight = _now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     try:
         options    = _load_options()
@@ -1792,10 +1811,10 @@ def api_dashboard_data():
             cur.execute("""
                 SELECT price_per_kwh, price_incl_tax
                 FROM energy_prices
-                WHERE price_hour <= NOW()
+                WHERE price_hour <= %(now)s
                   AND energy_type = 'electricity'
                 ORDER BY price_hour DESC LIMIT 1
-            """)
+            """, {"now": _now})
             row = cur.fetchone()
             if row:
                 data["live"]["current_price"] = float(row["price_per_kwh"])
@@ -1854,10 +1873,10 @@ def api_dashboard_data():
                        expected_solar_kw, expected_consumption_kw,
                        target_soc_pct, is_solar_charge, grid_charge_kw
                 FROM optimizer_schedule
-                WHERE schedule_for >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')
-                  AND schedule_for < DATE_FORMAT(NOW() + INTERVAL 2 DAY, '%Y-%m-%d 00:00:00')
+                WHERE schedule_for >= %(start)s
+                  AND schedule_for < %(end)s
                 ORDER BY schedule_for
-            """)
+            """, {"start": _today_midnight, "end": _today_midnight + _td(days=2)})
             data["schedule"] = [
                 {
                     "hour":           row["schedule_for"].strftime("%d-%m %H:%M"),
@@ -1946,11 +1965,11 @@ def api_dashboard_data():
             cur.execute("""
                 SELECT price_hour, price_per_kwh, price_incl_tax
                 FROM energy_prices
-                WHERE price_hour >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')
-                  AND price_hour < DATE_FORMAT(NOW() + INTERVAL 2 DAY, '%Y-%m-%d 00:00:00')
+                WHERE price_hour >= %(start)s
+                  AND price_hour < %(end)s
                   AND energy_type = 'electricity'
                 ORDER BY price_hour
-            """)
+            """, {"start": _today_midnight, "end": _today_midnight + _td(days=2)})
             data["prices"] = [
                 {
                     "hour":      row["price_hour"].strftime("%d-%m %H:%M"),

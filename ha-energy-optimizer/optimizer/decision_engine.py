@@ -64,6 +64,7 @@ from collectors.consumption_learner import ConsumptionLearner
 from .models import ForecastSlot, ScheduleSlot
 from translations.translator import build_translator
 from config.timeslot import SLOT_MINUTES, SLOT_HOURS, SLOT_TO_MEASUREMENT_FACTOR
+from config.localtime import now_local
 
 logger = logging.getLogger(__name__)
 
@@ -524,7 +525,7 @@ class DecisionEngine:
         the same number (× 1), at quarter slots it no longer is.
         """
         soc = soc_nu
-        now_date = datetime.now().date()
+        now_date = now_local().date()
         for wh in window:
             if wh.forecast.slot_start.date() != now_date:
                 break
@@ -545,7 +546,7 @@ class DecisionEngine:
         p_v0.9: × SLOT_HOURS added, see _soc_einde_dag above.
         """
         soc = soc_nu
-        target_hour = (datetime.now() + timedelta(days=1)).replace(hour=6, minute=0, second=0)
+        target_hour = (now_local() + timedelta(days=1)).replace(hour=6, minute=0, second=0)
         for wh in window:
             if wh.forecast.slot_start >= target_hour:
                 break

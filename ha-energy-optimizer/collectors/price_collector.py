@@ -1,16 +1,28 @@
-#
 # name:          price_collector.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/price_collector.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-28
 #
-from datetime import date, timedelta, datetime, timezone
-from zoneinfo import ZoneInfo
+# p_v0.4: eigen ZoneInfo-logica vervangen door de gedeelde
+# config.localtime.now_local() — zelfde gedrag (config.location.timezone
+# met terugval op Europe/Amsterdam), maar nu op één plek onderhouden i.p.v.
+# hier apart naast de rest van de codebase te bestaan (die tot deze versie
+# nergens anders de tijdzone daadwerkelijk toepaste). Zie config/localtime.py.
+#
+# p_v0.4: own ZoneInfo logic replaced by the shared
+# config.localtime.now_local() — same behaviour (config.location.timezone
+# falling back to Europe/Amsterdam), but now maintained in one place
+# instead of existing separately here alongside the rest of the codebase
+# (which until this version didn't actually apply the timezone anywhere
+# else). See config/localtime.py.
+#
+from datetime import date, timedelta
 from .base import BaseCollector, CollectorTemporaryError
 from database.connection import DatabaseConnection
 from database.repository import PriceRepository
 from config.config import AppConfig
+from config.localtime import now_local
 
 
 class PriceCollector(BaseCollector):
@@ -29,8 +41,7 @@ class PriceCollector(BaseCollector):
         # Use local date from config — container may run in UTC
         # Lokale datum uit config gebruiken — container kan in UTC draaien
         tz_name  = getattr(self._config.location, "timezone", "Europe/Amsterdam")
-        local_tz = ZoneInfo(tz_name)
-        today    = datetime.now(tz=local_tz).date()
+        today    = now_local(tz_name).date()
         tomorrow = today + timedelta(days=1)
 
         # Fetch all prices in one call — ha_energyzero returns all available days
@@ -52,3 +63,5 @@ class PriceCollector(BaseCollector):
                 self._repo.save(price)
         except CollectorTemporaryError:
             pass  # Morgen nog niet beschikbaar — normaal voor ochtendrun
+
+#
