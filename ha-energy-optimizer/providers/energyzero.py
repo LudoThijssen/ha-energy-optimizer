@@ -1,14 +1,28 @@
-#
 # name:          energyzero.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/providers/energyzero.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-28
+#
+# p_v0.4: __init__ en _parse() gebruiken nu super().__init__(cfg) en
+# self._to_local_naive() i.p.v. zelf ZoneInfo/de conversie te dupliceren.
+# Functioneel identiek (dit was niet stuk), maar nu dezelfde ene
+# implementatie als alle andere providers i.p.v. een tweede kopie ernaast
+# — gevonden tijdens het controleren van alle providers op hetzelfde
+# tijdzone-patroon als bij Tibber. Dit is jouw actieve provider (via ANWB),
+# dus extra reden om 'm gelijk te trekken met de rest.
+#
+# p_v0.4: __init__ and _parse() now use super().__init__(cfg) and
+# self._to_local_naive() instead of duplicating ZoneInfo/the conversion
+# themselves. Functionally identical (this wasn't broken), but now the
+# same one implementation as every other provider instead of a second
+# copy alongside it — found while checking all providers for the same
+# timezone pattern as Tibber. This is your active provider (via ANWB), so
+# extra reason to align it with the rest.
 #
 import requests
 from datetime import date, datetime
 from decimal import Decimal
-from zoneinfo import ZoneInfo
 from .base import BaseEnergyProvider
 from database.models import EnergyPrice
 from collectors.base import CollectorTemporaryError
@@ -30,10 +44,9 @@ class EnergyZeroProvider(BaseEnergyProvider):
     energy_type = "electricity"
 
     def __init__(self, cfg: dict):
+        super().__init__(cfg)
         self._vat      = Decimal(str(cfg.get("vat_pct", 21.0))) / 100
         self._incl_tax = cfg.get("incl_tax", False)
-        tz_name        = cfg.get("timezone", "Europe/Amsterdam")
-        self._local_tz = ZoneInfo(tz_name)
 
     def get_hourly_prices(self, target_date: date) -> list[EnergyPrice]:
         raw = self._fetch(target_date)
@@ -74,13 +87,9 @@ class EnergyZeroProvider(BaseEnergyProvider):
             if not self._incl_tax:
                 price = price * (1 + self._vat)
 
-            # Convert UTC timestamp to local time
-            # UTC tijdstempel omzetten naar lokale tijd
-            ts_parsed = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-            if ts_parsed.tzinfo is not None:
-                ts_local = ts_parsed.astimezone(self._local_tz).replace(tzinfo=None)
-            else:
-                ts_local = ts_parsed
+            # Convert UTC timestamp to local time via the shared helper
+            # UTC tijdstempel omzetten naar lokale tijd via de gedeelde helper
+            ts_local = self._to_local_naive(datetime.fromisoformat(ts.replace("Z", "+00:00")))
 
             prices.append(EnergyPrice(
                 price_hour=ts_local,
@@ -90,3 +99,5 @@ class EnergyZeroProvider(BaseEnergyProvider):
                 source="energyzero",
             ))
         return sorted(prices, key=lambda p: p.price_hour)
+
+#

@@ -1,9 +1,20 @@
-#
-# name:          ha_energyzero.py.py
+# name:          ha_energyzero.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/providers/ha_energyzero.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-28
+#
+# p_v0.4: `_UTC_TZ = ZoneInfo("UTC")` verwijderd — ZoneInfo werd nergens
+# geïmporteerd in dit bestand, dus dit gaf een NameError zodra de module
+# geladen werd (bij elke keer dat deze provider gekozen zou worden). De
+# constante werd sowieso nergens gebruikt (dode code). Gevonden tijdens het
+# controleren van alle providers op hetzelfde tijdzone-patroon als Tibber.
+#
+# p_v0.4: `_UTC_TZ = ZoneInfo("UTC")` removed — ZoneInfo was never
+# imported in this file, so this raised a NameError the moment the module
+# was loaded (every time this provider would be selected). The constant
+# was unused anywhere anyway (dead code). Found while checking all
+# providers for the same timezone pattern as Tibber.
 #
 # /ha-energy-optimizer/ha-energy-optimizer/providers/ha_energyzero.py
 # v0.2.9 — 2026-04-22
@@ -20,8 +31,6 @@ import requests
 from .base import BaseEnergyProvider
 from database.models import EnergyPrice
 from collectors.base import CollectorTemporaryError
-
-_UTC_TZ = ZoneInfo("UTC")
 
 
 class HaEnergyZeroProvider(BaseEnergyProvider):
@@ -114,3 +123,5 @@ class HaEnergyZeroProvider(BaseEnergyProvider):
             )
 
         return sorted(results, key=lambda p: p.price_hour)
+
+#

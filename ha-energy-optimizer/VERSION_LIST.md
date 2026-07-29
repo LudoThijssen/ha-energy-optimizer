@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v4.2
+# part version:  p_v4.3
 # altered:       2026-07-29
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v4.2 | 2026-07-29 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v4.3 | 2026-07-29 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -17,9 +17,9 @@
 | config.yaml | /ha-energy-optimizer/config.yaml | v0.2.13 | 2026-06-21 |
 | Dockerfile | /ha-energy-optimizer/Dockerfile | p_v0.3 | 2026-06-21 |
 | main.py | /ha-energy-optimizer/main.py | p_v0.3 | 2026-06-21 |
-| requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.3 | 2026-06-21 |
+| requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.4 | 2026-07-28 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v4.2 | 2026-07-29 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v4.3 | 2026-07-29 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
@@ -100,12 +100,12 @@
 | __init__.py | /ha-energy-optimizer/providers/__init__.py | p_v0.3 | 2026-06-21 |
 | anwb.py | /ha-energy-optimizer/providers/anwb.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/providers/base.py | p_v0.3 | 2026-06-21 |
-| energyzero.py | /ha-energy-optimizer/providers/energyzero.py | p_v0.3 | 2026-06-21 |
-| entsoe.py | /ha-energy-optimizer/providers/entsoe.py | p_v0.3 | 2026-06-21 |
+| energyzero.py | /ha-energy-optimizer/providers/energyzero.py | p_v0.4 | 2026-07-28 |
+| entsoe.py | /ha-energy-optimizer/providers/entsoe.py | p_v0.4 | 2026-07-28 |
 | frank.py | /ha-energy-optimizer/providers/frank.py | p_v0.3 | 2026-06-21 |
-| ha_energyzero.py | /ha-energy-optimizer/providers/ha_energyzero.py | p_v0.3 | 2026-06-21 |
+| ha_energyzero.py | /ha-energy-optimizer/providers/ha_energyzero.py | p_v0.4 | 2026-07-28 |
 | ha_price_sensor.py | /ha-energy-optimizer/providers/ha_price_sensor.py | p_v0.3 | 2026-06-21 |
-| tibber.py | /ha-energy-optimizer/providers/tibber.py | p_v0.5 | 2026-07-28 |
+| tibber.py | /ha-energy-optimizer/providers/tibber.py | p_v0.6 | 2026-07-28 |
 # ha-energy-optimizer/reporter
 | __init__.py | /ha-energy-optimizer/reporter/__init__.py | p_v0.3 | 2026-06-21 |
 | reporter.py | /ha-energy-optimizer/reporter/reporter.py | p_v0.4 | 2026-07-01 |

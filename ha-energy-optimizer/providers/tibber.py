@@ -2,8 +2,14 @@
 # name:          tibber.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/providers/tibber.py
-# part version:  p_v0.5
+# part version:  p_v0.6
 # altered:       2026-07-28
+#
+# p_v0.6: super().__init__(cfg) toegevoegd (ontbrak — self._local_tz
+# bestond niet), en price_hour-conversie naar self._to_local_naive() —
+# zelfde robuuste, gedeelde aanpak als alle andere providers (base.py).
+# Gevonden tijdens het controleren van de overige providers op hetzelfde
+# soort tijdzone-probleem als eerder bij Tibber's today/tomorrow-check.
 #
 # p_v0.4: kwartierprijzen aangevraagd via resolution: QUARTER_HOURLY op het
 # priceInfo-veld (sinds 1 okt. 2025 door Tibber ondersteund/vereist —
@@ -83,6 +89,15 @@ class TibberProvider(BaseEnergyProvider):
     energy_type = "electricity"
 
     def __init__(self, cfg: dict):
+        # p_v0.5: super().__init__(cfg) toegevoegd — ontbrak, waardoor
+        # self._local_tz (en dus self._to_local_naive()) nooit bestond op
+        # een TibberProvider-instantie, ondanks dat de klasse van
+        # BaseEnergyProvider erft.
+        # p_v0.5: super().__init__(cfg) added — was missing, so
+        # self._local_tz (and thus self._to_local_naive()) never existed
+        # on a TibberProvider instance, despite the class inheriting from
+        # BaseEnergyProvider.
+        super().__init__(cfg)
         self._token = cfg.get("token", "")
         if not self._token:
             raise CollectorConfigError(
@@ -148,7 +163,19 @@ class TibberProvider(BaseEnergyProvider):
         prices = []
         for entry in entries:
             prices.append(EnergyPrice(
-                price_hour=datetime.fromisoformat(entry["startsAt"]).replace(tzinfo=None),
+                # p_v0.5: self._to_local_naive() i.p.v. kaal .replace(tzinfo=None)
+                # — Tibber's startsAt bevat weliswaar meestal al de juiste
+                # lokale offset, maar deze gedeelde helper (uit base.py)
+                # rekent correct om ongeacht welke offset er precies in zit,
+                # in plaats van de offset gewoon weg te gooien. Zelfde
+                # aanpak als alle andere providers.
+                # p_v0.5: self._to_local_naive() instead of a bare
+                # .replace(tzinfo=None) — Tibber's startsAt usually already
+                # carries the correct local offset, but this shared helper
+                # (from base.py) converts correctly regardless of exactly
+                # which offset is present, instead of just discarding it.
+                # Same approach as every other provider.
+                price_hour=self._to_local_naive(datetime.fromisoformat(entry["startsAt"])),
                 energy_type="electricity",
                 price_per_kwh=Decimal(str(entry["total"])).quantize(Decimal("0.00001")),
                 price_incl_tax=True,

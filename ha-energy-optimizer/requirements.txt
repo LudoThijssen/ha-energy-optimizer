@@ -2,8 +2,22 @@
 # name:          requirements.txt
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/requirements.txt
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-28
+#
+# p_v0.4: tzdata toegevoegd — vangnet voor config/localtime.py's
+# now_local() (zoneinfo.ZoneInfo). Alpine-gebaseerde images (het
+# gebruikelijke HA-add-on basisimage) hebben niet altijd systeem-
+# tijdzonedata onder /usr/share/zoneinfo; tzdata is een zuiver-Python
+# pakket dat dezelfde IANA-data meelevert, zodat ZoneInfo("Europe/
+# Amsterdam") altijd werkt, ongeacht wat er in de container-image zit.
+#
+# p_v0.4: tzdata added — safety net for config/localtime.py's now_local()
+# (zoneinfo.ZoneInfo). Alpine-based images (the usual HA add-on base
+# image) don't always have system timezone data under
+# /usr/share/zoneinfo; tzdata is a pure-Python package that ships the
+# same IANA data, so ZoneInfo("Europe/Amsterdam") always works regardless
+# of what's in the container image.
 #
 # Runtime dependencies / Runtime-afhankelijkheden
 mysql-connector-python>=8.3.0
@@ -13,3 +27,4 @@ anthropic>=0.25.0
 APScheduler>=3.10.0
 Flask>=3.0.0
 PyYAML>=6.0
+tzdata>=2024.1
