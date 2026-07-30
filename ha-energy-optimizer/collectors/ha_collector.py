@@ -55,16 +55,16 @@ class HaCollector(BaseCollector):
         self._solar_learner = SolarLearner(db)
         self._consumption_learner = ConsumptionLearner(db)
         self._tr = build_translator(db)
-
-    def _now(self):
-        """Lokale kloktijd, onafhankelijk van de container-systeemklok."""
-        tz_name = getattr(self._config.location, "timezone", "Europe/Amsterdam")
-        return now_local(tz_name)
         self._base_url = f"http://{config.ha.host}:{config.ha.port}"
         self._headers = {
             "Authorization": f"Bearer {config.ha.token}",
             "Content-Type": "application/json",
         }
+
+    def _now(self):
+        """Lokale kloktijd, onafhankelijk van de container-systeemklok."""
+        tz_name = getattr(self._config.location, "timezone", "Europe/Amsterdam")
+        return now_local(tz_name)
 
     def collect(self) -> None:
         entity_map = self._load_entity_map()
