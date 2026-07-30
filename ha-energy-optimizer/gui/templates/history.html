@@ -2,8 +2,8 @@
 <!-- name:         history.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/history.html -->
-<!-- part version: p_v0.7 -->
-<!-- altered:      2026-07-24 -->
+<!-- part version: p_v0.8 -->
+<!-- altered:      2026-07-30 -->
 <!--
 p_v0.7: Grafiek 2-labels uniform gemaakt met Grafiek 1 — zie
 dashboard.html p_v1.5 voor de volledige toelichting.
@@ -132,7 +132,7 @@ const COLORS = {
   import_kw:   "{{ colors.import_kw }}",
   export_kw:   "{{ colors.export_kw }}",
   soc:         "{{ colors.soc }}",
-  charge:      "{{ colors.import_kw }}",
+  charge:      "{{ colors.charge }}",
   discharge:   "{{ colors.discharge }}",
   solarCharge: "{{ colors.solar_charge }}",
   positive:    "{{ colors.positive }}",
@@ -369,7 +369,19 @@ function renderScheduleChart(schedule, labels) {
             // Same fix as dashboard.html: filled dot for every series.
             generateLabels(chart) {
               const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-              items.forEach(item => { item.fillStyle = item.strokeStyle; });
+              // p_v0.9: alleen lijn-reeksen forceren naar hun lijnkleur —
+              // balk-reeksen (Laden/Ontladen) hebben al een correcte,
+              // solide backgroundColor en werden hier per ongeluk
+              // overschreven met hun (nooit ingestelde, dus bijna-witte
+              // default) borderColor.
+              // p_v0.9: only force line series to their line color — bar
+              // series (Laden/Ontladen) already have a correct, solid
+              // backgroundColor and were being wrongly overwritten here
+              // with their (never set, so near-white default) borderColor.
+              items.forEach(item => {
+                const ds = chart.data.datasets[item.datasetIndex];
+                if (ds.type === 'line') item.fillStyle = item.strokeStyle;
+              });
               return items;
             }
           }
@@ -429,7 +441,19 @@ function renderMeasuredChart(measured, labels) {
             usePointStyle: true, padding: 12,
             generateLabels(chart) {
               const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-              items.forEach(item => { item.fillStyle = item.strokeStyle; });
+              // p_v0.9: alleen lijn-reeksen forceren naar hun lijnkleur —
+              // balk-reeksen (Laden/Ontladen) hebben al een correcte,
+              // solide backgroundColor en werden hier per ongeluk
+              // overschreven met hun (nooit ingestelde, dus bijna-witte
+              // default) borderColor.
+              // p_v0.9: only force line series to their line color — bar
+              // series (Laden/Ontladen) already have a correct, solid
+              // backgroundColor and were being wrongly overwritten here
+              // with their (never set, so near-white default) borderColor.
+              items.forEach(item => {
+                const ds = chart.data.datasets[item.datasetIndex];
+                if (ds.type === 'line') item.fillStyle = item.strokeStyle;
+              });
               return items;
             }
           }
@@ -481,8 +505,8 @@ function renderScheduleTable(schedule) {
   }
 
   const actionLabel = {
-    charge:       `<span style="color:${COLORS.charge};font-weight:600;">&#8593; Laden</span>`,
-    discharge:    `<span style="color:${COLORS.discharge};font-weight:600;">&#8595; Ontladen</span>`,
+    charge:       `<span style="color:${COLORS.charge};font-weight:600;">&#8593; Laden van het net</span>`,
+    discharge:    `<span style="color:${COLORS.discharge};font-weight:600;">&#8595; Ontladen naar het net</span>`,
     self_consume: `<span style="color:${COLORS.solarCharge};font-weight:600;">&#9728; Zelf verbruik</span>`,
     idle:         '<span style="color:#6b7280;">&#8212; Rust</span>',
   };

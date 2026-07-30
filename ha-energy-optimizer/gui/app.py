@@ -2,8 +2,12 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.20
-# altered:       2026-07-28
+# part version:  p_v0.21
+# altered:       2026-07-30
+#
+# p_v0.21: "charge" toegevoegd aan DEFAULT_COLORS en de /colors POST-
+# handler — "laden van het net" krijgt een eigen instelbare kleur i.p.v.
+# stilzwijgend de kleur van import_kw ("Netafname") te delen.
 #
 # p_v0.20: date.today()/SQL NOW() vervangen door now_local() op alle
 # plekken (api_energy_costs, api_history_data, api_dashboard_data) — zie
@@ -1114,6 +1118,15 @@ DEFAULT_COLORS = {
     "soc":          "#8b5cf6",
     "discharge":    "#ef4444",
     "solar_charge": "#f59e0b",
+    # p_v0.21: "laden van het net" had voorheen geen eigen kleur — deelde
+    # stilzwijgend de kleur van import_kw ("Netafname"). Nu apart instelbaar.
+    # Zelfde default-waarde als import_kw, dus geen visuele verandering
+    # totdat iemand 'm bewust anders zet.
+    # p_v0.21: "charging from the grid" previously had no color of its own
+    # — silently shared import_kw's ("Netafname") color. Now separately
+    # configurable. Same default value as import_kw, so no visual change
+    # until someone deliberately sets it differently.
+    "charge":       "#3b82f6",
     # p_v0.19: instelbaar gemaakt op verzoek — kleurperceptie verschilt per
     # persoon en scherm; deze twee stonden voorheen los hardcoded (en niet
     # eens consistent: zowel #dc2626 als #ef4444 werden door elkaar gebruikt
@@ -1285,6 +1298,7 @@ def colors():
             "soc":          request.form.get("soc",          "#8b5cf6"),
             "discharge":    request.form.get("discharge",    "#ef4444"),
             "solar_charge": request.form.get("solar_charge", "#f59e0b"),
+            "charge":       request.form.get("charge",       "#3b82f6"),
             "positive":     request.form.get("positive",     "#16a34a"),
             "negative":     request.form.get("negative",     "#dc2626"),
         }

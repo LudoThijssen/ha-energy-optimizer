@@ -2,8 +2,16 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v1.5 -->
-<!-- altered:      2026-07-24 -->
+<!-- part version: p_v1.6 -->
+<!-- altered:      2026-07-30 -->
+<!--
+p_v1.6: COLORS.charge wijst nu naar de nieuwe, eigen instelling
+colors.charge i.p.v. colors.import_kw ("Netafname") te hergebruiken —
+zie colors.html p_v0.7.
+p_v1.6: COLORS.charge now points to the new, dedicated colors.charge
+setting instead of reusing colors.import_kw ("Netafname") — see
+colors.html p_v0.7.
+-->
 <!--
 p_v1.5: Grafiek 2-labels uniform gemaakt met Grafiek 1: "Verbruik" →
 "Eigen verbruik", "Netafname" → "Laden van het net", "Teruglevering" →
@@ -71,7 +79,7 @@ p_v1.2: Chart 1 revised per request:
     --c-import:       {{ colors.import_kw }};
     --c-export:       {{ colors.export_kw }};
     --c-soc:          {{ colors.soc }};
-    --c-charge:       {{ colors.import_kw }};
+    --c-charge:       {{ colors.charge }};
     --c-discharge:    {{ colors.discharge }};
     --c-solar-charge: {{ colors.solar_charge }};
     --c-positive:     {{ colors.positive }};
@@ -87,7 +95,7 @@ p_v1.2: Chart 1 revised per request:
     import_kw:   "{{ colors.import_kw }}",
     export_kw:   "{{ colors.export_kw }}",
     soc:         "{{ colors.soc }}",
-    charge:      "{{ colors.import_kw }}",
+    charge:      "{{ colors.charge }}",
     discharge:   "{{ colors.discharge }}",
     solarCharge: "{{ colors.solar_charge }}",
     positive:    "{{ colors.positive }}",
@@ -198,8 +206,8 @@ p_v1.2: Chart 1 revised per request:
     <canvas id="chart-prices"></canvas>
   </div>
   <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
-    <span style="color:var(--c-charge);">&#9646; Nettoladen</span>
-    <span style="color:var(--c-discharge);">&#9646; Ontladen</span>
+    <span style="color:var(--c-charge);">&#9646; Laden van het net</span>
+    <span style="color:var(--c-discharge);">&#9646; Ontladen naar het net</span>
     <span style="color:var(--c-solar-charge);">&#9646; Zonne-lading</span>
     <span style="color:#6b7280;">&#9646; Rust</span>
   </div>
@@ -293,8 +301,8 @@ p_v1.2: Chart 1 revised per request:
     }
 
     const actionLabel = {
-      charge:       '<span style="color:' + COLORS.charge + '; font-weight:600;">&#8593; Laden</span>',
-      discharge:    '<span style="color:' + COLORS.discharge + '; font-weight:600;">&#8595; Ontladen</span>',
+      charge:       '<span style="color:' + COLORS.charge + '; font-weight:600;">&#8593; Laden van het net</span>',
+      discharge:    '<span style="color:' + COLORS.discharge + '; font-weight:600;">&#8595; Ontladen naar het net</span>',
       self_consume: '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; Zelf verbruik</span>',
       idle:         '<span style="color:#6b7280;">&#8212; Rust</span>',
     };
@@ -521,7 +529,20 @@ p_v1.2: Chart 1 revised per request:
               // series.
               generateLabels(chart) {
                 const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                items.forEach(item => { item.fillStyle = item.strokeStyle; });
+                // p_v1.7: alleen lijn-reeksen forceren naar hun lijnkleur —
+                // balk-reeksen (Laden/Ontladen) hebben al een correcte,
+                // solide backgroundColor en werden hier per ongeluk
+                // overschreven met hun (nooit ingestelde, dus bijna-witte
+                // default) borderColor. Vandaar de bijna-witte rondjes.
+                // p_v1.7: only force line series to their line color — bar
+                // series (Laden/Ontladen) already have a correct, solid
+                // backgroundColor and were being wrongly overwritten here
+                // with their (never set, so near-white default)
+                // borderColor. That's what caused the near-white dots.
+                items.forEach(item => {
+                  const ds = chart.data.datasets[item.datasetIndex];
+                  if (ds.type === 'line') item.fillStyle = item.strokeStyle;
+                });
                 return items;
               }
             }
@@ -567,7 +588,20 @@ p_v1.2: Chart 1 revised per request:
               usePointStyle: true, padding: 12,
               generateLabels(chart) {
                 const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                items.forEach(item => { item.fillStyle = item.strokeStyle; });
+                // p_v1.7: alleen lijn-reeksen forceren naar hun lijnkleur —
+                // balk-reeksen (Laden/Ontladen) hebben al een correcte,
+                // solide backgroundColor en werden hier per ongeluk
+                // overschreven met hun (nooit ingestelde, dus bijna-witte
+                // default) borderColor. Vandaar de bijna-witte rondjes.
+                // p_v1.7: only force line series to their line color — bar
+                // series (Laden/Ontladen) already have a correct, solid
+                // backgroundColor and were being wrongly overwritten here
+                // with their (never set, so near-white default)
+                // borderColor. That's what caused the near-white dots.
+                items.forEach(item => {
+                  const ds = chart.data.datasets[item.datasetIndex];
+                  if (ds.type === 'line') item.fillStyle = item.strokeStyle;
+                });
                 return items;
               }
             }

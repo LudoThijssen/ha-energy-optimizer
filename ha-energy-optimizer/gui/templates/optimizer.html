@@ -2,8 +2,8 @@
 <!-- name:         optimizer.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/optimizer.html -->
-<!-- part version: p_v0.14 -->
-<!-- altered:      2026-07-24 -->
+<!-- part version: p_v0.15 -->
+<!-- altered:      2026-07-30 -->
 <!--
 p_v0.14: beslistabel-kleuren gekoppeld aan de echte instellingen
 ({{ colors.solar_charge }}/discharge/import_kw) i.p.v. eigen losse
@@ -165,12 +165,12 @@ separate hardcoded hex values that happened to look similar. "Inactief"
         </tr>
         <tr>
           <td>Prijs ≥ minimale ontlaadprijs</td>
-          <td><span style="color:{{ colors.discharge if colors else '#b45309' }};font-weight:500"><span class="mdi mdi-arrow-down-bold"></span> Ontladen</span></td>
+          <td><span style="color:{{ colors.discharge if colors else '#b45309' }};font-weight:500"><span class="mdi mdi-arrow-down-bold"></span> Ontladen naar het net</span></td>
           <td>Hoge prijs — opgeslagen energie verkopen</td>
         </tr>
         <tr>
           <td>Prijs ≤ maximale laadprijs</td>
-          <td><span style="color:{{ colors.import_kw if colors else '#1d4ed8' }};font-weight:500"><span class="mdi mdi-transmission-tower"></span> Opladen vanaf net</span></td>
+          <td><span style="color:{{ colors.charge if colors else '#1d4ed8' }};font-weight:500"><span class="mdi mdi-transmission-tower"></span> Laden van het net</span></td>
           <td>Lage prijs — goedkope energie inkopen</td>
         </tr>
         <tr>
@@ -186,7 +186,7 @@ separate hardcoded hex values that happened to look similar. "Inactief"
     <h2><span class="mdi mdi-white-balance-sunny"></span> Zon-laaddrempel</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Nettoladen wordt geblokkeerd wanneer verwachte zonopbrengst deze fractie van de bruikbare capaciteit overschrijdt.
+      Laden van het net wordt geblokkeerd wanneer verwachte zonopbrengst deze fractie van de bruikbare capaciteit overschrijdt.
     </div>
     <div class="field">
       <label>Zon-laaddrempel (0,0 – 1,0)</label>
