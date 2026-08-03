@@ -1,9 +1,16 @@
-#
 # name:          config.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/config/config.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-07-25
+#
+# p_v0.4: rerun_interval_seconds toegevoegd aan OptimizerConfig (default 900
+# = 15 min). Was voorheen hardcoded als 3600 in main.py; nu instelbaar en
+# consistent met de kwartier-tijdstap (config.timeslot.SLOT_MINUTES).
+# p_v0.4: rerun_interval_seconds added to OptimizerConfig (default 900 =
+# 15 min). Was previously hardcoded as 3600 in main.py; now configurable
+# and consistent with the quarter-hour schedule step
+# (config.timeslot.SLOT_MINUTES).
 
 import json
 from pathlib import Path
@@ -45,7 +52,14 @@ class OptimizerConfig:
     evening_planning_time: str = "21:00"
     rerun_on_price_update: bool = True
     profile_update_time: str    = "03:00"
-    
+    # p_v0.4: hoe vaak de rolling-horizon optimizer herrekent, los van de
+    # dagelijkse run_time. Default 900s = 15 min, gelijk aan de schema-
+    # tijdstap (SLOT_MINUTES in config/timeslot.py).
+    # p_v0.4: how often the rolling-horizon optimizer recalculates,
+    # separate from the daily run_time. Default 900s = 15 min, matching the
+    # schedule time step (SLOT_MINUTES in config/timeslot.py).
+    rerun_interval_seconds: int = 900
+
 
 @dataclass
 class ReportingConfig:
@@ -101,6 +115,8 @@ class AppConfig:
                               "collectors.ha_interval_seconds")
         validate_positive_int(self.collectors.weather_interval_seconds,
                               "collectors.weather_interval_seconds")
+        validate_positive_int(self.optimizer.rerun_interval_seconds,
+                              "optimizer.rerun_interval_seconds")
         if self.optimizer.run_time <= self.collectors.price_fetch_time_tomorrow:
             raise ValueError(
                 f"optimizer.run_time ({self.optimizer.run_time}) moet later zijn dan "
