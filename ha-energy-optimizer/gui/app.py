@@ -2,8 +2,18 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.21
+# part version:  p_v0.23
 # altered:       2026-07-30
+#
+# p_v0.23: off-grid uitvaldetectie-instellingen — /system route leest/
+# schrijft nu ook de 4 entiteit-velden (offgrid_primary_entity_id e.a.,
+# via config_row net als optimizer.html). Zie migratie 020,
+# collectors/offgrid_monitor.py.
+#
+# p_v0.22: dynamische off-grid reserve — /system route leest/schrijft
+# has_offgrid_switch, /optimizer route leest/schrijft de 4 nieuwe
+# offgrid_reserve_*/offgrid_night_*-instellingen. Zie migratie 019,
+# decision_engine.py p_v0.11.
 #
 # p_v0.21: "charge" toegevoegd aan DEFAULT_COLORS en de /colors POST-
 # handler — "laden van het net" krijgt een eigen instelbare kleur i.p.v.
@@ -408,6 +418,7 @@ def system():
                             "has_battery":          bool(row.get("has_battery", 0)),
                             "has_gas":              bool(row.get("has_gas", 0)),
                             "has_district_heating": bool(row.get("has_district_heating", 0)),
+                            "has_offgrid_switch":   bool(row.get("has_offgrid_switch", 0)),
                         }
                         options["location"] = {
                             "latitude":  float(row.get("latitude", 52.1551)),
@@ -430,6 +441,17 @@ def system():
         has_gas     = 1 if "has_gas"     in request.form else 0
         has_battery = 1 if "has_battery" in request.form else 0
         has_heating = 1 if "has_heating" in request.form else 0
+        has_offgrid = 1 if "has_offgrid" in request.form else 0
+
+        # p_v0.23: off-grid detectie-entiteiten — leeg toegestaan (dan
+        # doet offgrid_monitor.py niets, zie collectors/offgrid_monitor.py)
+        # p_v0.23: off-grid detection entities — empty is allowed (then
+        # offgrid_monitor.py does nothing, see collectors/offgrid_monitor.py)
+        offgrid_primary_entity  = request.form.get("offgrid_primary_entity", "").strip() or None
+        offgrid_primary_value   = request.form.get("offgrid_primary_off_value", "").strip() or "off"
+        offgrid_fallback_entity = request.form.get("offgrid_fallback_entity", "").strip() or None
+        offgrid_alarm_entity    = request.form.get("offgrid_alarm_entity", "").strip() \
+                                   or "binary_sensor.ha_energy_optimizer_offgrid"
 
         options.setdefault("system", {}).update({
             "has_grid_connection":  bool(has_grid),
@@ -437,6 +459,7 @@ def system():
             "has_gas":              bool(has_gas),
             "has_battery":          bool(has_battery),
             "has_district_heating": bool(has_heating),
+            "has_offgrid_switch":   bool(has_offgrid),
         })
         _save_options(options)
 
@@ -459,13 +482,22 @@ def system():
                             has_gas=%(gas)s,
                             has_battery=%(battery)s,
                             has_district_heating=%(heating)s,
+                            has_offgrid_switch=%(offgrid)s,
+                            offgrid_primary_entity_id=%(og_primary)s,
+                            offgrid_primary_off_value=%(og_primary_val)s,
+                            offgrid_fallback_entity_id=%(og_fallback)s,
+                            offgrid_alarm_entity_id=%(og_alarm)s,
                             language=%(lang)s
                         WHERE id=%(id)s
                     """, {
                         "lat": lat, "lng": lng,
                         "grid": has_grid, "solar": has_solar,
                         "gas": has_gas, "battery": has_battery,
-                        "heating": has_heating,
+                        "heating": has_heating, "offgrid": has_offgrid,
+                        "og_primary": offgrid_primary_entity,
+                        "og_primary_val": offgrid_primary_value,
+                        "og_fallback": offgrid_fallback_entity,
+                        "og_alarm": offgrid_alarm_entity,
                         "lang": lang, "id": row["id"]
                     })
                 else:
@@ -473,14 +505,24 @@ def system():
                         INSERT INTO system_config
                             (latitude, longitude, has_grid_connection,
                              has_solar_panels, has_gas, has_battery,
-                             has_district_heating, language)
+                             has_district_heating, has_offgrid_switch,
+                             offgrid_primary_entity_id, offgrid_primary_off_value,
+                             offgrid_fallback_entity_id, offgrid_alarm_entity_id,
+                             language)
                         VALUES (%(lat)s, %(lng)s, %(grid)s, %(solar)s,
-                                %(gas)s, %(battery)s, %(heating)s, %(lang)s)
+                                %(gas)s, %(battery)s, %(heating)s, %(offgrid)s,
+                                %(og_primary)s, %(og_primary_val)s,
+                                %(og_fallback)s, %(og_alarm)s, %(lang)s)
                     """, {
                         "lat": lat, "lng": lng,
                         "grid": has_grid, "solar": has_solar,
                         "gas": has_gas, "battery": has_battery,
-                        "heating": has_heating, "lang": lang
+                        "heating": has_heating, "offgrid": has_offgrid,
+                        "og_primary": offgrid_primary_entity,
+                        "og_primary_val": offgrid_primary_value,
+                        "og_fallback": offgrid_fallback_entity,
+                        "og_alarm": offgrid_alarm_entity,
+                        "lang": lang
                     })
 
             # Start AI-vertaling als de taal nog niet in de database staat
@@ -502,7 +544,26 @@ def system():
                     )
 
         return redirect(_url("system") + "?saved=1&lang_changed=1")
-    return render_template("system.html", options=options,
+
+    # p_v0.23: system_config-rij rechtstreeks ophalen voor de off-grid
+    # detectie-velden (entity_id's zijn tekst, passen niet natuurlijk in
+    # de options.json boolean-structuur hierboven) — zelfde patroon als
+    # optimizer.html met config_row.
+    # p_v0.23: fetch the system_config row directly for the off-grid
+    # detection fields (entity IDs are text, don't naturally fit the
+    # options.json boolean structure above) — same pattern as
+    # optimizer.html with config_row.
+    config_row = None
+    db = _get_db()
+    if db:
+        try:
+            with db.cursor() as cur:
+                cur.execute("SELECT * FROM system_config ORDER BY id DESC LIMIT 1")
+                config_row = cur.fetchone()
+        except Exception:
+            pass
+
+    return render_template("system.html", options=options, config=config_row,
                            saved=request.args.get("saved"),
                            lang_changed=request.args.get("lang_changed"))
 
@@ -992,7 +1053,11 @@ def optimizer():
                     hard_min_discharge_price_excl=%(hard_min)s,
                     battery_efficiency_pct=%(eff)s,
                     price_incl_tax=%(incl)s,
-                    solar_charge_threshold=%(solar_thr)s
+                    solar_charge_threshold=%(solar_thr)s,
+                    offgrid_reserve_high_pct=%(og_high)s,
+                    offgrid_reserve_low_pct=%(og_low)s,
+                    offgrid_night_threshold_pct=%(og_night_thr)s,
+                    offgrid_night_confirm_slots=%(og_confirm)s
                     WHERE id=%(id)s""",
                     {"min_dis":   request.form.get("min_discharge_price"),
                      "max_chg":   request.form.get("max_charge_price"),
@@ -1000,6 +1065,10 @@ def optimizer():
                      "eff":       request.form.get("battery_efficiency"),
                      "incl":      1 if (provider_incl_tax if provider_incl_tax is not None else "price_incl_tax" in request.form) else 0,
                      "solar_thr": request.form.get("solar_charge_threshold", "0.80"),
+                     "og_high":       request.form.get("offgrid_reserve_high", "10"),
+                     "og_low":        request.form.get("offgrid_reserve_low", "5"),
+                     "og_night_thr":  request.form.get("offgrid_night_threshold", "50"),
+                     "og_confirm":    request.form.get("offgrid_night_confirm_slots", "8"),
                      "id":        config_row["id"]})
             if battery_row:
                 cur.execute("""UPDATE battery_info SET

@@ -2,8 +2,27 @@
 <!-- name:         system.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/system.html -->
-<!-- part version: p_v0.3 -->
-<!-- altered:      2026-07-05 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-07-30 -->
+<!--
+p_v0.4: "Off-grid schakeling" vinkje toegevoegd — schakelt de dynamische
+off-grid reserve in/uit (zie decision_engine.py p_v0.11, migratie 019).
+Staat uit tenzij expliciet aangevinkt, dus bestaande installaties merken
+niets tot iemand het bewust aanzet.
+p_v0.4: "Off-grid switching" checkbox added — toggles the dynamic off-grid
+reserve on/off (see decision_engine.py p_v0.11, migration 019). Off unless
+explicitly checked, so existing installations notice nothing until
+someone deliberately turns it on.
+
+p_v0.5: nieuwe kaart "Off-grid uitvaldetectie" — de 2 detectie-entiteiten
+(primair + terugval), de terug te schrijven alarm-entiteit, en een
+live statusweergave. Zie migratie 020, collectors/offgrid_monitor.py,
+decision_engine.py p_v0.12.
+p_v0.5: new "Off-grid outage detection" card — the 2 detection entities
+(primary + fallback), the alarm entity to write back, and a live status
+display. See migration 020, collectors/offgrid_monitor.py,
+decision_engine.py p_v0.12.
+-->
 {% block title %}Systeem — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -66,6 +85,84 @@
       <input type="checkbox" name="has_heating" {% if options.get('system', {}).get('has_district_heating') %}checked{% endif %}>
       Stadsverwarming
     </label>
+    <label class="check-label">
+      <input type="checkbox" name="has_offgrid" {% if options.get('system', {}).get('has_offgrid_switch') %}checked{% endif %}>
+      Off-grid schakeling
+    </label>
+    <div class="hint" style="margin-top:4px; margin-left:24px;">
+      Indien aangevinkt: de batterij-ondergrens schuift automatisch tussen een hoge (dag)
+      en lage (nacht) waarde, gekoppeld aan zonsopkomst en het geleerde nachtverbruik.
+      Zonder dit vinkje blijft de vaste ondergrens gelden zoals nu. Instelbaar op de
+      <a href="{{ nav_url('optimizer') }}">Drempelwaarden-pagina</a>.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="mdi mdi-transmission-tower-off"></span> Off-grid uitvaldetectie</h2>
+    <div class="alert alert-info">
+      <span class="mdi mdi-information-outline"></span>
+      Alleen actief als "Off-grid schakeling" hierboven is aangevinkt. Detecteert een
+      netuitval door periodiek (elke paar minuten) een HA-entiteit uit te lezen, schrijft
+      een alarm-entiteit terug naar HA (voor je eigen automations — deurbel, geluid, wat
+      dan ook) en pauzeert alle prijs-gestuurde laad/ontlaad-beslissingen zolang de
+      uitval duurt.
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Primaire detectie-entiteit</label>
+        <input type="text" name="offgrid_primary_entity"
+               value="{{ config.offgrid_primary_entity_id if config and config.offgrid_primary_entity_id else '' }}"
+               placeholder="bijv. binary_sensor.omvormer_netstatus">
+        <div class="hint">
+          Bij voorkeur de status van de off-grid schakelaar zelf — heeft voorrang boven
+          de terugval-entiteit hieronder. Laat leeg als je die nog niet hebt.
+        </div>
+      </div>
+      <div class="field">
+        <label>Waarde die "off-grid" betekent</label>
+        <input type="text" name="offgrid_primary_off_value"
+               value="{{ config.offgrid_primary_off_value if config and config.offgrid_primary_off_value else 'off' }}">
+        <div class="hint">Exacte tekstwaarde van de entiteit hierboven, bijv. "off", "unavailable" of "0".</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Terugval-entiteit (optioneel)</label>
+        <input type="text" name="offgrid_fallback_entity"
+               value="{{ config.offgrid_fallback_entity_id if config and config.offgrid_fallback_entity_id else '' }}"
+               placeholder="bijv. sensor.p1_meter_vermogen">
+        <div class="hint">
+          Wordt alleen gebruikt als de primaire entiteit leeg of niet leesbaar is. Telt
+          als signaal wanneer déze entiteit zelf "unavailable" wordt — minder betrouwbaar
+          (kan ook door wifi-hapering komen), dus alleen als terugval.
+        </div>
+      </div>
+      <div class="field">
+        <label>Alarm-entiteit (teruggeschreven naar HA)</label>
+        <input type="text" name="offgrid_alarm_entity"
+               value="{{ config.offgrid_alarm_entity_id if config and config.offgrid_alarm_entity_id else 'binary_sensor.ha_energy_optimizer_offgrid' }}">
+        <div class="hint">
+          Wordt automatisch aangemaakt in HA zodra er een detectie plaatsvindt — geen
+          aparte stap nodig. Gebruik deze entity_id in je eigen HA-automation om op een
+          netuitval te reageren.
+        </div>
+      </div>
+    </div>
+    {% if config %}
+    <div class="field">
+      <label>Huidige status</label>
+      <div class="hint" style="margin-top:0;">
+        {% if config.offgrid_active %}
+          <span style="color:#dc2626; font-weight:600;"><span class="mdi mdi-alert"></span> Off-grid gedetecteerd</span>
+        {% else %}
+          <span style="color:#16a34a;">Normaal (net aanwezig)</span>
+        {% endif %}
+        {% if config.offgrid_last_checked_at %}
+          — laatst gecontroleerd: {{ config.offgrid_last_checked_at.strftime('%d-%m-%Y %H:%M') }}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="card">

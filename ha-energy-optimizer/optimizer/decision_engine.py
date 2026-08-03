@@ -2,8 +2,44 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.10
-# altered:       2026-07-26
+# part version:  p_v0.12
+# altered:       2026-07-30
+#
+# p_v0.12: off-grid uitvaldetectie daadwerkelijk functioneel gemaakt.
+# _read_off_grid() (las een live HA-entiteit uit via een parameter die
+# engine.py nooit meegaf — dus altijd False) vervangen door
+# _read_offgrid_active(), die de door collectors/offgrid_monitor.py
+# bijgehouden system_config.offgrid_active leest. Nieuwe methode
+# _idle_schedule(): zolang off-grid actief is, wordt de hele beslisboom
+# overgeslagen en gaat elk slot op "rust" — laden/ontladen op basis van
+# marktprijs is zinloos/onwenselijk zonder netverbinding.
+#
+# p_v0.12: off-grid outage detection made actually functional.
+# _read_off_grid() (read a live HA entity via a parameter engine.py never
+# passed — so always False) replaced by _read_offgrid_active(), which
+# reads system_config.offgrid_active kept up to date by
+# collectors/offgrid_monitor.py. New method _idle_schedule(): while
+# off-grid is active, the entire decision tree is skipped and every slot
+# goes to "idle" — charging/discharging based on market price is
+# meaningless/undesirable without a grid connection.
+#
+# p_v0.11: dynamische off-grid reserve toegevoegd — schuift tussen een
+# hoge (dag) en lage (nacht) SoC-ondergrens. Omslagpunten: zonsopkomst+1u
+# naar hoog, begin geleerd nachtverbruik+1u naar laag (gedetecteerd als
+# eerste kwartier-slot waarna N opeenvolgende slots onder X% van het
+# daggemiddelde blijven, X en N instelbaar). Alleen actief als
+# system_config.has_offgrid_switch aan staat; anders exact het oude
+# gedrag (statische self._reserve_soc()). Nieuwe klasse OffGridConfig,
+# nieuwe methodes _dynamic_reserve_soc/_get_sunrise/_get_night_start.
+#
+# p_v0.11: dynamic off-grid reserve added — shifts between a high (day)
+# and low (night) SoC floor. Transition points: sunrise+1h to high, start
+# of learned night consumption+1h to low (detected as the first quarter
+# slot after which N consecutive slots stay below X% of the daily
+# average, X and N configurable). Only active if
+# system_config.has_offgrid_switch is on; otherwise exactly the old
+# behaviour (static self._reserve_soc()). New OffGridConfig class, new
+# _dynamic_reserve_soc/_get_sunrise/_get_night_start methods.
 #
 # p_v0.10: HourForecast -> ForecastSlot, WindowHour -> WindowSlot, veld
 # `hour` -> `slot_start` — puur een naamswijziging, zie optimizer/models.py
@@ -55,7 +91,7 @@
 import logging
 import math
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
@@ -63,7 +99,7 @@ from database.connection import DatabaseConnection
 from collectors.consumption_learner import ConsumptionLearner
 from .models import ForecastSlot, ScheduleSlot
 from translations.translator import build_translator
-from config.timeslot import SLOT_MINUTES, SLOT_HOURS, SLOT_TO_MEASUREMENT_FACTOR
+from config.timeslot import SLOT_MINUTES, SLOT_HOURS, SLOT_TO_MEASUREMENT_FACTOR, SLOTS_PER_HOUR, SLOTS_PER_DAY
 from config.localtime import now_local
 
 logger = logging.getLogger(__name__)
@@ -100,6 +136,33 @@ class PriceConfig:
     hard_min_excl:  Decimal = Decimal("0.05")   # nooit ontladen onder deze prijs
     max_charge_excl: Decimal = Decimal("0.10")  # maximale laadprijs excl. BTW
     negative_export_threshold_excl: Decimal = Decimal("0")  # exportprijs waaronder net-bijladen i.p.v. exporteren
+
+
+@dataclass
+class OffGridConfig:
+    """
+    Dynamische off-grid reserve — schuift tussen een hoge (dag) en lage
+    (nacht) ondergrens, gekoppeld aan zonsopkomst en het geleerde
+    nachtverbruikpatroon. Vervangt het vaste min_soc_pct als ondergrens
+    zolang enabled=True; als enabled=False verandert er niets aan het
+    bestaande gedrag (self._bat.min_soc_pct blijft de vaste ondergrens).
+
+    Dynamic off-grid reserve — shifts between a high (day) and low (night)
+    floor, tied to sunrise and the learned night-consumption pattern.
+    Replaces the fixed min_soc_pct as the floor as long as enabled=True;
+    if enabled=False, nothing changes about existing behaviour
+    (self._bat.min_soc_pct stays the fixed floor).
+
+    Alleen actief als het "Off-grid schakeling"-vinkje op de Systeem-pagina
+    aan staat (system_config.has_offgrid_switch).
+    Only active if the "Off-grid switching" checkbox on the System page is
+    on (system_config.has_offgrid_switch).
+    """
+    enabled:             bool    = False
+    reserve_high_pct:    Decimal = Decimal("10")
+    reserve_low_pct:     Decimal = Decimal("5")
+    night_threshold_pct: Decimal = Decimal("50")
+    night_confirm_slots: int     = 8
 
 
 @dataclass
@@ -140,12 +203,24 @@ class DecisionEngine:
     Replaces the strategy.py/engine._calculate() combination.
     """
 
-    def __init__(self, db: DatabaseConnection, bat: BatteryConfig, price: PriceConfig):
-        self._db    = db
-        self._bat   = bat
-        self._price = price
+    def __init__(
+        self, db: DatabaseConnection, bat: BatteryConfig, price: PriceConfig,
+        offgrid: "OffGridConfig | None" = None,
+    ):
+        self._db      = db
+        self._bat     = bat
+        self._price   = price
+        self._offgrid = offgrid or OffGridConfig()
         self._consumption_learner = ConsumptionLearner(db)
         self._tr    = build_translator(db)
+        # p_v0.11: caches voor de dynamische off-grid reserve, geleegd bij
+        # elke run() — voorkomt herhaalde DB-queries per kwartier-slot voor
+        # dezelfde datum/weekdag binnen één rekencyclus.
+        # p_v0.11: caches for the dynamic off-grid reserve, cleared on each
+        # run() — avoids repeated DB queries per quarter slot for the same
+        # date/weekday within one calculation cycle.
+        self._sunrise_cache: dict = {}
+        self._night_start_cache: dict = {}
 
     # ── Publieke interface / Public interface ─────────────────────────────────
 
@@ -153,7 +228,6 @@ class DecisionEngine:
         self,
         forecasts: list[ForecastSlot],
         battery_temp_c: Optional[Decimal] = None,
-        off_grid_entity_id: Optional[str] = None,
     ) -> list[ScheduleSlot]:
         """
         Verwerk de prognoses en bepaal de optimale actie per uur.
@@ -163,7 +237,6 @@ class DecisionEngine:
             forecasts:          lijst van ForecastSlot objecten (48 uur aan
                                  kwartier-slots, dus 192 objecten)
             battery_temp_c:     huidige batterijtemperatuur voor vermogensbeperking
-            off_grid_entity_id: HA entity_id van de off-grid sensor (optioneel)
 
         Returns:
             Lijst van ScheduleSlot objecten klaar voor opslaan.
@@ -172,10 +245,35 @@ class DecisionEngine:
             return []
 
         # ── Stap 1: Initialisatie ─────────────────────────────────────────────
-        off_grid = self._read_off_grid(off_grid_entity_id)
+        # p_v0.12: off_grid komt nu uit system_config.offgrid_active,
+        # bijgehouden door collectors/offgrid_monitor.py (leest elke paar
+        # minuten een primaire + terugval-entiteit uit HA). Voorheen las
+        # _read_off_grid() hier zelf live een entiteit uit via een
+        # off_grid_entity_id-parameter die door engine.py nooit werd
+        # meegegeven — dus off_grid was in de praktijk altijd False. Nu
+        # daadwerkelijk functioneel, én sneller (DB-read i.p.v. live
+        # HTTP-call per beslisronde).
+        # p_v0.12: off_grid now comes from system_config.offgrid_active,
+        # kept up to date by collectors/offgrid_monitor.py (reads a
+        # primary + fallback entity from HA every few minutes). Previously
+        # _read_off_grid() itself did a live entity read here via an
+        # off_grid_entity_id parameter that engine.py never actually
+        # passed — so off_grid was always False in practice. Now actually
+        # functional, and faster (DB read instead of a live HTTP call per
+        # decision round).
+        off_grid = self._read_offgrid_active()
         eff_charge_kw, eff_discharge_kw = self._effective_power(battery_temp_c)
         price_factor_high, price_factor_low = self._price_factors(forecasts)
-        reserve_soc = self._reserve_soc()
+        # p_v0.11: caches legen voor de dynamische off-grid reserve — zie
+        # __init__. reserve_soc wordt nu per slot berekend (in de lus
+        # hieronder) i.p.v. hier één keer statisch, omdat de dynamische
+        # reserve per tijdstip kan verschillen (hoog overdag, laag 's nachts).
+        # p_v0.11: clear caches for the dynamic off-grid reserve — see
+        # __init__. reserve_soc is now computed per slot (in the loop below)
+        # instead of once statically here, because the dynamic reserve can
+        # differ by time of day (high during the day, low at night).
+        self._sunrise_cache.clear()
+        self._night_start_cache.clear()
 
         window = self._build_window(forecasts)
 
@@ -184,8 +282,19 @@ class DecisionEngine:
         self._mark_executed(window)
 
         # ── Stap 2: Off-grid check ────────────────────────────────────────────
+        # p_v0.12: pauzeer alle prijs-gestuurde beslissingen zolang
+        # off-grid actief is — laden/ontladen op basis van marktprijs is
+        # zinloos of zelfs onwenselijk zonder netverbinding. Alles op
+        # "rust" totdat een volgende run (over enkele minuten, via
+        # offgrid_monitor.py) meldt dat het net terug is.
+        # p_v0.12: pause all price-driven decisions while off-grid is
+        # active — charging/discharging based on market price is
+        # meaningless or even undesirable without a grid connection.
+        # Everything goes to "idle" until a next run (within a few
+        # minutes, via offgrid_monitor.py) reports the grid is back.
         if off_grid:
-            logger.info(f"[decision_engine] {self._tr.get("RS11")}")
+            logger.warning(f"[decision_engine] {self._tr.get('RS11')}")
+            return self._idle_schedule(window)
 
         # Startende SoC voor de simulatie
         # Starting SoC for the simulation
@@ -201,6 +310,16 @@ class DecisionEngine:
 
             wh.forecast.soc_pct = soc
             price = wh.price_excl
+
+            # p_v0.11: dynamische off-grid reserve voor dít slot — zie
+            # _dynamic_reserve_soc(). Als de off-grid schakeling uit staat
+            # (self._offgrid.enabled=False), gedraagt dit zich exact als de
+            # oude statische self._reserve_soc() — geen gedragsverandering.
+            # p_v0.11: dynamic off-grid reserve for this slot — see
+            # _dynamic_reserve_soc(). If off-grid switching is disabled
+            # (self._offgrid.enabled=False), this behaves exactly like the
+            # old static self._reserve_soc() — no behaviour change.
+            reserve_soc = self._dynamic_reserve_soc(wh.forecast.slot_start)
 
             # Bereken dynamische SoC drempels voor dit uur
             nacht_soc = self._nacht_soc(wh.forecast.slot_start, reserve_soc)
@@ -324,38 +443,70 @@ class DecisionEngine:
 
     # ── Stap 1 helpers / Step 1 helpers ──────────────────────────────────────
 
-    def _read_off_grid(self, entity_id: Optional[str]) -> bool:
+    def _read_offgrid_active(self) -> bool:
         """
-        Lees de off-grid sensor entiteit uit HA.
-        Read the off-grid sensor entity from HA.
-        Geeft False als entity_id None is of als de entiteit niet bereikbaar is.
-        Returns False if entity_id is None or entity is not reachable.
+        Lees de door offgrid_monitor.py bijgehouden off-grid status uit
+        system_config. Simpele, snelle DB-read i.p.v. een live HTTP-call
+        naar HA — de daadwerkelijke detectie (primair + terugval-entiteit)
+        gebeurt in collectors/offgrid_monitor.py, elke paar minuten.
+
+        Read the off-grid status kept up to date by offgrid_monitor.py
+        from system_config. A simple, fast DB read instead of a live HTTP
+        call to HA — the actual detection (primary + fallback entity)
+        happens in collectors/offgrid_monitor.py, every few minutes.
+
+        Geeft False als has_offgrid_switch uit staat of bij een DB-fout —
+        veilig terugvallen op "gewoon normaal doorgaan".
+        Returns False if has_offgrid_switch is off or on a DB error —
+        safely falls back to "just continue normally".
         """
-        if not entity_id:
-            return False
         try:
             with self._db.cursor() as cur:
                 cur.execute(
-                    "SELECT entity_id FROM ha_entity_map "
-                    "WHERE internal_name = 'off_grid_active' LIMIT 1"
+                    "SELECT has_offgrid_switch, offgrid_active "
+                    "FROM system_config ORDER BY id DESC LIMIT 1"
                 )
                 row = cur.fetchone()
-            if not row:
+            if not row or not row.get("has_offgrid_switch"):
                 return False
-            import requests as _req
-            from config.config import AppConfig
-            config = AppConfig.load()
-            url = f"http://{config.ha.host}:{config.ha.port}/api/states/{row['entity_id']}"
-            resp = _req.get(
-                url,
-                headers={"Authorization": f"Bearer {config.ha.token}"},
-                timeout=3
-            )
-            state = resp.json().get("state", "off")
-            return state in ("on", "true", "1", "aan")
+            return bool(row.get("offgrid_active"))
         except Exception as e:
-            logger.debug(f"[decision_engine] Off-grid entiteit niet bereikbaar: {e}")
+            logger.debug(f"[decision_engine] Off-grid status niet leesbaar: {e}")
             return False
+
+    def _idle_schedule(self, window: "list[WindowSlot]") -> list[ScheduleSlot]:
+        """
+        Bouw een schema van uitsluitend "rust"-slots — gebruikt zolang
+        off-grid actief is. Geen enkele prijs-gestuurde laad/ontlaad-actie,
+        SoC blijft op de startwaarde staan (we kunnen tijdens een
+        stroomstoring toch niet voorspellen wat het eiland-systeem
+        zelfstandig doet).
+
+        Build a schedule of nothing but "idle" slots — used while off-grid
+        is active. No price-driven charge/discharge action at all, SoC
+        stays at the starting value (we can't predict what the island
+        system does on its own during an outage anyway).
+        """
+        soc = window[0].forecast.soc_pct if window else Decimal("50")
+        slots = []
+        for wh in window:
+            slots.append(ScheduleSlot(
+                slot_start              = wh.forecast.slot_start,
+                action                  = "idle",
+                target_power_kw         = Decimal("0"),
+                target_soc_pct          = soc,
+                expected_saving         = Decimal("0"),
+                expected_cost           = Decimal("0"),
+                reason                  = self._tr.get("RS11"),
+                reason_key              = "RS11",
+                reason_params           = None,
+                expected_solar_kw       = wh.forecast.solar_kw,
+                expected_consumption_kw = wh.forecast.consumption_kw,
+                expected_price          = wh.forecast.price_per_kwh,
+                is_solar_charge         = False,
+                grid_charge_kw          = Decimal("0"),
+            ))
+        return slots
 
     def _effective_power(
         self, temp_c: Optional[Decimal]
@@ -410,6 +561,145 @@ class DecisionEngine:
             self._bat.off_grid_reserve_kwh / self._bat.usable_kwh * 100
         ).quantize(Decimal("0.1"))
         return max(reserve, self._bat.min_soc_pct)
+
+    def _dynamic_reserve_soc(self, dt: datetime) -> Decimal:
+        """
+        Dynamische off-grid ondergrens voor het gegeven tijdstip — schuift
+        tussen reserve_high_pct (dag) en reserve_low_pct (nacht).
+
+        Dynamic off-grid floor for the given timestamp — shifts between
+        reserve_high_pct (day) and reserve_low_pct (night).
+
+        Omslagpunten / Transition points:
+          - naar hoog / to high: zonsopkomst + 1 uur / sunrise + 1 hour
+          - naar laag / to low:  begin geleerd nachtverbruik + 1 uur /
+                                  start of learned night consumption + 1 hour
+
+        Als self._offgrid.enabled False is, of een van beide omslagpunten
+        kan niet bepaald worden (bijv. nog te weinig geleerde data), valt
+        dit terug op de oude statische self._reserve_soc() — precies het
+        gedrag van vóór deze functie bestond.
+
+        If self._offgrid.enabled is False, or either transition point
+        cannot be determined (e.g. not enough learned data yet), this
+        falls back to the old static self._reserve_soc() — exactly the
+        behaviour from before this function existed.
+        """
+        if not self._offgrid.enabled:
+            return self._reserve_soc()
+
+        sunrise = self._get_sunrise(dt.date())
+        night_start = self._get_night_start(dt.month, dt.weekday())
+
+        if sunrise is None or night_start is None:
+            logger.debug(
+                "[decision_engine] Dynamische off-grid reserve: "
+                "onvoldoende data (zonsopkomst of nachtpatroon ontbreekt), "
+                "terugval op statische reserve"
+            )
+            return self._reserve_soc()
+
+        to_high = (datetime.combine(dt.date(), sunrise) + timedelta(hours=1)).time()
+        to_low  = (datetime.combine(dt.date(), night_start) + timedelta(hours=1)).time()
+
+        is_high_period = to_high <= dt.time() < to_low
+        pct = self._offgrid.reserve_high_pct if is_high_period else self._offgrid.reserve_low_pct
+        return pct.quantize(Decimal("0.1"))
+
+    def _get_sunrise(self, d) -> "time | None":
+        """
+        Haal zonsopkomsttijd op voor de gegeven datum uit weather_forecast,
+        met caching voor de duur van één run().
+        Fetch sunrise time for the given date from weather_forecast, cached
+        for the duration of one run().
+        """
+        if d in self._sunrise_cache:
+            return self._sunrise_cache[d]
+
+        result = None
+        try:
+            with self._db.cursor() as cur:
+                cur.execute(
+                    "SELECT sun_rise FROM weather_forecast "
+                    "WHERE DATE(forecast_for) = %(d)s AND sun_rise IS NOT NULL "
+                    "ORDER BY forecast_for LIMIT 1",
+                    {"d": d}
+                )
+                row = cur.fetchone()
+            if row and row["sun_rise"]:
+                raw = row["sun_rise"]
+                if isinstance(raw, str):
+                    h, m = raw.split(":")[:2]
+                    result = time(int(h), int(m))
+                else:
+                    result = raw
+        except Exception as e:
+            logger.warning(f"[decision_engine] Zonsopkomst ophalen mislukt: {e}")
+
+        self._sunrise_cache[d] = result
+        return result
+
+    def _get_night_start(self, month: int, dow: int) -> "time | None":
+        """
+        Detecteer het kwartier-slot waarop het geleerde gemiddelde
+        nachtverbruik begint, voor de gegeven maand + weekdag, met caching
+        voor de duur van één run().
+
+        Detect the quarter slot at which the learned average night
+        consumption begins, for the given month + weekday, cached for the
+        duration of one run().
+
+        Methode: eerste kwartier-slot (vanaf 16:00, doorlopend over
+        middernacht) waarna night_confirm_slots opeenvolgende slots allemaal
+        onder night_threshold_pct% van het daggemiddelde blijven.
+
+        Method: first quarter slot (starting from 16:00, wrapping past
+        midnight) after which night_confirm_slots consecutive slots all
+        stay below night_threshold_pct% of the daily average.
+
+        Returns None als er onvoldoende geleerde data is (nog geen volle
+        dag aan slots met sample_count > 0).
+        Returns None if there isn't enough learned data yet (no full day
+        of slots with sample_count > 0).
+        """
+        cache_key = (month, dow)
+        if cache_key in self._night_start_cache:
+            return self._night_start_cache[cache_key]
+
+        result = None
+        try:
+            with self._db.cursor() as cur:
+                cur.execute(
+                    "SELECT slot_of_day, kwh_avg FROM consumption_learning "
+                    "WHERE month_of_year = %(m)s AND day_of_week = %(d)s "
+                    "AND sample_count > 0 ORDER BY slot_of_day",
+                    {"m": month, "d": dow}
+                )
+                rows = cur.fetchall()
+
+            if len(rows) >= SLOTS_PER_DAY:
+                values = {r["slot_of_day"]: Decimal(str(r["kwh_avg"])) for r in rows}
+                if len(values) == SLOTS_PER_DAY:
+                    daily_avg = sum(values.values()) / SLOTS_PER_DAY
+                    threshold = daily_avg * self._offgrid.night_threshold_pct / 100
+                    confirm_n = self._offgrid.night_confirm_slots
+
+                    # Scan vanaf 16:00 (slot 64), doorlopend over middernacht
+                    # Scan from 16:00 (slot 64), wrapping past midnight
+                    start_scan = 16 * SLOTS_PER_HOUR
+                    order = [(start_scan + i) % SLOTS_PER_DAY for i in range(SLOTS_PER_DAY)]
+                    for pos, slot in enumerate(order):
+                        window_slots = [order[(pos + k) % SLOTS_PER_DAY] for k in range(confirm_n)]
+                        if all(values[s] < threshold for s in window_slots):
+                            hour = slot // SLOTS_PER_HOUR
+                            minute = (slot % SLOTS_PER_HOUR) * SLOT_MINUTES
+                            result = time(hour, minute)
+                            break
+        except Exception as e:
+            logger.warning(f"[decision_engine] Nachtstart-detectie mislukt: {e}")
+
+        self._night_start_cache[cache_key] = result
+        return result
 
     def _build_window(self, forecasts: list[ForecastSlot]) -> list[WindowSlot]:
         """
@@ -1087,5 +1377,19 @@ def build_decision_engine(db: DatabaseConnection) -> DecisionEngine:
         negative_export_threshold_excl = Decimal(str(cfg.get("negative_export_threshold_excl") or "0")),
     )
 
-    return DecisionEngine(db, bat_config, price_config)
+    # p_v0.11: dynamische off-grid reserve — alleen actief als het vinkje
+    # op de Systeem-pagina aan staat (has_offgrid_switch). Staat het uit,
+    # dan verandert er niets aan het bestaande gedrag.
+    # p_v0.11: dynamic off-grid reserve — only active if the checkbox on
+    # the System page is on (has_offgrid_switch). If off, nothing changes
+    # about existing behaviour.
+    offgrid_config = OffGridConfig(
+        enabled              = bool(cfg.get("has_offgrid_switch", False)),
+        reserve_high_pct     = Decimal(str(cfg.get("offgrid_reserve_high_pct") or "10")),
+        reserve_low_pct      = Decimal(str(cfg.get("offgrid_reserve_low_pct") or "5")),
+        night_threshold_pct  = Decimal(str(cfg.get("offgrid_night_threshold_pct") or "50")),
+        night_confirm_slots  = int(cfg.get("offgrid_night_confirm_slots") or 8),
+    )
+
+    return DecisionEngine(db, bat_config, price_config, offgrid_config)
 

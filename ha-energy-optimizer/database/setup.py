@@ -2,8 +2,18 @@
 # name:          setup.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/setup.py
-# part version:  p_v0.9
-# altered:       2026-07-25
+# part version:  p_v0.11
+# altered:       2026-07-30
+#
+# p_v0.11: 20 toegevoegd (off-grid uitvaldetectie-instellingen, zie
+# collectors/offgrid_monitor.py, decision_engine.py p_v0.12).
+#
+# p_v0.10: 18 en 19 toegevoegd aan ALL_VERSIONS en de stapsgewijze route.
+# 018 (price_sell_per_kwh) is idempotent (IF NOT EXISTS/WHERE IS NULL),
+# dus veilig om opnieuw te draaien ook al was die al handmatig toegepast —
+# geen "markeer als toegepast"-stap nodig zoals destijds bij 015/016.
+# 000_consolidated.sql (p_v0.3) bijgewerkt t/m 019, inclusief het eerder
+# gemiste price_sell_per_kwh uit migratie 018.
 #
 # p_v0.9: 15/16/17 alsnog toegevoegd aan ALL_VERSIONS — 000_consolidated.sql
 # is bijgewerkt (p_v0.2) met het kwartier-schema en zonder price_profile,
@@ -34,7 +44,7 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 # hoort hier bewust niet bij — zie onderstaande toelichting).
 # All regular migration versions (007 is a one-time data correction and
 # is deliberately excluded here — see note below).
-ALL_VERSIONS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+ALL_VERSIONS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
 
 def run_migrations(db: DatabaseConnection) -> None:
@@ -85,6 +95,9 @@ def run_migrations(db: DatabaseConnection) -> None:
         _apply(db, 15, MIGRATIONS_DIR / "015_quarter_hour_slots.sql")
         _apply(db, 16, MIGRATIONS_DIR / "016_grid_solar_charge_split.sql")
         _apply(db, 17, MIGRATIONS_DIR / "017_drop_price_profile.sql")
+        _apply(db, 18, MIGRATIONS_DIR / "018_price_sell_column.sql")
+        _apply(db, 19, MIGRATIONS_DIR / "019_offgrid_dynamic_reserve.sql")
+        _apply(db, 20, MIGRATIONS_DIR / "020_offgrid_detection.sql")
 
     # Vul vertalingstabel met standaardteksten (INSERT IGNORE — overschrijft geen aanpassingen)
     # Fill translation table with default texts (INSERT IGNORE — does not overwrite customisations)

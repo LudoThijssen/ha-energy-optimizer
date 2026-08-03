@@ -2,8 +2,20 @@
 <!-- name:         optimizer.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/optimizer.html -->
-<!-- part version: p_v0.15 -->
+<!-- part version: p_v0.16 -->
 <!-- altered:      2026-07-30 -->
+<!--
+p_v0.16: nieuw kaartje "Off-grid reserve" — instellingen voor de
+dynamische SoC-ondergrens (hoog/laag, nachtdrempel, bevestigingsslots).
+Alleen functioneel als "Off-grid schakeling" aan staat op de Systeem-
+pagina; toont anders een duidelijke melding dat de vaste ondergrens nog
+geldt. Zie migratie 019, decision_engine.py p_v0.11.
+p_v0.16: new "Off-grid reserve" card — settings for the dynamic SoC floor
+(high/low, night threshold, confirm slots). Only functional if "Off-grid
+switching" is on on the System page; otherwise shows a clear note that
+the fixed floor still applies. See migration 019, decision_engine.py
+p_v0.11.
+-->
 <!--
 p_v0.14: beslistabel-kleuren gekoppeld aan de echte instellingen
 ({{ colors.solar_charge }}/discharge/import_kw) i.p.v. eigen losse
@@ -195,6 +207,60 @@ separate hardcoded hex values that happened to look similar. "Inactief"
       <div class="hint">
         0,80 = blokkeer nettoladen als zon ≥ 80% van bruikbare capaciteit.<br>
         <em>Voorbeeld: 15,55 kWh × 0,80 = 12,44 kWh verwachte zon → geen nettoladen</em>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="mdi mdi-power-plug-off-outline"></span> Off-grid reserve</h2>
+    {% if config and config.has_offgrid_switch %}
+    <div class="alert alert-info">
+      <span class="mdi mdi-information-outline"></span>
+      Actief. De batterij-ondergrens schuift automatisch tussen de hoge (dag) en lage
+      (nacht) waarde hieronder — de vaste "Minimale laadtoestand" hierboven wordt dan niet
+      meer gebruikt als dagelijkse ondergrens.
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <span class="mdi mdi-information-outline"></span>
+      Niet actief — vink "Off-grid schakeling" aan op de
+      <a href="{{ nav_url('system') }}">Systeem-pagina</a> om dit te gebruiken.
+      Tot die tijd geldt gewoon de vaste "Minimale laadtoestand" hierboven, zoals nu.
+    </div>
+    {% endif %}
+    <div class="field-row">
+      <div class="field">
+        <label>Ondergrens overdag (%)</label>
+        <input type="number" name="offgrid_reserve_high" step="0.5" min="0" max="100"
+               value="{{ config.offgrid_reserve_high_pct if config and config.offgrid_reserve_high_pct is not none else 10 }}">
+        <div class="hint">Vanaf zonsopkomst + 1 uur.</div>
+      </div>
+      <div class="field">
+        <label>Ondergrens 's nachts (%)</label>
+        <input type="number" name="offgrid_reserve_low" step="0.5" min="0" max="100"
+               value="{{ config.offgrid_reserve_low_pct if config and config.offgrid_reserve_low_pct is not none else 5 }}">
+        <div class="hint">Vanaf begin geleerd nachtverbruik + 1 uur.</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Nachtdrempel (% van daggemiddelde)</label>
+        <input type="number" name="offgrid_night_threshold" step="1" min="1" max="99"
+               value="{{ config.offgrid_night_threshold_pct if config and config.offgrid_night_threshold_pct is not none else 50 }}">
+        <div class="hint">
+          Een kwartier-slot telt als "nacht" zodra het geleerde gemiddelde verbruik
+          onder dit percentage van het daggemiddelde zakt.
+        </div>
+      </div>
+      <div class="field">
+        <label>Bevestiging (aantal kwartier-slots)</label>
+        <input type="number" name="offgrid_night_confirm_slots" step="1" min="1" max="32"
+               value="{{ config.offgrid_night_confirm_slots if config and config.offgrid_night_confirm_slots is not none else 8 }}">
+        <div class="hint">
+          Zoveel opeenvolgende slots moeten onder de nachtdrempel blijven voor het als
+          "begin nacht" telt. 8 = 2 uur. Voorkomt dat een toevallige avonddip als nacht
+          wordt gezien.
+        </div>
       </div>
     </div>
   </div>

@@ -2,26 +2,35 @@
 -- name:          000_consolidated.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/000_consolidated.sql
--- part version:  p_v0.2
--- altered:       2026-07-25
+-- part version:  p_v0.4
+-- altered:       2026-07-30
 --
--- Volledig eindschema (resultaat van migraties 001 t/m 017) in één keer.
+-- p_v0.4: bijgewerkt t/m migratie 020 — off-grid uitvaldetectie-
+-- instellingen op system_config (offgrid_primary_entity_id e.a.), zie
+-- collectors/offgrid_monitor.py.
+--
+-- p_v0.4: updated through migration 020 — off-grid outage detection
+-- settings on system_config (offgrid_primary_entity_id etc.), see
+-- collectors/offgrid_monitor.py.
+--
+-- Volledig eindschema (resultaat van migraties 001 t/m 020) in één keer.
 -- Wordt UITSLUITEND gebruikt door setup.py bij een verse installatie
 -- (lege database, geen _migrations tabel). Bestaande installaties blijven
--- de incrementele migraties 001-017 doorlopen zoals voorheen.
+-- de incrementele migraties 001-020 doorlopen zoals voorheen.
 --
--- Full end-state schema (result of migrations 001 through 017) in one go.
+-- Full end-state schema (result of migrations 001 through 020) in one go.
 -- Used ONLY by setup.py on a fresh installation (empty database, no
 -- _migrations table). Existing installations keep running the incremental
--- migrations 001-017 as before.
+-- migrations 001-020 as before.
 --
 -- LET OP: als dit bestand wordt gebruikt, moet setup.py de _migrations
--- tabel vullen met de versienummers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17
--- zodat geen enkele incrementele migratie later opnieuw geprobeerd wordt.
+-- tabel vullen met de versienummers
+-- 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20 zodat geen enkele
+-- incrementele migratie later opnieuw geprobeerd wordt.
 --
 -- NOTE: if this file is used, setup.py must fill the _migrations table
--- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17 so no
--- incremental migration is ever attempted afterwards.
+-- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20 so
+-- no incremental migration is ever attempted afterwards.
 --
 -- p_v0.2: bijgewerkt t/m migratie 017 — slot_of_day (kwartier-resolutie)
 -- i.p.v. hour_of_day in consumption_profile/solar_profile/solar_learning/
@@ -40,6 +49,16 @@
 -- This is NOT YET a full merge of all the separate ALTER statements from
 -- 001-014 into the CREATE TABLE definitions themselves — that's planned
 -- for v0.14 (larger cleanup of database + migrations together).
+--
+-- p_v0.3: bijgewerkt t/m migratie 019. Migratie 018 was hier eerder
+-- gemist (price_sell_per_kwh ontbrak) — nu rechtgezet. Migratie 019
+-- toegevoegd: has_offgrid_switch + de 4 dynamische off-grid
+-- reserve-instellingen op system_config.
+--
+-- p_v0.3: updated through migration 019. Migration 018 was missed here
+-- earlier (price_sell_per_kwh was absent) — now corrected. Migration 019
+-- added: has_offgrid_switch + the 4 dynamic off-grid reserve settings on
+-- system_config.
 
 CREATE TABLE IF NOT EXISTS `system_config` (
     `id`                              INT           NOT NULL AUTO_INCREMENT,
@@ -97,6 +116,28 @@ CREATE TABLE IF NOT EXISTS `system_config` (
         COMMENT 'Optional HA entity for dynamic heating price / Optionele HA-entiteit voor dynamische stadsverwarmingprijs',
     `schedule_interval_minutes`       SMALLINT      NOT NULL DEFAULT 15
         COMMENT 'Schema-tijdstap in minuten / Schedule time step in minutes',
+    `has_offgrid_switch`              TINYINT(1)    NOT NULL DEFAULT 0
+        COMMENT 'Off-grid schakeling aanwezig / Off-grid switching present',
+    `offgrid_reserve_high_pct`        DECIMAL(5,2)  NOT NULL DEFAULT 10.00
+        COMMENT 'SoC-ondergrens overdag (%) / SoC floor during the day (%)',
+    `offgrid_reserve_low_pct`         DECIMAL(5,2)  NOT NULL DEFAULT 5.00
+        COMMENT 'SoC-ondergrens s nachts (%) / SoC floor during the night (%)',
+    `offgrid_night_threshold_pct`     DECIMAL(5,2)  NOT NULL DEFAULT 50.00
+        COMMENT 'Drempel nachtverbruik als % van daggemiddelde / Night consumption threshold as % of daily average',
+    `offgrid_night_confirm_slots`     SMALLINT      NOT NULL DEFAULT 8
+        COMMENT 'Aantal opeenvolgende slots onder drempel voor "begin nacht" / Consecutive slots below threshold to confirm "start of night"',
+    `offgrid_primary_entity_id`       VARCHAR(256)  DEFAULT NULL
+        COMMENT 'Primaire detectie-entiteit / Primary detection entity',
+    `offgrid_primary_off_value`       VARCHAR(64)   NOT NULL DEFAULT 'off'
+        COMMENT 'Waarde die "off-grid" betekent / Value meaning "off-grid"',
+    `offgrid_fallback_entity_id`      VARCHAR(256)  DEFAULT NULL
+        COMMENT 'Terugval-entiteit (bijv. P1-meter) / Fallback entity (e.g. P1 meter)',
+    `offgrid_alarm_entity_id`         VARCHAR(256)  NOT NULL DEFAULT 'binary_sensor.ha_energy_optimizer_offgrid'
+        COMMENT 'Terug te schrijven alarm-entiteit / Alarm entity written back to HA',
+    `offgrid_active`                  TINYINT(1)    NOT NULL DEFAULT 0
+        COMMENT 'Huidige gedetecteerde off-grid status / Current detected off-grid status',
+    `offgrid_last_checked_at`         DATETIME      DEFAULT NULL
+        COMMENT 'Tijdstip laatste detectie-controle / Timestamp of last detection check',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
@@ -189,6 +230,8 @@ CREATE TABLE IF NOT EXISTS `energy_prices` (
     `price_hour`     DATETIME      NOT NULL,
     `energy_type`    ENUM('electricity','gas') NOT NULL,
     `price_per_kwh`  DECIMAL(10,5) NOT NULL,
+    `price_sell_per_kwh` DECIMAL(10,5) NOT NULL DEFAULT 0.00000
+        COMMENT 'Verkoopprijs (teruglevering) €/kWh / Sell (feed-in) price €/kWh',
     `price_incl_tax` TINYINT(1)    NOT NULL DEFAULT 1,
     `source`         VARCHAR(50),
     PRIMARY KEY (`id`),

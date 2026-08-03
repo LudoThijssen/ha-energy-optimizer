@@ -1,15 +1,30 @@
-#
 # name:          main.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/main.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.5
+# altered:       2026-07-30
+#
+# p_v0.5: OffgridMonitor geregistreerd — off-grid uitvaldetectie, zelfde
+# ritme als ha_collector. Zie collectors/offgrid_monitor.py,
+# decision_engine.py p_v0.12.
 #
 # Entry point for the HA Energy Optimizer add-on.
 # Startpunt voor de HA Energy Optimizer add-on.
 #
 # Initializes all modules and starts the task scheduler.
 # Initialiseert alle modules en start de taakplanner.
+#
+# p_v0.4: hardcoded 3600s (1 uur) heroptimalisatie-interval vervangen door
+# config.optimizer.rerun_interval_seconds (default 900s = 15 min) — zie
+# config/config.py p_v0.4. Consistent met de kwartier-schema-tijdstap
+# (config.timeslot.SLOT_MINUTES), zodat elk kwartier daadwerkelijk een
+# nieuwe beslissing kan krijgen i.p.v. maar 1 op de 4.
+#
+# p_v0.4: hardcoded 3600s (1 hour) re-optimization interval replaced by
+# config.optimizer.rerun_interval_seconds (default 900s = 15 min) — see
+# config/config.py p_v0.4. Consistent with the quarter-hour schedule step
+# (config.timeslot.SLOT_MINUTES), so every quarter can actually get a fresh
+# decision instead of only 1 in 4.
 
 import asyncio
 import logging
@@ -18,6 +33,7 @@ from database.connection import DatabaseConnection
 from database.setup import run_migrations
 from reporter.reporter import Reporter
 from collectors import HaCollector, PriceCollector, WeatherCollector
+from collectors.offgrid_monitor import OffgridMonitor
 from collectors.profile_updater import ProfileUpdater
 from optimizer.engine import OptimizerEngine
 from scheduler.scheduler import TaskScheduler
@@ -97,6 +113,15 @@ async def main() -> None:
     ha_collector      = HaCollector(db, reporter, config)
     price_collector   = PriceCollector(db, reporter, config)
     weather_collector = WeatherCollector(db, reporter, config)
+    # p_v0.5: off-grid uitvaldetectie — draait op hetzelfde ritme als
+    # ha_collector, los van de 15-minuten optimizer-cyclus (zie
+    # collectors/offgrid_monitor.py). Doet niets als
+    # system_config.has_offgrid_switch uit staat.
+    # p_v0.5: off-grid outage detection — runs on the same cadence as
+    # ha_collector, separate from the 15-minute optimizer cycle (see
+    # collectors/offgrid_monitor.py). Does nothing if
+    # system_config.has_offgrid_switch is off.
+    offgrid_monitor   = OffgridMonitor(db, reporter, config)
 
     # 5. Optimizer
     optimizer = OptimizerEngine(db, reporter, config)
@@ -109,6 +134,8 @@ async def main() -> None:
 
     scheduler.every(config.collectors.ha_interval_seconds,
                     ha_collector.run_safe)
+    scheduler.every(config.collectors.ha_interval_seconds,
+                    offgrid_monitor.run_safe)
     scheduler.every(config.collectors.weather_interval_seconds,
                     weather_collector.run_safe)
 
@@ -118,8 +145,8 @@ async def main() -> None:
                     price_collector.run_safe)
     scheduler.daily(config.optimizer.run_time,
                     optimizer.run)
-    # Hourly re-optimization / Uurlijkse heroptimalisatie
-    scheduler.every(3600, optimizer.run)
+    # Rolling re-optimization / Rolling heroptimalisatie
+    scheduler.every(config.optimizer.rerun_interval_seconds, optimizer.run)
     # Evening planning: calculate day balance for tomorrow.
     # Avondplanning: bereken dagbalans voor morgen.
     scheduler.daily(config.optimizer.evening_planning_time,
