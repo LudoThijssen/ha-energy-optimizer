@@ -2,8 +2,21 @@
 <!-- name:         history.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/history.html -->
-<!-- part version: p_v0.8 -->
-<!-- altered:      2026-07-30 -->
+<!-- part version: p_v0.9 -->
+<!-- altered:      2026-08-11 -->
+<!--
+p_v0.9: zelfde tabelwijziging als dashboard.html p_v1.7 — label nu een
+functie (laadactie kan volledig uit zon komen, rust-slot kan netverbruik
+hebben bij SoC-vloer, zie migratie 021) en de Kosten-kolom telt nu ook
+dat netverbruik mee (rood, minteken). Dagtotaal-rij (al aanwezig)
+reflecteert dit automatisch via de bestaande totalCost-optelling.
+p_v0.9: same table change as dashboard.html p_v1.7 — label is now a
+function (a charge action can come entirely from solar, an idle slot can
+have grid consumption at the SoC floor, see migration 021) and the Cost
+column now also counts that grid consumption (red, minus sign). The day
+total row (already present) reflects this automatically via the existing
+totalCost summation.
+-->
 <!--
 p_v0.7: Grafiek 2-labels uniform gemaakt met Grafiek 1 — zie
 dashboard.html p_v1.5 voor de volledige toelichting.
@@ -504,12 +517,31 @@ function renderScheduleTable(schedule) {
     return;
   }
 
-  const actionLabel = {
-    charge:       `<span style="color:${COLORS.charge};font-weight:600;">&#8593; Laden van het net</span>`,
-    discharge:    `<span style="color:${COLORS.discharge};font-weight:600;">&#8595; Ontladen naar het net</span>`,
-    self_consume: `<span style="color:${COLORS.solarCharge};font-weight:600;">&#9728; Zelf verbruik</span>`,
-    idle:         '<span style="color:#6b7280;">&#8212; Rust</span>',
-  };
+  // p_v0.9: label nu een functie i.p.v. statische lookup — zelfde reden
+  // als dashboard.html p_v1.7: een laadactie kan volledig uit zon komen,
+  // en een rust-slot kan alsnog netverbruik hebben (SoC-vloer bereikt).
+  // p_v0.9: label is now a function instead of a static lookup — same
+  // reason as dashboard.html p_v1.7: a charge action can come entirely
+  // from solar, and an idle slot can still have grid consumption (SoC
+  // floor reached).
+  function actionLabel(s) {
+    if (s.action === 'charge') {
+      if (s.is_solar_charge && !(s.grid_charge_kw > 0)) {
+        return `<span style="color:${COLORS.solarCharge};font-weight:600;">&#9728; Laden van zon</span>`;
+      }
+      return `<span style="color:${COLORS.charge};font-weight:600;">&#8593; Laden van het net</span>`;
+    }
+    if (s.action === 'discharge') {
+      return `<span style="color:${COLORS.discharge};font-weight:600;">&#8595; Ontladen naar het net</span>`;
+    }
+    if (s.action === 'self_consume') {
+      return `<span style="color:${COLORS.solarCharge};font-weight:600;">&#9728; Zelf verbruik</span>`;
+    }
+    if (s.action === 'idle' && s.grid_consume_kw > 0) {
+      return `<span style="color:${COLORS.negative};font-weight:600;">&#9889; Verbruik van het net</span>`;
+    }
+    return '<span style="color:#6b7280;">&#8212; Rust</span>';
+  }
 
   let html = '<table><thead>'
     + '<tr>'
@@ -537,11 +569,18 @@ function renderScheduleTable(schedule) {
   let totalCost = 0, totalSaving = 0;
 
   schedule.forEach(s => {
+    const isNetVerbruik = s.action === 'idle' && s.grid_consume_kw > 0;
     const rowBg = s.action === 'charge'    ? 'background:#f0fdf4;' :
                   s.action === 'discharge' ? 'background:#fef2f2;' :
-                  s.action === 'self_consume' ? 'background:#fffbeb;' : '';
-    // Kosten kolom: negatief (rood) bij laden, positief (groen) bij ontladen
-    const netKosten = s.action === 'charge'
+                  s.action === 'self_consume' ? 'background:#fffbeb;' :
+                  isNetVerbruik ? 'background:#fef2f2;' : '';
+    // Kosten kolom: negatief (rood) bij laden of netverbruik tijdens
+    // rust (SoC-vloer bereikt, zie migratie 021), positief (groen) bij
+    // ontladen.
+    // Cost column: negative (red) when charging or during idle grid
+    // consumption (SoC floor reached, see migration 021), positive
+    // (green) when discharging.
+    const netKosten = (s.action === 'charge' || isNetVerbruik)
       ? (s.cost > 0 ? -s.cost : 0)
       : (s.action === 'discharge' ? (s.saving || 0) : 0);
     const kostenStr = netKosten !== 0
@@ -549,10 +588,12 @@ function renderScheduleTable(schedule) {
     const kostenKleur = netKosten > 0 ? COLORS.positive : netKosten < 0 ? COLORS.negative : '#6b7280';
     totalCost   += s.cost   || 0;
     totalSaving += s.saving || 0;
+    const powerStr = s.power_kw ? s.power_kw.toFixed(2)
+                    : isNetVerbruik ? s.grid_consume_kw.toFixed(2) : '—';
     html += `<tr style="${rowBg}">
       <td style="font-size:13px;font-weight:500;">${s.hour}</td>
-      <td>${actionLabel[s.action] || s.action}</td>
-      <td style="font-size:13px;">${s.power_kw ? s.power_kw.toFixed(2) : '—'}</td>
+      <td>${actionLabel(s)}</td>
+      <td style="font-size:13px;">${powerStr}</td>
       <td style="font-size:13px;">${s.price ? s.price.toFixed(4) : '—'}</td>
       <td style="font-size:13px;">${s.soc_pct ? s.soc_pct.toFixed(0) : '—'}</td>
       <td style="font-size:13px;">${s.solar_kw ? s.solar_kw.toFixed(2) : '—'}</td>

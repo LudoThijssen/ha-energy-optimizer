@@ -2,8 +2,38 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.12
-# altered:       2026-07-30
+# part version:  p_v0.13
+# altered:       2026-08-11
+#
+# p_v0.13: netverbruik tijdens rust zichtbaar gemaakt. _update_soc() trok
+# tijdens "idle" het niet door zon gedekte huisverbruik altijd van de
+# batterij af, geclampt op min_soc_pct — het deel dat na die klem
+# overbleef verdween stilzwijgend uit het model (geen kWh, geen kosten).
+# In werkelijkheid komt dat deel rechtstreeks van het net. Nieuwe methode
+# _idle_draw() berekent expliciet hoeveel de batterij nog kan leveren
+# (met rendementsverlies) vóór de SoC-vloer, en hoeveel daarna nog
+# rechtstreeks van het net moet komen (zonder rendementsverlies — gaat
+# niet door de batterij). _update_soc()'s idle-tak gebruikt 'm nu intern;
+# _to_slots() gebruikt 'm rechtstreeks om ook het grid_consume_kw-veld te
+# vullen. _calc_cost() prijst dit nieuwe veld mee. Zie migratie 021,
+# optimizer/models.py p_v0.8 (ScheduleSlot.grid_consume_kw). Geen wijziging
+# aan de beslisboom zelf — puur nauwkeuriger boekhouden van iets dat al
+# gebeurde maar nergens werd vastgelegd.
+#
+# p_v0.13: grid consumption during idle made visible. _update_soc() during
+# "idle" always drew household consumption not covered by solar from the
+# battery, clamped at min_soc_pct — the portion left over after that
+# clamp silently vanished from the model (no kWh, no cost). In reality
+# that portion comes straight from the grid. New method _idle_draw()
+# explicitly calculates how much the battery can still deliver (with
+# efficiency loss) before the SoC floor, and how much must then come
+# straight from the grid (no efficiency loss — doesn't go through the
+# battery). _update_soc()'s idle branch now uses it internally;
+# _to_slots() calls it directly to also populate the grid_consume_kw
+# field. _calc_cost() prices this new field. See migration 021,
+# optimizer/models.py p_v0.8 (ScheduleSlot.grid_consume_kw). No change to
+# the decision tree itself — purely more accurate bookkeeping of
+# something that already happened but was never recorded.
 #
 # p_v0.12: off-grid uitvaldetectie daadwerkelijk functioneel gemaakt.
 # _read_off_grid() (las een live HA-entiteit uit via een parameter die
@@ -186,6 +216,11 @@ class WindowSlot:
     power_kw:       Decimal = Decimal("0")
     is_solar_charge: bool  = False
     grid_top_up_kwh: Decimal = Decimal("0")  # net-bijladen bovenop zonoverschot (bij negatieve exportprijs)
+    # p_v0.13: netverbruik tijdens rust dat de batterij niet meer kon
+    # leveren (SoC-vloer bereikt) — gevuld in _to_slots() via _idle_draw().
+    # p_v0.13: grid consumption during idle the battery could no longer
+    # supply (SoC floor reached) — filled in _to_slots() via _idle_draw().
+    grid_consume_kw: Decimal = Decimal("0")
     executed:       bool   = False
     reason:         str    = ""
     reason_key:     str    = ""
@@ -1123,8 +1158,21 @@ class DecisionEngine:
 
         for wh in window:
             price_excl = wh.price_excl
+
+            # p_v0.13: netverbruik tijdens rust berekenen vóórdat de SoC
+            # wordt bijgewerkt (hieronder) — _idle_draw() heeft de SoC vóór
+            # dit slot nodig, niet erna. Bij elke andere actie blijft dit 0.
+            # p_v0.13: calculate grid consumption during idle before the
+            # SoC is updated (below) — _idle_draw() needs the SoC before
+            # this slot, not after. For every other action this stays 0.
+            if wh.action == "idle" and wh.tekort_kwh > Decimal("0"):
+                _, wh.grid_consume_kw = self._idle_draw(soc, wh.tekort_kwh)
+
             saving = self._calc_saving(wh.action, wh.power_kw, price_excl, wh.is_solar_charge)
-            cost   = self._calc_cost(wh.action, wh.power_kw, price_excl, wh.is_solar_charge, wh.grid_top_up_kwh)
+            cost   = self._calc_cost(
+                wh.action, wh.power_kw, price_excl, wh.is_solar_charge,
+                wh.grid_top_up_kwh, wh.grid_consume_kw,
+            )
 
             # Vermogen dat specifiek uit het net wordt geladen: bij een
             # gemengd (zon+net) slot is dat alleen de top-up bovenop het
@@ -1162,6 +1210,7 @@ class DecisionEngine:
                 # get lost — see migration 016.
                 is_solar_charge        = wh.is_solar_charge,
                 grid_charge_kw         = grid_charge_kw,
+                grid_consume_kw        = wh.grid_consume_kw,
             ))
 
             # SoC bijwerken voor volgend uur (idle-uren nemen ook het
@@ -1170,8 +1219,19 @@ class DecisionEngine:
             # Update SoC for next hour (idle hours also account for
             # household consumption not covered by solar, otherwise the
             # displayed SoC trajectory is wrong)
-            idle_power = wh.tekort_kwh if wh.action == "idle" else wh.power_kw
-            soc = self._update_soc(soc, wh.action, idle_power, self._bat.max_charge_kw)
+            #
+            # p_v0.13: idle-tak gebruikt nu _idle_draw() rechtstreeks
+            # (grid_consume_kw hierboven al berekend, hier alleen de SoC
+            # nodig) i.p.v. _update_soc() — voorkomt dat _idle_draw()
+            # twee keer met dezelfde soc wordt aangeroepen.
+            # p_v0.13: idle branch now uses _idle_draw() directly
+            # (grid_consume_kw already computed above, only the SoC is
+            # needed here) instead of _update_soc() — avoids calling
+            # _idle_draw() twice with the same soc.
+            if wh.action == "idle" and wh.tekort_kwh > Decimal("0"):
+                soc, _ = self._idle_draw(soc, wh.tekort_kwh)
+            else:
+                soc = self._update_soc(soc, wh.action, wh.power_kw, self._bat.max_charge_kw)
 
         return slots
 
@@ -1233,6 +1293,7 @@ class DecisionEngine:
         self, action: str, power_kw: Decimal,
         price_excl: Decimal, is_solar_charge: bool,
         grid_top_up_kwh: Decimal = Decimal("0"),
+        grid_consume_kw: Decimal = Decimal("0"),
     ) -> Decimal:
         """
         p_v0.9: × SLOT_HOURS toegevoegd, zie _calc_saving hierboven.
@@ -1240,6 +1301,13 @@ class DecisionEngine:
         zelfde correctie van toepassing.
         p_v0.9: × SLOT_HOURS added, see _calc_saving above. grid_top_up_kwh
         is (despite the name) also a power, not kWh — same correction applies.
+
+        p_v0.13: grid_consume_kw-tak toegevoegd — netverbruik tijdens rust
+        (SoC-vloer bereikt, zie _idle_draw()) wordt nu ook geprijsd, net als
+        een net-laadactie. Zie migratie 021.
+        p_v0.13: grid_consume_kw branch added — grid consumption during
+        idle (SoC floor reached, see _idle_draw()) is now also priced, same
+        as a grid charge action. See migration 021.
         """
         if action == "charge" and not is_solar_charge:
             cost = power_kw * price_excl * SLOT_HOURS
@@ -1251,6 +1319,8 @@ class DecisionEngine:
             # negative "cost" = revenue at a negative price). The solar
             # portion (power_kw - grid_top_up_kwh) remains free.
             cost = grid_top_up_kwh * price_excl * SLOT_HOURS
+        elif action == "idle" and grid_consume_kw > Decimal("0"):
+            cost = grid_consume_kw * price_excl * SLOT_HOURS
         else:
             cost = Decimal("0")
         return cost.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP)
@@ -1282,12 +1352,61 @@ class DecisionEngine:
             return max(soc - delta, self._bat.min_soc_pct)
         elif action == "idle" and power_kw > Decimal("0"):
             # Passief huisverbruik dat niet door zon wordt gedekt, trekt de
-            # batterij ook tijdens rust-slots leeg (bv. 's nachts).
+            # batterij ook tijdens rust-slots leeg (bv. 's nachts). Zie
+            # _idle_draw() voor wat er gebeurt zodra de SoC-vloer bereikt
+            # wordt — hier interessen we ons alleen voor de nieuwe SoC.
             # Passive household consumption not covered by solar also drains
-            # the battery during idle slots (e.g. at night).
-            delta = power_kw / self._bat.efficiency * SLOT_HOURS / self._bat.usable_kwh * 100
-            return max(soc - delta, self._bat.min_soc_pct)
+            # the battery during idle slots (e.g. at night). See
+            # _idle_draw() for what happens once the SoC floor is reached —
+            # here we only care about the resulting SoC.
+            new_soc, _ = self._idle_draw(soc, power_kw)
+            return new_soc
         return soc
+
+    def _idle_draw(self, soc: Decimal, tekort_kw: Decimal) -> "tuple[Decimal, Decimal]":
+        """
+        Bepaal hoe een rust-slot met een tekort (huisverbruik niet gedekt
+        door zon) wordt opgevangen: eerst uit de batterij (met
+        rendementsverlies), tot de SoC-ondergrens; wat daarna nog nodig is
+        komt rechtstreeks van het net (geen rendementsverlies, want gaat
+        niet door de batterij — de batterij kan simpelweg niet verder
+        leeglopen).
+
+        Determine how an idle slot with a shortfall (household consumption
+        not covered by solar) gets covered: first from the battery (with
+        efficiency loss), down to the SoC floor; whatever is still needed
+        after that comes straight from the grid (no efficiency loss, since
+        it doesn't go through the battery — the battery simply can't drain
+        any further).
+
+        Returns (nieuwe_soc, grid_consume_kw).
+        """
+        if tekort_kw <= Decimal("0"):
+            return soc, Decimal("0")
+
+        needed_kwh = tekort_kw * SLOT_HOURS
+        stored_available_kwh = max(
+            Decimal("0"),
+            (soc - self._bat.min_soc_pct) * self._bat.usable_kwh / 100
+        )
+        # Energie die de batterij daadwerkelijk aan het huis kan afgeven
+        # vanuit de nog beschikbare opgeslagen energie (rendementsverlies).
+        # Energy the battery can actually deliver to the house from the
+        # still-available stored energy (efficiency loss).
+        deliverable_kwh = stored_available_kwh * self._bat.efficiency
+
+        if deliverable_kwh >= needed_kwh:
+            stored_used_kwh = needed_kwh / self._bat.efficiency
+            new_soc = soc - stored_used_kwh / self._bat.usable_kwh * 100
+            return new_soc, Decimal("0")
+
+        # Batterij levert wat ze kan (tot precies de vloer), de rest komt
+        # rechtstreeks van het net.
+        # Battery delivers what it can (down to exactly the floor), the
+        # rest comes straight from the grid.
+        grid_kwh = needed_kwh - deliverable_kwh
+        grid_consume_kw = (grid_kwh / SLOT_HOURS).quantize(Decimal("0.001"))
+        return self._bat.min_soc_pct, grid_consume_kw
 
     # ── Hulpfuncties / Utility functions ──────────────────────────────────────
 

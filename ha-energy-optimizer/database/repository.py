@@ -1,8 +1,15 @@
 # name:          repository.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
-# part version:  p_v0.8
-# altered:       2026-07-28
+# part version:  p_v0.9
+# altered:       2026-08-11
+#
+# p_v0.9: grid_consume_kw toegevoegd aan OptimizerRepository.save_slot()/
+# get_current_slot() — zelfde patroon als is_solar_charge/grid_charge_kw
+# (p_v0.5 hieronder). Zie migratie 021, optimizer/models.py p_v0.8.
+# p_v0.9: grid_consume_kw added to OptimizerRepository.save_slot()/
+# get_current_slot() — same pattern as is_solar_charge/grid_charge_kw
+# (p_v0.5 below). See migration 021, optimizer/models.py p_v0.8.
 #
 # p_v0.8: SQL NOW() vervangen door een Python-berekende now_local()-
 # parameter op 4 plekken (get_average_hourly_kwh, get_current_slot,
@@ -488,14 +495,14 @@ class OptimizerRepository:
                     (schedule_for, action, target_power_kw, target_soc_pct,
                      expected_price, expected_solar_kw, expected_consumption_kw,
                      expected_saving, expected_cost, reason, reason_key, reason_params,
-                     is_solar_charge, grid_charge_kw)
+                     is_solar_charge, grid_charge_kw, grid_consume_kw)
                 VALUES
                     (%(schedule_for)s, %(action)s, %(target_power_kw)s,
                      %(target_soc_pct)s, %(expected_price)s,
                      %(expected_solar_kw)s, %(expected_consumption_kw)s,
                      %(expected_saving)s, %(expected_cost)s, %(reason)s,
                      %(reason_key)s, %(reason_params)s,
-                     %(is_solar_charge)s, %(grid_charge_kw)s)
+                     %(is_solar_charge)s, %(grid_charge_kw)s, %(grid_consume_kw)s)
                 ON DUPLICATE KEY UPDATE
                     -- Alleen bijwerken als nog niet uitgevoerd
                     -- Only update if not yet executed
@@ -511,7 +518,8 @@ class OptimizerRepository:
                     reason_key              = IF(executed = 0, VALUES(reason_key),              reason_key),
                     reason_params           = IF(executed = 0, VALUES(reason_params),           reason_params),
                     is_solar_charge         = IF(executed = 0, VALUES(is_solar_charge),         is_solar_charge),
-                    grid_charge_kw          = IF(executed = 0, VALUES(grid_charge_kw),          grid_charge_kw)
+                    grid_charge_kw          = IF(executed = 0, VALUES(grid_charge_kw),          grid_charge_kw),
+                    grid_consume_kw         = IF(executed = 0, VALUES(grid_consume_kw),         grid_consume_kw)
             """, {
                 "schedule_for":           slot.schedule_for,
                 "action":                 slot.action,
@@ -527,6 +535,7 @@ class OptimizerRepository:
                 "reason_params":          reason_params,
                 "is_solar_charge":        bool(getattr(slot, "is_solar_charge", False)),
                 "grid_charge_kw":         getattr(slot, "grid_charge_kw", None),
+                "grid_consume_kw":        getattr(slot, "grid_consume_kw", None),
             })
 
     def get_current_slot(self) -> OptimizerSlot | None:
@@ -536,7 +545,7 @@ class OptimizerRepository:
                        target_soc_pct, expected_price, expected_solar_kw,
                        expected_consumption_kw, expected_saving,
                        reason, executed, executed_at,
-                       is_solar_charge, grid_charge_kw
+                       is_solar_charge, grid_charge_kw, grid_consume_kw
                 FROM optimizer_schedule
                 WHERE schedule_for <= %(now)s AND executed = 0
                 ORDER BY schedule_for DESC LIMIT 1

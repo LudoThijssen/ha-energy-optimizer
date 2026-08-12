@@ -2,8 +2,33 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v1.6 -->
-<!-- altered:      2026-07-30 -->
+<!-- part version: p_v1.7 -->
+<!-- altered:      2026-08-11 -->
+<!--
+p_v1.7: schema-tabel: kolom "Besparing" hernoemd naar "Kosten" (was al
+zo genoemd in history.html) — een besparing per slot is misleidend, het
+werkelijke beeld ontstaat pas als alles bij elkaar wordt opgeteld in
+Energiekosten. Kosten nu rood met minteken, opbrengst (ontladen) groen,
+zelfde patroon als history.html. Uitgebreid met het nieuwe
+grid_consume_kw-veld (netverbruik tijdens rust, SoC-vloer bereikt — zie
+migratie 021) — telt nu ook mee als kosten, en krijgt een eigen label
+"Verbruik van het net" i.p.v. "Rust". Tevens een labelfout gecorrigeerd:
+een laadactie werd altijd "Laden van het net" genoemd, ook als
+is_solar_charge/grid_charge_kw aangaven dat het volledig uit zon-overschot
+kwam — nu conditioneel. Geen wijziging aan de grafieken (Grafiek 1/2), op
+uitdrukkelijk verzoek — alleen de tabel.
+p_v1.7: schedule table: column "Besparing" (saving) renamed to "Kosten"
+(cost) (already named that way in history.html) — a per-slot saving is
+misleading, the real picture only emerges once everything is summed in
+Energy costs. Cost now red with a minus sign, revenue (discharge) green,
+same pattern as history.html. Extended with the new grid_consume_kw field
+(grid consumption during idle, SoC floor reached — see migration 021) —
+now also counts as a cost, and gets its own label "Verbruik van het net"
+instead of "Rust". Also fixed a labeling bug: a charge action was always
+called "Laden van het net", even when is_solar_charge/grid_charge_kw
+showed it came entirely from solar surplus — now conditional. No change
+to the charts (Chart 1/2), per explicit request — table only.
+-->
 <!--
 p_v1.6: COLORS.charge wijst nu naar de nieuwe, eigen instelling
 colors.charge i.p.v. colors.import_kw ("Netafname") te hergebruiken —
@@ -300,12 +325,34 @@ p_v1.2: Chart 1 revised per request:
       return;
     }
 
-    const actionLabel = {
-      charge:       '<span style="color:' + COLORS.charge + '; font-weight:600;">&#8593; Laden van het net</span>',
-      discharge:    '<span style="color:' + COLORS.discharge + '; font-weight:600;">&#8595; Ontladen naar het net</span>',
-      self_consume: '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; Zelf verbruik</span>',
-      idle:         '<span style="color:#6b7280;">&#8212; Rust</span>',
-    };
+    // p_v1.7: label nu een functie i.p.v. statische lookup — een
+    // laadactie kan volledig uit zon komen (is_solar_charge, geen
+    // grid_charge_kw) en een rust-slot kan alsnog netverbruik hebben
+    // (grid_consume_kw, SoC-vloer bereikt) — beide hadden voorheen altijd
+    // hetzelfde label, ongeacht die velden.
+    // p_v1.7: label is now a function instead of a static lookup — a
+    // charge action can come entirely from solar (is_solar_charge, no
+    // grid_charge_kw) and an idle slot can still have grid consumption
+    // (grid_consume_kw, SoC floor reached) — both previously always got
+    // the same label, regardless of those fields.
+    function actionLabel(s) {
+      if (s.action === 'charge') {
+        if (s.is_solar_charge && !(s.grid_charge_kw > 0)) {
+          return '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; Laden van zon</span>';
+        }
+        return '<span style="color:' + COLORS.charge + '; font-weight:600;">&#8593; Laden van het net</span>';
+      }
+      if (s.action === 'discharge') {
+        return '<span style="color:' + COLORS.discharge + '; font-weight:600;">&#8595; Ontladen naar het net</span>';
+      }
+      if (s.action === 'self_consume') {
+        return '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; Zelf verbruik</span>';
+      }
+      if (s.action === 'idle' && s.grid_consume_kw > 0) {
+        return '<span style="color:' + COLORS.negative + '; font-weight:600;">&#9889; Verbruik van het net</span>';
+      }
+      return '<span style="color:#6b7280;">&#8212; Rust</span>';
+    }
 
     let html = '<table><thead><tr>'
       + '<th style="width:110px">Tijdstip / Time</th>'
@@ -314,7 +361,7 @@ p_v1.2: Chart 1 revised per request:
       + '<th style="width:80px">Prijs / Price</th>'
       + '<th style="width:70px">SoC %</th>'
       + '<th style="width:70px">Zon / Solar</th>'
-      + '<th>Besparing / Saving</th>'
+      + '<th>Kosten / Cost</th>'
       + '</tr></thead><tbody>';
 
     let lastDay = null;
@@ -326,18 +373,33 @@ p_v1.2: Chart 1 revised per request:
               + dayLabel + ' — ' + s.day + '</td></tr>';
         lastDay = s.day;
       }
+      const isNetVerbruik = s.action === 'idle' && s.grid_consume_kw > 0;
       const rowBg = s.action === 'charge' ? 'background:#f0fdf4;'
                   : s.action === 'discharge' ? 'background:#fef2f2;'
-                  : s.action === 'self_consume' ? 'background:#fffbeb;' : '';
-      const saving = s.saving !== 0 ? (s.saving >= 0 ? '+' : '') + s.saving.toFixed(4) + ' €' : '—';
+                  : s.action === 'self_consume' ? 'background:#fffbeb;'
+                  : isNetVerbruik ? 'background:#fef2f2;' : '';
+      // p_v1.7: "Kosten" i.p.v. "Besparing" — kosten (laden van het net,
+      // netverbruik tijdens rust) rood met minteken, opbrengst (ontladen)
+      // groen. Zelfde patroon als history.html.
+      // p_v1.7: "Cost" instead of "Saving" — costs (charging from the
+      // grid, grid consumption during idle) red with a minus sign,
+      // revenue (discharging) green. Same pattern as history.html.
+      const netKosten = s.action === 'charge'    ? (s.cost > 0 ? -s.cost : 0)
+                       : s.action === 'discharge' ? (s.saving || 0)
+                       : isNetVerbruik          ? (s.cost > 0 ? -s.cost : 0)
+                       : 0;
+      const kostenStr = netKosten !== 0 ? (netKosten >= 0 ? '+' : '') + netKosten.toFixed(4) + ' €' : '—';
+      const kostenKleur = netKosten > 0 ? COLORS.positive : netKosten < 0 ? COLORS.negative : '#6b7280';
+      const powerStr = s.power_kw ? s.power_kw.toFixed(2) + ' kW'
+                      : isNetVerbruik ? s.grid_consume_kw.toFixed(2) + ' kW' : '—';
       html += '<tr style="' + rowBg + '">'
             + '<td style="font-size:13px; font-weight:500;">' + s.hour_only + '</td>'
-            + '<td>' + (actionLabel[s.action] || s.action) + '</td>'
-            + '<td style="font-size:13px;">' + (s.power_kw ? s.power_kw.toFixed(2) + ' kW' : '—') + '</td>'
+            + '<td>' + actionLabel(s) + '</td>'
+            + '<td style="font-size:13px;">' + powerStr + '</td>'
             + '<td style="font-size:13px;">' + s.price.toFixed(4) + ' €</td>'
             + '<td style="font-size:13px;">' + s.soc_pct.toFixed(0) + '%</td>'
             + '<td style="font-size:13px;">' + s.solar_kw.toFixed(2) + ' kW</td>'
-            + '<td style="font-size:13px; color:' + (s.saving > 0 ? COLORS.positive : '#6b7280') + ';">' + saving + '</td>'
+            + '<td style="font-size:13px; font-weight:500; color:' + kostenKleur + ';">' + kostenStr + '</td>'
             + '</tr>';
     });
 

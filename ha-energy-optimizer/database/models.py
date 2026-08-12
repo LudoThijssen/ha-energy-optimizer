@@ -2,8 +2,19 @@
 # name:          models.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/models.py
-# part version:  p_v0.6
-# altered:       2026-07-26
+# part version:  p_v0.7
+# altered:       2026-08-11
+#
+# p_v0.7: grid_consume_kw toegevoegd aan OptimizerSlot — zie migratie 021
+# en optimizer/models.py p_v0.8 (ScheduleSlot). Zonder dit veld crasht
+# repository.py::get_current_slot() (OptimizerSlot(**row)) zodra een rij
+# de nieuwe kolom bevat — precies hetzelfde patroon als is_solar_charge/
+# grid_charge_kw hieronder (p_v0.5).
+# p_v0.7: grid_consume_kw added to OptimizerSlot — see migration 021 and
+# optimizer/models.py p_v0.8 (ScheduleSlot). Without this field,
+# repository.py::get_current_slot() (OptimizerSlot(**row)) crashes as
+# soon as a row contains the new column — exact same pattern as
+# is_solar_charge/grid_charge_kw below (p_v0.5).
 #
 # p_v0.5: is_solar_charge / grid_charge_kw toegevoegd aan OptimizerSlot —
 # zie migratie 016 en optimizer/models.py p_v0.5 (ScheduleSlot).
@@ -118,6 +129,11 @@ class OptimizerSlot:
     # p_v0.5: zon/net-opsplitsing bij een laadactie / solar/grid split for a charge action
     is_solar_charge: bool = False
     grid_charge_kw: Decimal | None = None
+    # p_v0.7: netverbruik tijdens rust dat de batterij niet meer kon
+    # leveren (SoC-vloer bereikt) — zie migratie 021.
+    # p_v0.7: grid consumption during idle the battery could no longer
+    # supply (SoC floor reached) — see migration 021.
+    grid_consume_kw: Decimal | None = None
     id: int | None = None
 
 

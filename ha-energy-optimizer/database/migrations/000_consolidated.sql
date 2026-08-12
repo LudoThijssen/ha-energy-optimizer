@@ -2,8 +2,14 @@
 -- name:          000_consolidated.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/000_consolidated.sql
--- part version:  p_v0.4
--- altered:       2026-07-30
+-- part version:  p_v0.5
+-- altered:       2026-08-11
+--
+-- p_v0.5: bijgewerkt t/m migratie 021 — grid_consume_kw op
+-- optimizer_schedule, zie decision_engine.py p_v0.13.
+--
+-- p_v0.5: updated through migration 021 — grid_consume_kw on
+-- optimizer_schedule, see decision_engine.py p_v0.13.
 --
 -- p_v0.4: bijgewerkt t/m migratie 020 — off-grid uitvaldetectie-
 -- instellingen op system_config (offgrid_primary_entity_id e.a.), zie
@@ -25,12 +31,12 @@
 --
 -- LET OP: als dit bestand wordt gebruikt, moet setup.py de _migrations
 -- tabel vullen met de versienummers
--- 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20 zodat geen enkele
+-- 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21 zodat geen enkele
 -- incrementele migratie later opnieuw geprobeerd wordt.
 --
 -- NOTE: if this file is used, setup.py must fill the _migrations table
--- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20 so
--- no incremental migration is ever attempted afterwards.
+-- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21
+-- so no incremental migration is ever attempted afterwards.
 --
 -- p_v0.2: bijgewerkt t/m migratie 017 — slot_of_day (kwartier-resolutie)
 -- i.p.v. hour_of_day in consumption_profile/solar_profile/solar_learning/
@@ -314,6 +320,8 @@ CREATE TABLE IF NOT EXISTS `optimizer_schedule` (
         COMMENT 'Laadactie (deels) uit zon-overschot / Charge action (partly) from solar surplus',
     `grid_charge_kw`          DECIMAL(6,3)  NOT NULL DEFAULT 0.000
         COMMENT 'Vermogen (kW) dat specifiek uit het net wordt geladen / Power (kW) specifically charged from the grid',
+    `grid_consume_kw`         DECIMAL(6,3)  NOT NULL DEFAULT 0.000
+        COMMENT 'Vermogen (kW) rechtstreeks van het net voor huisverbruik, buiten de batterij om (SoC-vloer bereikt) / Power (kW) drawn directly from the grid for household use, bypassing the battery (SoC floor reached)',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 

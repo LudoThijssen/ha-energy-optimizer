@@ -1,8 +1,22 @@
 # name:          models.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/models.py
-# part version:  p_v0.7
-# altered:       2026-07-26
+# part version:  p_v0.8
+# altered:       2026-08-11
+#
+# p_v0.8: grid_consume_kw toegevoegd aan ScheduleSlot — zie migratie 021
+# en decision_engine.py p_v0.13. Zelfde patroon als grid_charge_kw
+# (p_v0.5 hieronder): zonder dit veld zou het netverbruik dat
+# decision_engine.py nu berekent (huisverbruik dat de batterij niet meer
+# kan leveren omdat de SoC-vloer bereikt is) verloren gaan zodra het naar
+# een ScheduleSlot wordt omgezet.
+#
+# p_v0.8: grid_consume_kw added to ScheduleSlot — see migration 021 and
+# decision_engine.py p_v0.13. Same pattern as grid_charge_kw (p_v0.5
+# below): without this field, the grid consumption that decision_engine.py
+# now calculates (household consumption the battery can no longer supply
+# because the SoC floor is reached) would be lost as soon as it gets
+# converted to a ScheduleSlot.
 #
 # p_v0.7: HourForecast -> ForecastSlot, WindowHour -> WindowSlot (in
 # decision_engine.py), en het veld `hour` -> `slot_start` op ForecastSlot
@@ -83,4 +97,9 @@ class ScheduleSlot:
     # p_v0.5: zon/net-opsplitsing bij een laadactie / solar/grid split for a charge action
     is_solar_charge: bool  = False
     grid_charge_kw:  Decimal = Decimal("0")
+    # p_v0.8: netverbruik tijdens rust dat de batterij niet meer kon
+    # leveren (SoC-vloer bereikt) — zie migratie 021.
+    # p_v0.8: grid consumption during idle that the battery could no
+    # longer supply (SoC floor reached) — see migration 021.
+    grid_consume_kw: Decimal = Decimal("0")
 
