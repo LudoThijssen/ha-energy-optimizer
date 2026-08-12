@@ -1,8 +1,19 @@
 # name:          repository.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/repository.py
-# part version:  p_v0.9
-# altered:       2026-08-11
+# part version:  p_v0.10
+# altered:       2026-08-12
+#
+# p_v0.10: noodfix — save_slot() ving grid_consume_kw niet op als het
+# None was (bv. omdat optimizer/engine.py::_to_db_slots() het veld nog
+# niet doorgeeft), en stuurde dan een NULL naar een NOT NULL-kolom. Nu
+# Decimal("0") als fallback. De eigenlijke oorzaak zit in engine.py, niet
+# hier — zie changelog p_v0.9 hieronder.
+# p_v0.10: hotfix — save_slot() didn't coalesce grid_consume_kw when it
+# was None (e.g. because optimizer/engine.py::_to_db_slots() doesn't pass
+# the field yet), sending a NULL to a NOT NULL column. Now falls back to
+# Decimal("0"). The actual cause is in engine.py, not here — see p_v0.9
+# changelog below.
 #
 # p_v0.9: grid_consume_kw toegevoegd aan OptimizerRepository.save_slot()/
 # get_current_slot() — zelfde patroon als is_solar_charge/grid_charge_kw
@@ -535,7 +546,17 @@ class OptimizerRepository:
                 "reason_params":          reason_params,
                 "is_solar_charge":        bool(getattr(slot, "is_solar_charge", False)),
                 "grid_charge_kw":         getattr(slot, "grid_charge_kw", None),
-                "grid_consume_kw":        getattr(slot, "grid_consume_kw", None),
+                # p_v0.10 noodfix: engine.py::_to_db_slots() geeft dit veld
+                # nog niet door (kent het niet), dus OptimizerSlot valt
+                # terug op de dataclass-default None — dat botst met de
+                # NOT NULL-kolom. Vangen op Decimal("0") tot engine.py is
+                # bijgewerkt. Zie migratie 021.
+                # p_v0.10 hotfix: engine.py::_to_db_slots() doesn't pass
+                # this field yet (doesn't know it), so OptimizerSlot falls
+                # back to the dataclass default None — that collides with
+                # the NOT NULL column. Coalesce to Decimal("0") until
+                # engine.py is updated. See migration 021.
+                "grid_consume_kw":        getattr(slot, "grid_consume_kw", None) or Decimal("0"),
             })
 
     def get_current_slot(self) -> OptimizerSlot | None:
