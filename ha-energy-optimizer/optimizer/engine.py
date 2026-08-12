@@ -1,8 +1,23 @@
 # name:          engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/engine.py
-# part version:  p_v0.10
-# altered:       2026-07-26
+# part version:  p_v0.11
+# altered:       2026-08-12
+#
+# p_v0.11: grid_consume_kw toegevoegd aan _to_db_slots() — dit veld werd
+# hier nog niet doorgegeven, waardoor OptimizerSlot terugviel op de
+# dataclass-default None en dat tegen de NOT NULL-kolom (migratie 021)
+# aanliep (IntegrityError bij save_slot). Zelfde patroon als
+# is_solar_charge/grid_charge_kw hierboven (p_v0.8). Zie ook
+# decision_engine.py p_v0.13 en database/repository.py p_v0.10 (de
+# tijdelijke noodfix daar mag blijven staan, is nu gewoon overbodig).
+# p_v0.11: grid_consume_kw added to _to_db_slots() — this field wasn't
+# being passed through here yet, so OptimizerSlot fell back to the
+# dataclass default None and that hit the NOT NULL column (migration
+# 021) (IntegrityError in save_slot). Same pattern as is_solar_charge/
+# grid_charge_kw above (p_v0.8). See also decision_engine.py p_v0.13 and
+# database/repository.py p_v0.10 (the temporary hotfix there can stay,
+# it's simply redundant now).
 #
 # p_v0.10: drie wijzigingen in deze versie:
 #   1. `if not price:` -> `if price is None:` in _build_forecasts() — een
@@ -802,6 +817,11 @@ class OptimizerEngine:
                 # p_v0.8: solar/grid split — see migration 016
                 is_solar_charge=getattr(s, "is_solar_charge", False),
                 grid_charge_kw=getattr(s, "grid_charge_kw", Decimal("0")),
+                # p_v0.11: netverbruik tijdens rust (SoC-vloer bereikt) —
+                # zie migratie 021, decision_engine.py p_v0.13.
+                # p_v0.11: grid consumption during idle (SoC floor
+                # reached) — see migration 021, decision_engine.py p_v0.13.
+                grid_consume_kw=getattr(s, "grid_consume_kw", Decimal("0")),
             )
             for s in slots
         ]
