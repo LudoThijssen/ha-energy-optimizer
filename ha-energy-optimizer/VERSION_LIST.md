@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v5.0
-# altered:       2026-08-12
+# part version:  p_v5.2
+# altered:       2026-08-28
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v5.0 | 2026-08-12 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v5.2 | 2026-08-28 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -19,7 +19,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.5 | 2026-07-30 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.4 | 2026-07-28 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v5.0 | 2026-08-12 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v5.2 | 2026-08-28 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
@@ -33,7 +33,7 @@
 # ha-energy-optimizer/config
 | __init__.py | /ha-energy-optimizer/config/__init__.py | p_v0.3 | 2026-06-21 |
 | config.py | /ha-energy-optimizer/config/config.py | p_v0.4 | 2026-07-25 |
-| internal_sensors.json | /ha-energy-optimizer/config/internal_sensors.json | p_v0.3 | 2026-06-21 |
+| internal_sensors.json | /ha-energy-optimizer/config/internal_sensors.json | p_v0.4 | 2026-08-13 |
 | localtime.py | /ha-energy-optimizer/config/localtime.py | p_v0.1 | 2026-07-28 |
 | timeslot.py | /ha-energy-optimizer/config/timeslot.py | p_v0.1 | 2026-07-22 |
 | validators.py | /ha-energy-optimizer/config/validators.py | p_v0.3 | 2026-06-21 |
@@ -68,7 +68,7 @@
 | README.md | /ha-energy-optimizer/database/migrations/README.md | p_v2.0 | 2026-07-16 |
 # ha-energy-optimizer/gui
 | __init__.py | /ha-energy-optimizer/gui/__init__.py | p_v0.3 | 2026-06-21 |
-| app.py | /ha-energy-optimizer/gui/app.py | p_v0.23 | 2026-07-30 |
+| app.py | /ha-energy-optimizer/gui/app.py | p_v0.25 | 2026-08-13 |
 # ha-energy-optimizer/gui/templates
 | base.html | /ha-energy-optimizer/gui/templates/base.html | p_v0.5 | 2026-07-05 |
 | colors.html | /ha-energy-optimizer/gui/templates/colors.html | p_v0.7 | 2026-07-30 |
@@ -84,7 +84,7 @@
 | prices.html | /ha-energy-optimizer/gui/templates/prices.html | p_v0.4 | 2026-06-30 |
 | provider.html | /ha-energy-optimizer/gui/templates/provider.html | p_v0.2 | 2026-06-29 |
 | reportlog.html | /ha-energy-optimizer/gui/templates/reportlog.html | p_v0.4 | 2026-06-30 |
-| schedule.html | /ha-energy-optimizer/gui/templates/schedule.html | p_v0.2 | 2026-06-30 |
+| schedule.html | /ha-energy-optimizer/gui/templates/schedule.html | p_v0.3 | 2026-08-13 |
 | system.html | /ha-energy-optimizer/gui/templates/system.html | p_v0.5 | 2026-07-30 |
 | translations.html | /ha-energy-optimizer/gui/templates/translations.html | p_v0.4 | 2026-07-05 |
 # ha-energy-optimizer/inverter

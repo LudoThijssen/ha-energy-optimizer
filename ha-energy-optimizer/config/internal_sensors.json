@@ -1,9 +1,30 @@
 //
 // name:          internal_sensors.json
 // part of:       ha-energy-optimizer
-// location:      /ha-energy-optimizer/ha-energy-optimizer/collectors/internal_sensors.json
-// part version:  p_v0.3
-// altered:       2026-06-21
+// location:      /ha-energy-optimizer/ha-energy-optimizer/config/internal_sensors.json
+// part version:  p_v0.4
+// altered:       2026-08-13
+//
+// p_v0.4: locatie-header gecorrigeerd — stond op collectors/
+// internal_sensors.json, moet config/internal_sensors.json zijn. Zie
+// VERSION_LIST.md en gui/app.py::entities() (laadt via
+// Path(__file__).parent.parent / "config" / "internal_sensors.json").
+// Vermoedelijke oorzaak van een bug waarbij een nieuwe installatie zonder
+// dit bestand op de juiste plek de melding "alle sensoren gekoppeld" liet
+// zien terwijl er nog niets gekoppeld was (JSON niet gevonden -> stil
+// opgevangen als lege lijst -> lege dropdown -> foutieve succesmelding).
+// Puur een headercorrectie, geen inhoudelijke wijziging aan de sensoren
+// zelf.
+//
+// p_v0.4: location header corrected — said collectors/
+// internal_sensors.json, should be config/internal_sensors.json. See
+// VERSION_LIST.md and gui/app.py::entities() (loads via
+// Path(__file__).parent.parent / "config" / "internal_sensors.json").
+// Likely cause of a bug where a fresh install without this file in the
+// right place showed the "all sensors mapped" message while nothing was
+// actually mapped yet (JSON not found -> silently caught as empty list
+// -> empty dropdown -> false success message). Purely a header fix, no
+// change to the sensor content itself.
 [
   {
     "internal_name": "battery_soc",

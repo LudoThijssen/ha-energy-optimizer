@@ -2,8 +2,19 @@
 <!-- name:         schedule.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/schedule.html -->
-<!-- part version: p_v0.2 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.3 -->
+<!-- altered:      2026-08-13 -->
+<!--
+p_v0.3: hardgecodeerde "ANWB / EnergyZero publiceert..." tekst in de
+info-alert bij "Ophaal-tijden energieprijzen" vervangen door een
+generieke tekst. Dit is een algemene GUI-pagina, niet specifiek voor
+Ludo's eigen ANWB-koppeling — de tekst suggereerde onterecht dat dit de
+enige/standaard leverancier is.
+p_v0.3: hardcoded "ANWB / EnergyZero publishes..." text in the info
+alert under "Price fetch times" replaced with generic wording. This is a
+general GUI page, not specific to Ludo's own ANWB setup — the text
+incorrectly suggested this was the only/default provider.
+-->
 {% block title %}Tijden — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -43,7 +54,8 @@
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
       Day-ahead prijzen worden door leveranciers op verschillende tijden gepubliceerd.
-      ANWB / EnergyZero publiceert de prijzen van morgen rond 14:00.
+      Controleer bij uw leverancier op welk tijdstip de prijzen van morgen
+      beschikbaar komen en stel de onderstaande tijden daarop af.
     </div>
 
     <div class="field-row">

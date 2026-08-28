@@ -4,6 +4,24 @@
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/entities.html -->
 <!-- part version: p_v0.4 -->
 <!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-08-13 -->
+<!--
+p_v0.5: eerlijke melding toegevoegd wanneer setup_incomplete waar is
+(geen database beschikbaar, en/of config/internal_sensors.json kon niet
+geladen worden — zie app.py p_v0.25). Voorheen viel dit terug op precies
+dezelfde "Alle relevante sensoren zijn gekoppeld"-melding als een echt
+voltooide koppeling, omdat de sensorenlijst door een bug in app.py
+sowieso altijd leeg binnenkwam. Nu een aparte waarschuwing, met
+onderscheid tussen "geen database" en "sensorenlijst niet geladen".
+p_v0.5: added an honest message for when setup_incomplete is true (no
+database available, and/or config/internal_sensors.json couldn't be
+loaded — see app.py p_v0.25). Previously this fell back to the exact
+same "All relevant sensors are mapped" message as a genuinely completed
+mapping, because a bug in app.py meant the sensor list always arrived
+empty regardless. Now shows a distinct warning, differentiating "no
+database" from "sensor list failed to load".
+-->
 {% block title %}HA Entiteiten — HA Energy Optimizer{% endblock %}
 {% block content %}
 
@@ -12,6 +30,22 @@
 
 {% if saved %}
 <div class="alert alert-success"><span class="mdi mdi-check"></span> Opgeslagen</div>
+{% endif %}
+
+{% if setup_incomplete %}
+<div class="alert alert-warning">
+  <span class="mdi mdi-alert-outline"></span>
+  {% if not db_available %}
+  Geen databaseverbinding — de setup is nog niet compleet. Rond eerst de
+  installatie af (zie Database) voordat u entiteiten koppelt; de lijst
+  met bekende sensoren hieronder kan nu niet getoond worden.
+  {% elif not sensors_ok %}
+  De lijst met bekende sensoren (<code>config/internal_sensors.json</code>)
+  kon niet geladen worden — controleer of dat bestand aanwezig en geldig
+  is. U kunt hieronder nog wel handmatig een interne naam en entity-ID
+  invoeren.
+  {% endif %}
+</div>
 {% endif %}
 
 <!-- Entiteit toevoegen -->
@@ -37,7 +71,7 @@
           </option>
           {% endfor %}
         </select>
-        {% else %}
+        {% elif not setup_incomplete %}
         <p style="font-size:13px; color:#16a34a; margin-bottom:6px;">
           <span class="mdi mdi-check"></span> Alle relevante sensoren zijn gekoppeld
         </p>

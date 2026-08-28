@@ -2,8 +2,45 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.23
-# altered:       2026-07-30
+# part version:  p_v0.25
+# altered:       2026-08-13
+#
+# p_v0.25: echte oorzaak gevonden van een misleidende melding op de
+# entiteiten-pagina: "Alle relevante sensoren zijn gekoppeld" verscheen
+# altijd, ongeacht hoeveel er echt gekoppeld was. entities()::GET las
+# config/internal_sensors.json met een kale json.load(), maar dat bestand
+# begint met '//'-commentaarregels (geen geldige JSON) — de POST-tak
+# ernaast stripte die al wel. De GET-laadpoging crashte dus altijd stil
+# (except Exception: all_sensors = []), waardoor de dropdown nooit
+# gevuld kon worden en de succesmelding altijd verscheen, ook bij een
+# lege installatie zonder database. Nieuwe gedeelde helper
+# _load_internal_sensors() lost dit op (zie changelog daar) en
+# entities.html (zie die changelog) toont nu expliciet een waarschuwing
+# i.p.v. de foutieve succesmelding als setup_incomplete waar is.
+#
+# p_v0.25: found the real cause of a misleading message on the entities
+# page: "All relevant sensors are mapped" always appeared, regardless of
+# how much was actually mapped. entities()::GET read
+# config/internal_sensors.json with a bare json.load(), but that file
+# starts with '//' comment lines (not valid JSON) — the POST branch next
+# to it already stripped those. The GET load therefore always crashed
+# silently (except Exception: all_sensors = []), so the dropdown could
+# never be populated and the success message always appeared, even on a
+# fresh install with no database. New shared helper
+# _load_internal_sensors() fixes this (see changelog there) and
+# entities.html (see that changelog) now explicitly shows a warning
+# instead of the false success message when setup_incomplete is true.
+#
+# p_v0.24: grid_consume_kw toegevoegd aan api_dashboard_data() en
+# api_history_data() — netverbruik tijdens rust dat de batterij niet meer
+# kon leveren (SoC-vloer bereikt). Zie migratie 021, decision_engine.py
+# p_v0.13. Geen nieuwe grafiekreeks — het veld wordt alleen gebruikt door
+# de schema-tabel (label + kosten) in dashboard.html/history.html.
+# p_v0.24: grid_consume_kw added to api_dashboard_data() and
+# api_history_data() — grid consumption during idle that the battery could
+# no longer supply (SoC floor reached). See migration 021,
+# decision_engine.py p_v0.13. No new chart series — the field is only used
+# by the schedule table (label + cost) in dashboard.html/history.html.
 #
 # p_v0.23: off-grid uitvaldetectie-instellingen — /system route leest/
 # schrijft nu ook de 4 entiteit-velden (offgrid_primary_entity_id e.a.,
@@ -119,6 +156,50 @@ def _get_db():
         return DatabaseConnection(config.database)
     except Exception:
         return None
+
+
+def _load_internal_sensors() -> tuple[list, bool]:
+    """
+    Laad en parse config/internal_sensors.json.
+
+    p_v0.25: nieuwe gedeelde helper. Voorheen las entities() dit bestand
+    op twee plekken onafhankelijk van elkaar: de POST-tak stripte de
+    '//'-commentaarregels vóór het parsen (nodig, want het bestand begint
+    er altijd mee — geen geldige JSON zonder die stap), de GET-tak deed
+    dat niet en gebruikte kale json.load(). Dat betekende dat de GET-tak
+    hier ALTIJD op crashte (JSONDecodeError, stil opgevangen als lege
+    lijst) — de dropdown met bekende sensoren heeft dus nooit gevuld
+    kunnen worden, en de melding "alle relevante sensoren zijn gekoppeld"
+    verscheen daardoor altijd, ongeacht hoeveel er echt gekoppeld was.
+    Beide plekken gebruiken nu deze ene, correcte implementatie.
+
+    Load and parse config/internal_sensors.json.
+
+    p_v0.25: new shared helper. Previously entities() read this file in
+    two places independently: the POST branch stripped the '//' comment
+    lines before parsing (necessary, since the file always starts with
+    them — not valid JSON without that step), the GET branch didn't and
+    used bare json.load(). That meant the GET branch ALWAYS crashed here
+    (JSONDecodeError, silently caught as an empty list) — the dropdown of
+    known sensors could therefore never be populated, and the "all
+    relevant sensors are mapped" message always appeared, regardless of
+    how much was actually mapped. Both places now use this one, correct
+    implementation.
+
+    Returns (sensors, ok) — ok is False if the file was missing or
+    invalid, so the caller can show an honest message instead of
+    silently treating "couldn't load" the same as "nothing to map".
+    """
+    import json as _json, re as _re
+    path = Path(__file__).parent.parent / "config" / "internal_sensors.json"
+    try:
+        raw = _re.sub(r'//.*', '', path.read_text(encoding="utf-8"))
+        return _json.loads(raw), True
+    except Exception:
+        import logging as _log
+        _log.getLogger(__name__).exception(
+            "[entities] Kon internal_sensors.json niet laden/parsen")
+        return [], False
 
 
 def _url(endpoint: str, **kwargs) -> str:
@@ -811,16 +892,18 @@ def entities():
 
             # Laad sensoromschrijvingen voor opslaan in actieve taal
             # Load sensor descriptions for saving in active language
-            _sensors_path = Path(__file__).parent.parent / "config" / "internal_sensors.json"
-            _sensor_desc = {}
-            if _sensors_path.exists():
-                import json as _j, re as _re
-                _raw = _re.sub(r'//.*', '', _sensors_path.read_text(encoding="utf-8"))
-                for _s in _j.loads(_raw):
-                    _sensor_desc[_s["internal_name"]] = {
-                        "nl": _s.get("description_nl", ""),
-                        "en": _s.get("description_en", ""),
-                    }
+            # p_v0.25: gebruikt nu _load_internal_sensors() i.p.v. eigen
+            # inline parsing — zie changelog daar.
+            # p_v0.25: now uses _load_internal_sensors() instead of its
+            # own inline parsing — see changelog there.
+            _known_sensors, _ = _load_internal_sensors()
+            _sensor_desc = {
+                s["internal_name"]: {
+                    "nl": s.get("description_nl", ""),
+                    "en": s.get("description_en", ""),
+                }
+                for s in _known_sensors
+            }
 
             def _resolve_desc(internal_name, fallback):
                 """Gebruik altijd description_nl voor bekende sensoren."""
@@ -872,13 +955,13 @@ def entities():
 
     # Load known sensors from JSON
     # Laad bekende sensoren uit JSON
-    import json as _json
-    sensors_file = Path(__file__).parent.parent / "config" / "internal_sensors.json"
-    try:
-        with open(sensors_file) as f:
-            all_sensors = _json.load(f)
-    except Exception:
-        all_sensors = []
+    # p_v0.25: gebruikt nu _load_internal_sensors() — de kale json.load()
+    # die hier stond kon het bestand nooit parsen (geen '//'-strip) en
+    # crashte dus altijd stil naar all_sensors=[]. Zie helper-changelog.
+    # p_v0.25: now uses _load_internal_sensors() — the bare json.load()
+    # that was here could never parse the file (no '//' stripping) and
+    # so always silently crashed to all_sensors=[]. See helper changelog.
+    all_sensors, sensors_ok = _load_internal_sensors()
 
     # Load installed components from system_config
     # Laad geïnstalleerde componenten uit system_config
@@ -922,6 +1005,18 @@ def entities():
         if s["internal_name"] not in entity_map
     ]
 
+    # p_v0.25: expliciet onderscheid tussen "echt alles gekoppeld" en
+    # "kon niets laden om te tonen" — anders toont de template een
+    # valse succesmelding zodra de sensorenlijst niet laadt of er geen
+    # database is, precies de bug die hierboven is gefixt. Zie ook
+    # openstaande takenlijst punt 1 (setup-status).
+    # p_v0.25: explicit distinction between "genuinely everything is
+    # mapped" and "couldn't load anything to show" — otherwise the
+    # template displays a false success message the moment the sensor
+    # list fails to load or there's no database, exactly the bug fixed
+    # above. See also open task list item 1 (setup status).
+    setup_incomplete = (not db) or (not sensors_ok)
+
     return render_template("entities.html",
                            entities=entity_rows,
                            all_sensors=visible_sensors,
@@ -929,6 +1024,9 @@ def entities():
                            sensor_map=sensor_map,
                            unmapped_names=unmapped_names,
                            installed=installed,
+                           setup_incomplete=setup_incomplete,
+                           db_available=bool(db),
+                           sensors_ok=sensors_ok,
                            saved=request.args.get("saved"))
 
 
@@ -1719,7 +1817,8 @@ def api_history_data():
                        CAST(expected_saving AS DECIMAL(10,5))     AS saving,
                        CAST(expected_cost AS DECIMAL(10,5))       AS cost,
                        reason, is_solar_charge,
-                       CAST(grid_charge_kw AS DECIMAL(10,3))      AS grid_charge_kw
+                       CAST(grid_charge_kw AS DECIMAL(10,3))      AS grid_charge_kw,
+                       CAST(grid_consume_kw AS DECIMAL(10,3))     AS grid_consume_kw
                 FROM optimizer_schedule
                 WHERE DATE(schedule_for) = %(d)s
                 ORDER BY schedule_for
@@ -1738,6 +1837,7 @@ def api_history_data():
                     "reason":   r["reason"] or "",
                     "is_solar_charge": bool(r["is_solar_charge"]),
                     "grid_charge_kw":  float(r["grid_charge_kw"] or 0),
+                    "grid_consume_kw": float(r["grid_consume_kw"] or 0),
                 }
                 for r in cur.fetchall()
             ]
@@ -1954,7 +2054,8 @@ def api_dashboard_data():
                 SELECT schedule_for, action, target_power_kw,
                        expected_price, expected_saving, expected_cost, executed,
                        expected_solar_kw, expected_consumption_kw,
-                       target_soc_pct, is_solar_charge, grid_charge_kw
+                       target_soc_pct, is_solar_charge, grid_charge_kw,
+                       grid_consume_kw
                 FROM optimizer_schedule
                 WHERE schedule_for >= %(start)s
                   AND schedule_for < %(end)s
@@ -1976,6 +2077,7 @@ def api_dashboard_data():
                     "soc_pct":        float(row["target_soc_pct"] or 0),
                     "is_solar_charge":bool(row["is_solar_charge"]),
                     "grid_charge_kw": float(row["grid_charge_kw"] or 0),
+                    "grid_consume_kw":float(row["grid_consume_kw"] or 0),
                 }
                 for row in cur.fetchall()
             ]
