@@ -3,7 +3,7 @@
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/000_consolidated.sql
 -- part version:  p_v0.6
--- altered:       2026-08-14
+-- altered:       2026-09-09
 --
 -- p_v0.6: bijgewerkt t/m migratie 022 — solar_reserve_strategy op
 -- system_config.

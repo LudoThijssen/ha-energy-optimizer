@@ -3,7 +3,7 @@
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
 # part version:  p_v0.26
-# altered:       2026-08-14
+# altered:       2026-09-09
 #
 # p_v0.26: twee dingen in deze versie:
 # 1. t() (laag 1 vertaalfunctie) generiek beschikbaar gemaakt in ALLE

@@ -2,8 +2,15 @@
 // name:          fr.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/fr.json
-// part version:  p_v0.1
-// altered:       2026-06-21 
+// part version:  p_v0.2
+// altered:       2026-09-09
+//
+// p_v0.2: 4 sleutels toegevoegd voor de nieuwe solar_reserve_strategy-
+// instelling (zie _context.json, en.json, migratie 022).
+//
+// p_v0.2: added 4 keys for the new solar_reserve_strategy setting
+// (see _context.json, en.json, migration 022).
+//
 {
   "nav.dashboard": "Tableau de bord",
   "nav.schedule": "Planification",
@@ -122,5 +129,9 @@
   "system.min_discharge_price": "Prix minimum pour décharger",
   "system.max_charge_price": "Prix maximum pour charger",
   "system.price_incl_tax": "Prix TVA incluse",
-  "system.language": "Langue"
+  "system.language": "Langue",
+  "system.solar_reserve_strategy": "Réserver de la capacité batterie pour le solaire",
+  "system.solar_reserve_strategy.block": "Bloquer — ne pas du tout charger depuis le réseau si le soleil suffira plus tard",
+  "system.solar_reserve_strategy.throttle": "Limiter — continuer à charger, mais laisser de la place pour le soleil",
+  "system.solar_reserve_strategy.hint": "Détermine ce que fait l'optimiseur lorsqu'une fenêtre de prix d'exportation négatif est prévue ET qu'il y a suffisamment de production solaire prévue pour remplir la batterie. En dehors de cette situation, ce paramètre ne change rien — la charge normale pilotée par le prix (même à un prix bas ou négatif) reste possible comme d'habitude."
 }

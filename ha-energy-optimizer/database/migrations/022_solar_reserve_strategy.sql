@@ -3,7 +3,7 @@
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/022_solar_reserve_strategy.sql
 -- part version:  p_v0.1
--- altered:       2026-08-14
+-- altered:       2026-09-09
 --
 -- p_v0.1: solar_reserve_strategy toegevoegd aan system_config. Instelling
 -- (Systeempagina) om te kiezen hoe de optimizer omgaat met batterijruimte

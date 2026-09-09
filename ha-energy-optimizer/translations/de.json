@@ -2,8 +2,15 @@
 // name:          de.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/de.json
-// part version:  p_v0.1
-// altered:       2026-06-21 
+// part version:  p_v0.2
+// altered:       2026-09-09
+//
+// p_v0.2: 4 sleutels toegevoegd voor de nieuwe solar_reserve_strategy-
+// instelling (zie _context.json, en.json, migratie 022).
+//
+// p_v0.2: added 4 keys for the new solar_reserve_strategy setting
+// (see _context.json, en.json, migration 022).
+//
 {
   "nav.dashboard": "Dashboard",
   "nav.schedule": "Zeitplan",
@@ -122,5 +129,9 @@
   "system.min_discharge_price": "Mindestpreis zum Entladen",
   "system.max_charge_price": "Höchstpreis zum Laden",
   "system.price_incl_tax": "Preise inkl. Mehrwertsteuer",
-  "system.language": "Sprache"
+  "system.language": "Sprache",
+  "system.solar_reserve_strategy": "Batteriekapazität für Solarstrom reservieren",
+  "system.solar_reserve_strategy.block": "Blockieren — bei ausreichend späterer Solarproduktion gar nicht vom Netz laden",
+  "system.solar_reserve_strategy.throttle": "Drosseln — weiter laden, aber Platz für Solarstrom freihalten",
+  "system.solar_reserve_strategy.hint": "Bestimmt, was der Optimierer tut, wenn ein negatives Einspeisepreisfenster erwartet wird UND genug Solarstrom vorhergesagt ist, um die Batterie zu füllen. Außerhalb dieser Situation ändert diese Einstellung nichts — normales preisgesteuertes Laden (auch bei niedrigem oder negativem Preis) bleibt wie gewohnt möglich."
 }

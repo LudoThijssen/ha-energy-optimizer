@@ -2,8 +2,25 @@
 # name:          translator.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/translations/translator.py
-# part version:  p_v0.5
-# altered:       2026-08-14
+# part version:  p_v0.6
+# altered:       2026-09-09
+#
+# p_v0.6: '//'-header-strip generiek gemaakt via nieuwe helper
+# _read_json_stripped(), nu gebruikt door _load_master(),
+# load_translation() én _load_context(). Voorheen deed alleen
+# _load_context() dit correct (p_v0.5) — en.json en de {taal}.json-
+# bestanden werden nog met een kale json.load() gelezen. Dat werkte
+# toevallig zolang die bestanden geen '//'-header hadden, maar brak
+# zodra Ludo daar (consistent met de rest van het project) alsnog een
+# toevoegde. Nu is een '//'-header overal in dit bestandstype veilig.
+# p_v0.6: '//' header stripping made generic via new helper
+# _read_json_stripped(), now used by _load_master(), load_translation()
+# and _load_context(). Previously only _load_context() did this
+# correctly (p_v0.5) — en.json and the {language}.json files were still
+# read with a bare json.load(). That happened to work as long as those
+# files had no '//' header, but broke the moment Ludo added one
+# (consistent with the rest of the project). A '//' header is now safe
+# everywhere in this file type.
 #
 # p_v0.5: bugfix _load_context() — zie changelog daar. Verder geen
 # functionele wijziging in deze versie.
@@ -34,6 +51,39 @@ _cache: dict[str, dict] = {}
 
 # ── Laag 1: UI-teksten uit JSON ───────────────────────────────────────────────
 
+def _read_json_stripped(path: Path) -> dict:
+    """
+    p_v0.6: gedeelde helper — leest en parsed een JSON-bestand waarvan de
+    header (indien aanwezig) uit '//'-commentaarregels bestaat, zoals de
+    rest van dit project gebruikt (zie bijv. config/internal_sensors.json).
+    Werkt ook prima op bestanden zonder zo'n header — de strip is een
+    no-op als er geen '//' in voorkomt.
+
+    Voorheen deed alleen _load_context() dit correct (p_v0.5); en.json en
+    de {taal}.json-bestanden werden nog met een kale json.load() gelezen.
+    Dat werkte toevallig zolang die bestanden geen '//'-header hadden,
+    maar brak zodra er alsnog een werd toegevoegd (consistent met de rest
+    van het project) — precies wat er gebeurde. Nu strippen alle drie de
+    laadfuncties op dezelfde manier, dus een '//'-header is overal in dit
+    bestand veilig, ook in de/es/fr.json.
+
+    p_v0.6: shared helper — reads and parses a JSON file whose header (if
+    present) consists of '//' comment lines, as used elsewhere in this
+    project (see e.g. config/internal_sensors.json). Also works fine on
+    files without such a header — the strip is a no-op if no '//' occurs.
+
+    Previously only _load_context() did this correctly (p_v0.5); en.json
+    and the {language}.json files were still read with a bare json.load().
+    That happened to work as long as those files had no '//' header, but
+    broke the moment one was added (consistent with the rest of the
+    project) — exactly what happened. Now all three loading functions
+    strip the same way, so a '//' header is safe everywhere in this file
+    type, including in de/es/fr.json.
+    """
+    raw = re.sub(r'//.*', '', path.read_text(encoding="utf-8"))
+    return json.loads(raw)
+
+
 def t(key: str, language: str = "en", **kwargs) -> str:
     """
     Vertaalfunctie voor UI-teksten uit JSON bestanden.
@@ -50,8 +100,7 @@ def load_translation(language: str) -> dict:
     lang_file = TRANSLATIONS_DIR / f"{language}.json"
 
     if lang_file.exists():
-        with open(lang_file, encoding="utf-8") as f:
-            translation = json.load(f)
+        translation = _read_json_stripped(lang_file)
         return _merge_with_master(translation)
 
     logger.info(f"Geen vertaling gevonden voor '{language}' — AI-vertaling proberen")
@@ -112,33 +161,12 @@ def _merge_with_master(translation: dict) -> dict:
 
 
 def _load_master() -> dict:
-    with open(MASTER_FILE, encoding="utf-8") as f:
-        return json.load(f)
+    return _read_json_stripped(MASTER_FILE)
 
 
 def _load_context() -> dict:
-    """
-    p_v0.5: '//'-commentaar stript vóór het parsen. _context.json begint
-    (zoals config/internal_sensors.json) met een header van '//'-regels —
-    geen geldige JSON zonder deze stap. De kale json.load() hier crashte
-    dus bij elke aanroep (JSONDecodeError), stil opgevangen door de
-    try/except in _generate_with_ai() — waardoor AI-vertaling naar een
-    nieuwe taal altijd faalde en terugviel op Engels, zonder dat dat
-    ergens zichtbaar werd. Zelfde bugpatroon en fix als eerder gevonden
-    in gui/app.py::entities() voor internal_sensors.json.
-    p_v0.5: strip '//' comments before parsing. _context.json (like
-    config/internal_sensors.json) starts with a header of '//' lines —
-    not valid JSON without this step. The bare json.load() here therefore
-    crashed on every call (JSONDecodeError), silently caught by the
-    try/except in _generate_with_ai() — meaning AI translation to a new
-    language always failed and fell back to English, without that ever
-    becoming visible anywhere. Same bug pattern and fix as previously
-    found in gui/app.py::entities() for internal_sensors.json.
-    """
     if CONTEXT_FILE.exists():
-        with open(CONTEXT_FILE, encoding="utf-8") as f:
-            raw = re.sub(r'//.*', '', f.read())
-        return json.loads(raw)
+        return _read_json_stripped(CONTEXT_FILE)
     return {}
 
 

@@ -3,7 +3,7 @@
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
 # part version:  p_v0.14
-# altered:       2026-08-14
+# altered:       2026-09-09
 #
 # p_v0.14: A/B-strategie voor de opportunistische lage-prijs-laadtak
 # (RS20, "Lage prijs? -> probeer te laden") toegevoegd. Deze tak vulde
