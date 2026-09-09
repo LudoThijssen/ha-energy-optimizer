@@ -2,8 +2,26 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.25
-# altered:       2026-08-13
+# part version:  p_v0.26
+# altered:       2026-08-14
+#
+# p_v0.26: twee dingen in deze versie:
+# 1. t() (laag 1 vertaalfunctie) generiek beschikbaar gemaakt in ALLE
+#    templates via de bestaande inject_globals() context_processor — zie
+#    changelog daar. Eerste keer dat het vertaalsysteem daadwerkelijk
+#    aan een template wordt doorgegeven.
+# 2. Nieuwe instelling solar_reserve_strategy ('block'/'throttle', A/B)
+#    op de /system-route — zie migratie 022, system.html. Standaard
+#    'throttle' (B).
+#
+# p_v0.26: two things in this version:
+# 1. t() (layer 1 translation function) made generically available in
+#    ALL templates via the existing inject_globals() context_processor —
+#    see changelog there. First time the translation system is actually
+#    passed to a template.
+# 2. New setting solar_reserve_strategy ('block'/'throttle', A/B) on the
+#    /system route — see migration 022, system.html. Default 'throttle'
+#    (B).
 #
 # p_v0.25: echte oorzaak gevonden van een misleidende melding op de
 # entiteiten-pagina: "Alle relevante sensoren zijn gekoppeld" verscheen
@@ -100,7 +118,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from database.connection import DatabaseConnection
-from translations.translator import build_translator
+from translations.translator import build_translator, t as _t
 from config.config import AppConfig
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -259,11 +277,36 @@ def inject_globals():
                 system_config = cur.fetchone()
     except Exception:
         pass
+
+    # p_v0.26: t() (UI-vertaalfunctie, laag 1 van translations/translator.py)
+    # generiek beschikbaar gemaakt voor ALLE templates via deze bestaande
+    # context_processor. Voorheen bestond er een _get_tr()-helper die
+    # nergens werd aangeroepen — geen enkele template kon dus ooit een
+    # vertaling opvragen. Taal komt uit options.json (niet uit de
+    # database) zodat dit ook werkt zonder databaseverbinding, consistent
+    # met hoe de rest van de app options.json als primaire bron gebruikt.
+    # Templates roepen simpelweg {{ t('sleutel') }} aan; geen route hoeft
+    # hier zelf iets voor te doen.
+    # p_v0.26: t() (UI translation function, layer 1 of
+    # translations/translator.py) made generically available to ALL
+    # templates via this existing context_processor. Previously there was
+    # a _get_tr() helper that was never called anywhere — so no template
+    # could ever request a translation. Language comes from options.json
+    # (not the database) so this also works without a database
+    # connection, consistent with how the rest of the app treats
+    # options.json as the primary source. Templates simply call
+    # {{ t('key') }}; no route needs to do anything extra for this.
+    _lang = _load_options().get("language", "nl")
+    def t(key: str, **kwargs) -> str:
+        return _t(key, _lang, **kwargs)
+
     return {
         "nav_url":       _url,
         "ingress_path":  ingress_path,
         "system_config": system_config,
         "addon_version": _ADDON_VERSION,
+        "t":             t,
+        "active_language": _lang,
     }
 
 
@@ -500,6 +543,7 @@ def system():
                             "has_gas":              bool(row.get("has_gas", 0)),
                             "has_district_heating": bool(row.get("has_district_heating", 0)),
                             "has_offgrid_switch":   bool(row.get("has_offgrid_switch", 0)),
+                            "solar_reserve_strategy": row.get("solar_reserve_strategy", "throttle"),
                         }
                         options["location"] = {
                             "latitude":  float(row.get("latitude", 52.1551)),
@@ -523,6 +567,17 @@ def system():
         has_battery = 1 if "has_battery" in request.form else 0
         has_heating = 1 if "has_heating" in request.form else 0
         has_offgrid = 1 if "has_offgrid" in request.form else 0
+        # p_v0.26: nieuwe instelling — reserve-strategie voor batterijruimte
+        # vóór een negatief exportprijsvenster. Alleen 'block'/'throttle'
+        # toegestaan; onherkenbare/lege waarde valt terug op de standaard
+        # 'throttle' (B), zie migratie 022.
+        # p_v0.26: new setting — reserve strategy for battery capacity
+        # ahead of a negative export price window. Only 'block'/'throttle'
+        # allowed; unrecognised/empty value falls back to the default
+        # 'throttle' (B), see migration 022.
+        solar_reserve_strategy = request.form.get("solar_reserve_strategy", "throttle")
+        if solar_reserve_strategy not in ("block", "throttle"):
+            solar_reserve_strategy = "throttle"
 
         # p_v0.23: off-grid detectie-entiteiten — leeg toegestaan (dan
         # doet offgrid_monitor.py niets, zie collectors/offgrid_monitor.py)
@@ -541,6 +596,7 @@ def system():
             "has_battery":          bool(has_battery),
             "has_district_heating": bool(has_heating),
             "has_offgrid_switch":   bool(has_offgrid),
+            "solar_reserve_strategy": solar_reserve_strategy,
         })
         _save_options(options)
 
@@ -564,6 +620,7 @@ def system():
                             has_battery=%(battery)s,
                             has_district_heating=%(heating)s,
                             has_offgrid_switch=%(offgrid)s,
+                            solar_reserve_strategy=%(reserve_strategy)s,
                             offgrid_primary_entity_id=%(og_primary)s,
                             offgrid_primary_off_value=%(og_primary_val)s,
                             offgrid_fallback_entity_id=%(og_fallback)s,
@@ -575,6 +632,7 @@ def system():
                         "grid": has_grid, "solar": has_solar,
                         "gas": has_gas, "battery": has_battery,
                         "heating": has_heating, "offgrid": has_offgrid,
+                        "reserve_strategy": solar_reserve_strategy,
                         "og_primary": offgrid_primary_entity,
                         "og_primary_val": offgrid_primary_value,
                         "og_fallback": offgrid_fallback_entity,
@@ -587,11 +645,13 @@ def system():
                             (latitude, longitude, has_grid_connection,
                              has_solar_panels, has_gas, has_battery,
                              has_district_heating, has_offgrid_switch,
+                             solar_reserve_strategy,
                              offgrid_primary_entity_id, offgrid_primary_off_value,
                              offgrid_fallback_entity_id, offgrid_alarm_entity_id,
                              language)
                         VALUES (%(lat)s, %(lng)s, %(grid)s, %(solar)s,
                                 %(gas)s, %(battery)s, %(heating)s, %(offgrid)s,
+                                %(reserve_strategy)s,
                                 %(og_primary)s, %(og_primary_val)s,
                                 %(og_fallback)s, %(og_alarm)s, %(lang)s)
                     """, {
@@ -599,6 +659,7 @@ def system():
                         "grid": has_grid, "solar": has_solar,
                         "gas": has_gas, "battery": has_battery,
                         "heating": has_heating, "offgrid": has_offgrid,
+                        "reserve_strategy": solar_reserve_strategy,
                         "og_primary": offgrid_primary_entity,
                         "og_primary_val": offgrid_primary_value,
                         "og_fallback": offgrid_fallback_entity,

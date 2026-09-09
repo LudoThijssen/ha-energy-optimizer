@@ -2,8 +2,21 @@
 // name:          _context.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/_context.json
-// part version:  p_v0.1
-// altered:       2026-06-21 
+// part version:  p_v0.2
+// altered:       2026-08-14
+//
+// p_v0.2: 4 sleutels toegevoegd voor de nieuwe solar_reserve_strategy-
+// instelling op de Systeempagina (zie migratie 022, system.html,
+// app.py). Context expliciet uitgeschreven zodat de AI-vertaling voor
+// nieuwe talen het onderscheid tussen 'block'/'throttle' en de rol van
+// een negatief exportprijsvenster goed begrijpt.
+//
+// p_v0.2: added 4 keys for the new solar_reserve_strategy setting on the
+// System settings page (see migration 022, system.html, app.py). Context
+// spelled out explicitly so AI translation for new languages correctly
+// understands the 'block'/'throttle' distinction and the role of a
+// negative export price window.
+//
 {
   "battery.action.charge": {
     "context": "Action for a home battery storage system. The battery is being charged with electricity. NOT a financial charge or fee.",
@@ -84,5 +97,21 @@
   "system.max_charge_price": {
     "context": "The maximum electricity price (€/kWh) at which the optimizer will allow charging the battery from the grid. Above this price it is too expensive to charge.",
     "example_nl": "Maximale prijs voor opladen"
+  },
+  "system.solar_reserve_strategy": {
+    "context": "Setting label. Chooses how the optimizer reserves home battery capacity ahead of an expected NEGATIVE electricity export price window, so upcoming free solar power isn't forced to be sold to the grid at a loss.",
+    "example_nl": "Batterijruimte reserveren voor zon"
+  },
+  "system.solar_reserve_strategy.block": {
+    "context": "One of two choices for system.solar_reserve_strategy. 'Block': the optimizer will NOT charge the home battery from the grid at all while forecasted solar production alone is expected to be enough to fill the battery before the negative price window, even if the current grid price is otherwise attractive.",
+    "example_nl": "Blokkeren — helemaal niet van het net laden als zon straks genoeg is"
+  },
+  "system.solar_reserve_strategy.throttle": {
+    "context": "One of two choices for system.solar_reserve_strategy. 'Throttle': the optimizer may still charge the home battery from the grid at an attractive price, but caps how much so there remains enough free capacity for the forecasted solar before the negative price window.",
+    "example_nl": "Temperen — wel laden, maar ruimte overhouden voor zon"
+  },
+  "system.solar_reserve_strategy.hint": {
+    "context": "Explanatory help text shown under the system.solar_reserve_strategy setting on the System settings page of a home energy management app.",
+    "example_nl": "Bepaalt wat de optimizer doet als er een negatief exportprijsvenster wordt verwacht én er genoeg zon voorspeld is om de batterij te vullen. Buiten die situatie verandert deze instelling niets — normaal prijsgedreven laden (ook bij een lage of negatieve prijs) blijft gewoon mogelijk."
   }
 }

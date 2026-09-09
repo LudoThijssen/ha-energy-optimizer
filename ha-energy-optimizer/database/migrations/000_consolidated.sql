@@ -2,8 +2,14 @@
 -- name:          000_consolidated.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/000_consolidated.sql
--- part version:  p_v0.5
--- altered:       2026-08-11
+-- part version:  p_v0.6
+-- altered:       2026-08-14
+--
+-- p_v0.6: bijgewerkt t/m migratie 022 — solar_reserve_strategy op
+-- system_config.
+--
+-- p_v0.6: updated through migration 022 — solar_reserve_strategy on
+-- system_config.
 --
 -- p_v0.5: bijgewerkt t/m migratie 021 — grid_consume_kw op
 -- optimizer_schedule, zie decision_engine.py p_v0.13.
@@ -31,11 +37,11 @@
 --
 -- LET OP: als dit bestand wordt gebruikt, moet setup.py de _migrations
 -- tabel vullen met de versienummers
--- 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21 zodat geen enkele
+-- 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22 zodat geen enkele
 -- incrementele migratie later opnieuw geprobeerd wordt.
 --
 -- NOTE: if this file is used, setup.py must fill the _migrations table
--- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21
+-- with version numbers 1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
 -- so no incremental migration is ever attempted afterwards.
 --
 -- p_v0.2: bijgewerkt t/m migratie 017 — slot_of_day (kwartier-resolutie)
@@ -124,6 +130,8 @@ CREATE TABLE IF NOT EXISTS `system_config` (
         COMMENT 'Schema-tijdstap in minuten / Schedule time step in minutes',
     `has_offgrid_switch`              TINYINT(1)    NOT NULL DEFAULT 0
         COMMENT 'Off-grid schakeling aanwezig / Off-grid switching present',
+    `solar_reserve_strategy`          ENUM('block', 'throttle') NOT NULL DEFAULT 'throttle'
+        COMMENT 'Strategie voor batterijruimte-reservering vóór negatief exportprijsvenster: block (A) of throttle (B) / Strategy for reserving battery capacity ahead of a negative export price window: block (A) or throttle (B)',
     `offgrid_reserve_high_pct`        DECIMAL(5,2)  NOT NULL DEFAULT 10.00
         COMMENT 'SoC-ondergrens overdag (%) / SoC floor during the day (%)',
     `offgrid_reserve_low_pct`         DECIMAL(5,2)  NOT NULL DEFAULT 5.00

@@ -2,8 +2,8 @@
 // name:          nl.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/nl.json
-// part version:  p_v0.1
-// altered:       2026-06-21 
+// part version:  p_v0.2
+// altered:       2026-11-08 
 {
   "nav.dashboard": "Dashboard",
   "nav.schedule": "Planning",
@@ -122,5 +122,9 @@
   "system.min_discharge_price": "Minimale prijs voor ontladen",
   "system.max_charge_price": "Maximale prijs voor opladen",
   "system.price_incl_tax": "Prijzen inclusief belasting",
-  "system.language": "Taal"
+  "system.language": "Taal",
+  "system.solar_reserve_strategy": "Batterijruimte reserveren voor zon",
+  "system.solar_reserve_strategy.block": "Blokkeren — helemaal niet van het net laden als zon straks genoeg is",
+  "system.solar_reserve_strategy.throttle": "Temperen — wel laden, maar ruimte overhouden voor zon",
+  "system.solar_reserve_strategy.hint": "Bepaalt wat de optimizer doet als er een negatief exportprijsvenster wordt verwacht én er genoeg zon voorspeld is om de batterij te vullen. Buiten die situatie verandert deze instelling niets — normaal prijsgedreven laden (ook bij een lage of negatieve prijs) blijft gewoon mogelijk."
 }

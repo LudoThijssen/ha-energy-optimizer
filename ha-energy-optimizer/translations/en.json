@@ -2,8 +2,8 @@
 // name:          en.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/en.json
-// part version:  p_v0.1
-// altered:       2026-06-21 
+// part version:  p_v0.2
+// altered:       2026-11-08 
 {
   "nav.dashboard": "Dashboard",
   "nav.schedule": "Schedule",
@@ -122,5 +122,9 @@
   "system.min_discharge_price": "Minimum price to discharge",
   "system.max_charge_price": "Maximum price to charge",
   "system.price_incl_tax": "Prices including tax",
-  "system.language": "Language"
+  "system.language": "Language",
+  "system.solar_reserve_strategy": "Reserve battery capacity for solar",
+  "system.solar_reserve_strategy.block": "Block — don't charge from the grid at all if solar will be enough later",
+  "system.solar_reserve_strategy.throttle": "Throttle — still charge, but leave room for solar",
+  "system.solar_reserve_strategy.hint": "Determines what the optimizer does when a negative export price window is expected AND there's enough forecasted solar to fill the battery. Outside that situation this setting changes nothing — normal price-driven charging (even at a low or negative price) remains possible as usual."
 }

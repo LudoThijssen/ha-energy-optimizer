@@ -2,8 +2,70 @@
 # name:          decision_engine.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/decision_engine.py
-# part version:  p_v0.13
-# altered:       2026-08-11
+# part version:  p_v0.14
+# altered:       2026-08-14
+#
+# p_v0.14: A/B-strategie voor de opportunistische lage-prijs-laadtak
+# (RS20, "Lage prijs? -> probeer te laden") toegevoegd. Deze tak vulde
+# altijd door tot max_soc_pct zodra de prijs onder price_factor_low lag,
+# zonder ooit te kijken of er straks toch al gratis zon aankomt vlak voor
+# een negatief exportprijsvenster — precies het gedrag dat Ludo signaleerde
+# (week van 1 augustus: prijsgedreven laden bleek profijtelijk, maar hield
+# geen rekening met de zonverwachting).
+#
+# Kernregel (bevestigd door Ludo, met 1 uitzondering die bewust NIET
+# geprogrammeerd wordt — extreem negatieve prijs blijft handmatig, zie
+# openstaande takenlijst): batterijruimte reserveren voor zon is alleen
+# relevant vlak vóór een verwacht NEGATIEF exportprijsvenster (dan kost
+# geforceerd exporteren geld); bij prijs >= 0 mag de batterij gewoon vol
+# zitten en zonoverschot rechtstreeks het net op laten gaan.
+#
+# Hergebruikt de al bestaande _reserve_for_future_negative_export() —
+# dezelfde berekening die de zon-overschot-tak (regel ~370) al gebruikte
+# om te bepalen hoeveel net-bijladen is toegestaan naast eigen zon. Twee
+# strategieën, instelbaar op de Systeempagina (system_config.
+# solar_reserve_strategy, migratie 022), standaard 'throttle':
+#   'block'    (A) — helemaal niet van het net laden in deze tak zolang
+#               er een toekomstige reserve-behoefte is (reserve_kwh > 0).
+#   'throttle' (B) — wel laden, maar het opportunistische laaddoel
+#               verlagen met precies de gereserveerde ruimte, zodat de
+#               batterij niet volloopt vóórdat de zon er is.
+# Buiten die specifieke situatie (geen toekomstig negatief-prijsvenster
+# met zonoverschot) verandert er niets — gewoon vullen tot max_soc_pct
+# zoals voorheen. Raakt alleen deze ene tak; de nacht/dag-veiligheids-
+# laadtakken (RS18/RS19) blijven ongewijzigd, want die gaan over
+# minimaal-benodigde SoC, niet over opportunistisch profiteren.
+#
+# p_v0.14: A/B strategy added for the opportunistic low-price charging
+# branch (RS20, "Low price? -> try to charge"). This branch always
+# filled up to max_soc_pct whenever the price was below price_factor_low,
+# without ever checking whether free solar was about to arrive anyway
+# just before a negative export price window — exactly the behaviour
+# Ludo flagged (week of August 1st: price-driven charging turned out
+# profitable, but didn't account for the solar forecast).
+#
+# Core rule (confirmed by Ludo, with 1 exception that is deliberately
+# NOT programmed — extremely negative price stays manual, see open task
+# list): reserving battery capacity for solar is only relevant just
+# ahead of an expected NEGATIVE export price window (forced export then
+# costs money); at price >= 0 the battery may simply sit full and let
+# solar surplus flow straight to the grid.
+#
+# Reuses the already-existing _reserve_for_future_negative_export() —
+# the same calculation the solar-surplus branch (line ~370) already used
+# to determine how much grid top-up is allowed alongside its own solar.
+# Two strategies, configurable on the System page (system_config.
+# solar_reserve_strategy, migration 022), default 'throttle':
+#   'block'    (A) — don't charge from the grid at all in this branch
+#               as long as there's a future reserve need (reserve_kwh > 0).
+#   'throttle' (B) — still charge, but lower the opportunistic charge
+#               target by exactly the reserved room, so the battery
+#               doesn't fill up before the solar arrives.
+# Outside that specific situation (no future negative-price window with
+# solar surplus) nothing changes — just fill to max_soc_pct as before.
+# Only touches this one branch; the night/day safety charging branches
+# (RS18/RS19) remain unchanged, since those are about minimum-required
+# SoC, not opportunistic profit-taking.
 #
 # p_v0.13: netverbruik tijdens rust zichtbaar gemaakt. _update_soc() trok
 # tijdens "idle" het niet door zon gedekte huisverbruik altijd van de
@@ -166,6 +228,15 @@ class PriceConfig:
     hard_min_excl:  Decimal = Decimal("0.05")   # nooit ontladen onder deze prijs
     max_charge_excl: Decimal = Decimal("0.10")  # maximale laadprijs excl. BTW
     negative_export_threshold_excl: Decimal = Decimal("0")  # exportprijs waaronder net-bijladen i.p.v. exporteren
+    # p_v0.14: strategie voor de opportunistische lage-prijs-laadtak
+    # (RS20) wanneer er ook een toekomstig negatief-exportprijsvenster
+    # met zonoverschot wordt verwacht — 'block' (A) of 'throttle' (B,
+    # standaard). Zie migratie 022, system.html, run() RS20-tak.
+    # p_v0.14: strategy for the opportunistic low-price charging branch
+    # (RS20) when a future negative-export-price window with solar
+    # surplus is also expected — 'block' (A) or 'throttle' (B, default).
+    # See migration 022, system.html, run() RS20 branch.
+    solar_reserve_strategy: str = "throttle"
 
 
 @dataclass
@@ -460,10 +531,44 @@ class DecisionEngine:
             # Lage prijs? → probeer te laden (opportunistisch)
             if price <= price_factor_low and not off_grid:
                 if soc < self._bat.max_soc_pct:
-                    self._laden(wh, window, soc, self._bat.max_soc_pct,
-                                off_grid, eff_charge_kw, reden="RS20")
-                    soc = self._update_soc(soc, wh.action, wh.power_kw, eff_charge_kw)
-                    continue
+                    # p_v0.14: A/B-strategie — als er ook een toekomstig
+                    # negatief-exportprijsvenster met zonoverschot wordt
+                    # verwacht (dezelfde berekening als de zon-overschot-tak
+                    # hierboven), houdt 'throttle' (B) daar ruimte voor vrij
+                    # door het opportunistische laaddoel te verlagen;
+                    # 'block' (A) laadt dan helemaal niet van het net in
+                    # deze tak. Buiten die situatie (reserve_kwh == 0)
+                    # verandert er niets — gewoon vullen tot max_soc_pct
+                    # zoals voorheen.
+                    # p_v0.14: A/B strategy — if a future negative-export-
+                    # price window with solar surplus is also expected
+                    # (same calculation as the solar-surplus branch above),
+                    # 'throttle' (B) keeps that room free by lowering the
+                    # opportunistic charge target; 'block' (A) then doesn't
+                    # charge from the grid at all in this branch. Outside
+                    # that situation (reserve_kwh == 0) nothing changes —
+                    # just fill to max_soc_pct as before.
+                    doel_soc = self._bat.max_soc_pct
+                    reserve_kwh = self._reserve_for_future_negative_export(window, idx)
+                    if reserve_kwh > Decimal("0"):
+                        if self._price.solar_reserve_strategy == "block":
+                            doel_soc = soc
+                        else:
+                            # Zelfde eenheden-conversie als extra_room
+                            # hierboven, maar omgekeerd: kWh-reserve ->
+                            # equivalente SoC%-marge.
+                            # Same unit conversion as extra_room above, but
+                            # inverted: kWh reserve -> equivalent SoC%
+                            # margin.
+                            reserve_soc_pct = (
+                                reserve_kwh * self._bat.efficiency * 100
+                                / self._bat.usable_kwh
+                            )
+                            doel_soc = max(soc, self._bat.max_soc_pct - reserve_soc_pct)
+                    if doel_soc > soc:
+                        self._laden(wh, window, soc, doel_soc, off_grid, eff_charge_kw, reden="RS20")
+                        soc = self._update_soc(soc, wh.action, wh.power_kw, eff_charge_kw)
+                        continue
 
             # Geen actie — rust (maar batterij levert eventueel passief bij)
             wh.action = "idle"
@@ -1488,12 +1593,21 @@ def build_decision_engine(db: DatabaseConnection) -> DecisionEngine:
     else:
         max_charge_excl = max_charge_raw
 
+    # p_v0.14: onbekende/lege waarde valt terug op 'throttle' (B) — zelfde
+    # validatie als in app.py's /system POST-handler.
+    # p_v0.14: unrecognised/empty value falls back to 'throttle' (B) —
+    # same validation as in app.py's /system POST handler.
+    _solar_reserve_strategy = cfg.get("solar_reserve_strategy") or "throttle"
+    if _solar_reserve_strategy not in ("block", "throttle"):
+        _solar_reserve_strategy = "throttle"
+
     price_config = PriceConfig(
         price_incl_tax = price_incl_tax,
         vat_pct        = vat_pct,
         hard_min_excl  = Decimal(str(cfg.get("hard_min_discharge_price_excl") or "0.05")),
         max_charge_excl = max_charge_excl,
         negative_export_threshold_excl = Decimal(str(cfg.get("negative_export_threshold_excl") or "0")),
+        solar_reserve_strategy = _solar_reserve_strategy,
     )
 
     # p_v0.11: dynamische off-grid reserve — alleen actief als het vinkje

@@ -2,8 +2,13 @@
 # name:          translator.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/translations/translator.py
-# part version:  p_v0.4
-# altered:       2026-07-01
+# part version:  p_v0.5
+# altered:       2026-08-14
+#
+# p_v0.5: bugfix _load_context() — zie changelog daar. Verder geen
+# functionele wijziging in deze versie.
+# p_v0.5: bugfix _load_context() — see changelog there. No other
+# functional change in this version.
 #
 # Twee vertaallagen:
 # 1. UI-teksten — uit JSON bestanden (bestaande functionaliteit)
@@ -15,6 +20,7 @@
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -111,9 +117,28 @@ def _load_master() -> dict:
 
 
 def _load_context() -> dict:
+    """
+    p_v0.5: '//'-commentaar stript vóór het parsen. _context.json begint
+    (zoals config/internal_sensors.json) met een header van '//'-regels —
+    geen geldige JSON zonder deze stap. De kale json.load() hier crashte
+    dus bij elke aanroep (JSONDecodeError), stil opgevangen door de
+    try/except in _generate_with_ai() — waardoor AI-vertaling naar een
+    nieuwe taal altijd faalde en terugviel op Engels, zonder dat dat
+    ergens zichtbaar werd. Zelfde bugpatroon en fix als eerder gevonden
+    in gui/app.py::entities() voor internal_sensors.json.
+    p_v0.5: strip '//' comments before parsing. _context.json (like
+    config/internal_sensors.json) starts with a header of '//' lines —
+    not valid JSON without this step. The bare json.load() here therefore
+    crashed on every call (JSONDecodeError), silently caught by the
+    try/except in _generate_with_ai() — meaning AI translation to a new
+    language always failed and fell back to English, without that ever
+    becoming visible anywhere. Same bug pattern and fix as previously
+    found in gui/app.py::entities() for internal_sensors.json.
+    """
     if CONTEXT_FILE.exists():
         with open(CONTEXT_FILE, encoding="utf-8") as f:
-            return json.load(f)
+            raw = re.sub(r'//.*', '', f.read())
+        return json.loads(raw)
     return {}
 
 

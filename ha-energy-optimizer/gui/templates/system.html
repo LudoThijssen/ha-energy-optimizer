@@ -2,8 +2,26 @@
 <!-- name:         system.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/system.html -->
-<!-- part version: p_v0.5 -->
-<!-- altered:      2026-07-30 -->
+<!-- part version: p_v0.6 -->
+<!-- altered:      2026-08-14 -->
+<!--
+p_v0.6: nieuwe kaart "Batterijruimte reserveren voor zon"
+(solar_reserve_strategy, A/B, migratie 022) — radio-keuze tussen
+'block' en 'throttle', standaard 'throttle' (B). Zie decision_engine.py
+(volgt) voor het daadwerkelijke gedrag per keuze. Eerste plek in de app
+die t() gebruikt i.p.v. hardgecodeerde tekst — zie app.py p_v0.26
+(inject_globals) voor de generieke vertaal-wiring. De rest van deze
+pagina is bewust nog niet omgezet naar t(); dat is een apart, groter
+punt (backlog-punt 10).
+p_v0.6: new card "Reserve battery capacity for solar"
+(solar_reserve_strategy, A/B, migration 022) — radio choice between
+'block' and 'throttle', default 'throttle' (B). See decision_engine.py
+(to follow) for the actual behaviour per choice. First place in the app
+using t() instead of hardcoded text — see app.py p_v0.26
+(inject_globals) for the generic translation wiring. The rest of this
+page is deliberately not yet converted to t(); that's a separate, larger
+item (backlog item 10).
+-->
 <!--
 p_v0.4: "Off-grid schakeling" vinkje toegevoegd — schakelt de dynamische
 off-grid reserve in/uit (zie decision_engine.py p_v0.11, migratie 019).
@@ -94,6 +112,24 @@ decision_engine.py p_v0.12.
       en lage (nacht) waarde, gekoppeld aan zonsopkomst en het geleerde nachtverbruik.
       Zonder dit vinkje blijft de vaste ondergrens gelden zoals nu. Instelbaar op de
       <a href="{{ nav_url('optimizer') }}">Drempelwaarden-pagina</a>.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="mdi mdi-white-balance-sunny"></span> {{ t('system.solar_reserve_strategy') }}</h2>
+    {% set _strategy = options.get('system', {}).get('solar_reserve_strategy', 'throttle') %}
+    <label class="check-label">
+      <input type="radio" name="solar_reserve_strategy" value="throttle"
+             {% if _strategy != 'block' %}checked{% endif %}>
+      {{ t('system.solar_reserve_strategy.throttle') }}
+    </label>
+    <label class="check-label">
+      <input type="radio" name="solar_reserve_strategy" value="block"
+             {% if _strategy == 'block' %}checked{% endif %}>
+      {{ t('system.solar_reserve_strategy.block') }}
+    </label>
+    <div class="hint" style="margin-top:4px; margin-left:24px;">
+      {{ t('system.solar_reserve_strategy.hint') }}
     </div>
   </div>
 
