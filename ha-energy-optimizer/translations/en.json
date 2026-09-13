@@ -2,8 +2,12 @@
 // name:          en.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/en.json
-// part version:  p_v0.5
+// part version:  p_v0.6
 // altered:       2026-09-13
+//
+// p_v0.6: trn.chip_move_hint added — short instruction above the
+// translations table about the click-to-pick-up/place mechanism for
+// placeholder chips (translations.html p_v0.7).
 //
 // p_v0.5: trn.placeholder_mismatch added — error message on the
 // translations page for a placeholder mismatch (app.py p_v0.28,
@@ -374,6 +378,7 @@
   "trn.translation_missing": "Translation missing...",
   "trn.no_entries": "No texts found for this combination.",
   "trn.placeholder_mismatch": "Save failed: the placeholders (in {}) don't match the original text.",
+  "trn.chip_move_hint": "Click a placeholder chip to pick it up, then click the desired spot (or another chip) to drop it there.",
   "thresh.subtitle": "Rules for charge and discharge decisions",
   "thresh.price_thresholds": "Price thresholds",
   "thresh.price_info": "These values determine when it's financially worthwhile to charge or discharge the battery.",

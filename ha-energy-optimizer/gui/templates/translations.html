@@ -1,4 +1,32 @@
 {% extends "base.html" %}
+<!-- part version: p_v0.7 -->
+<!-- altered:      2026-09-13 -->
+<!--
+p_v0.7: Verplaatsmechanisme voor placeholder-chips vervangen. p_v0.6
+liet chips verplaatsen via native browser-knippen/plakken van een
+contenteditable="false"-span — dat bleek onbetrouwbaar: bij een echte
+installatie ontstonden bij het "verplaatsen" 2 en zelfs 3 exemplaren van
+dezelfde placeholder i.p.v. dat hij verhuisde (kopiëren i.p.v. knippen,
+browserafhankelijk). De server-side validatie (app.py p_v0.28) weerde de
+opslag terecht, maar de UX werkte niet zoals bedoeld.
+Nieuw: klik-om-op-te-pakken / klik-om-te-plaatsen, volledig in JS, zonder
+het OS-klembord aan te raken. Er bestaat op elk moment precies één
+DOM-node per placeholder — die wordt verplaatst (herplaatst in de DOM),
+nooit gekloond, dus duplicatie is structureel uitgesloten i.p.v. alleen
+achteraf gevalideerd.
+p_v0.7: Replaced the placeholder chip move mechanism. p_v0.6 let chips be
+moved via native browser cut/paste of a contenteditable="false" span —
+that turned out unreliable: on a real installation, "moving" a chip
+produced 2 and even 3 copies of the same placeholder instead of relocating
+it (copy instead of cut, browser-dependent). Server-side validation
+(app.py p_v0.28) correctly rejected the save, but the UX didn't work as
+intended.
+New: click-to-pick-up / click-to-place, entirely in JS, never touching
+the OS clipboard. At any moment there is exactly one DOM node per
+placeholder — it gets relocated (re-parented in the DOM), never cloned,
+so duplication is structurally impossible instead of only caught after
+the fact.
+-->
 <!-- part version: p_v0.6 -->
 <!-- altered:      2026-09-13 -->
 <!--
@@ -54,9 +82,15 @@ intended: two layers, see translator.py p_v0.7.
   margin: 0 1px;
   font-family: monospace;
   font-size: 12px;
-  cursor: default;
-  user-select: all;
+  cursor: pointer;
+  user-select: none;
   white-space: nowrap;
+}
+.ph-chip.picked {
+  background: #4338ca;
+  color: #fff;
+  border-color: #312e81;
+  box-shadow: 0 0 0 2px #c7d2fe;
 }
 .translate-editor {
   flex: 1;
@@ -136,6 +170,9 @@ intended: two layers, see translator.py p_v0.7.
 <!-- Vertalingentabel -->
 <div class="card" style="padding:0;">
   {% if entries %}
+  <p style="padding:10px 16px 0; font-size:12px; color:#6b7280;">
+    <span class="mdi mdi-information-outline"></span> {{ t('trn.chip_move_hint') }}
+  </p>
   <table>
     <thead>
       <tr>
@@ -208,6 +245,70 @@ document.querySelectorAll('.translate-form').forEach(function (form) {
       }
     });
     hidden.value = result;
+  });
+});
+
+// p_v0.7: klik-om-op-te-pakken / klik-om-te-plaatsen voor placeholder-
+// chips. Vervangt het onbetrouwbare native-knippen/plakken uit p_v0.6.
+// Er wordt altijd de bestaande DOM-node verplaatst (insertBefore /
+// range.insertNode van hetzelfde element), nooit een kloon aangemaakt —
+// duplicatie is hiermee structureel uitgesloten.
+//
+// p_v0.7: click-to-pick-up / click-to-place for placeholder chips.
+// Replaces the unreliable native cut/paste from p_v0.6. Always relocates
+// the existing DOM node (insertBefore / range.insertNode of the same
+// element), never creates a clone — duplication is structurally
+// impossible as a result.
+function _getCaretRangeFromPoint(x, y) {
+  if (document.caretRangeFromPoint) {
+    return document.caretRangeFromPoint(x, y);
+  }
+  if (document.caretPositionFromPoint) {
+    var pos = document.caretPositionFromPoint(x, y);
+    if (!pos) return null;
+    var range = document.createRange();
+    range.setStart(pos.offsetNode, pos.offset);
+    range.collapse(true);
+    return range;
+  }
+  return null;
+}
+
+document.querySelectorAll('.translate-editor').forEach(function (editor) {
+  var picked = null;
+
+  function clearPicked() {
+    if (picked) picked.classList.remove('picked');
+    picked = null;
+  }
+
+  editor.addEventListener('click', function (e) {
+    var chip = e.target.closest ? e.target.closest('.ph-chip') : null;
+
+    if (chip && editor.contains(chip)) {
+      if (picked === chip) {
+        clearPicked();
+        return;
+      }
+      if (picked) {
+        chip.parentNode.insertBefore(picked, chip);
+        clearPicked();
+        return;
+      }
+      picked = chip;
+      chip.classList.add('picked');
+      return;
+    }
+
+    if (picked) {
+      var range = _getCaretRangeFromPoint(e.clientX, e.clientY);
+      if (range && editor.contains(range.startContainer)) {
+        range.insertNode(picked);
+      } else {
+        editor.appendChild(picked);
+      }
+      clearPicked();
+    }
   });
 });
 </script>

@@ -2,8 +2,12 @@
 // name:          nl.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/nl.json
-// part version:  p_v0.5
+// part version:  p_v0.6
 // altered:       2026-09-13
+//
+// p_v0.6: trn.chip_move_hint toegevoegd — korte uitleg boven de
+// vertalingentabel over het klik-om-op-te-pakken/plaatsen-mechanisme
+// voor placeholder-chips (translations.html p_v0.7).
 //
 // p_v0.5: trn.placeholder_mismatch toegevoegd — foutmelding op de
 // vertalingenpagina bij een placeholder-mismatch (app.py p_v0.28,
@@ -368,6 +372,7 @@
   "trn.translation_missing": "Vertaling ontbreekt...",
   "trn.no_entries": "Geen teksten gevonden voor deze combinatie.",
   "trn.placeholder_mismatch": "Opslaan mislukt: de placeholders (tussen {}) komen niet overeen met de originele tekst.",
+  "trn.chip_move_hint": "Klik op een placeholder-blokje om 'm op te pakken, klik daarna op de gewenste plek (of op een ander blokje) om 'm daar neer te zetten.",
   "thresh.subtitle": "Regels voor laad- en ontlaadkeuzes",
   "thresh.price_thresholds": "Prijsdrempelwaarden",
   "thresh.price_info": "Deze waarden bepalen wanneer het financieel zinvol is de batterij te laden of te ontladen.",
