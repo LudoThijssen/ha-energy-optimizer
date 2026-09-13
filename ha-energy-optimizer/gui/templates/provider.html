@@ -2,33 +2,45 @@
 <!-- name:         provider.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/provider.html -->
-<!-- part version: p_v0.2 -->
-<!-- altered:      2026-06-29 -->
+<!-- part version: p_v0.3 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.3: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+Providernamen (ANWB Energie, EnergyZero, Tibber, ENTSO-E, Frank Energie)
+en landnamen in de biedzone-dropdown blijven letterlijk — dat zijn
+eigennamen. "Generieke HA prijssensor" en "HA EnergyZero sensor
+(aanbevolen)" zijn wél vertaald (beschrijvende tekst, geen eigennaam).
+p_v0.3: fully converted to t(). Part of backlog item 9/10. Provider
+names (ANWB Energie, EnergyZero, Tibber, ENTSO-E, Frank Energie) and
+country names in the bidding zone dropdown stay literal — those are
+proper names. "Generic HA price sensor" and "HA EnergyZero sensor
+(recommended)" ARE translated (descriptive text, not a proper name).
+-->
 {% block title %}Energieleverancier — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-transmission-tower"></span> Energieleverancier</h1>
-<p class="subtitle">Bron voor dynamische stroomprijzen</p>
+<h1><span class="mdi mdi-transmission-tower"></span> {{ t('nav.provider') }}</h1>
+<p class="subtitle">{{ t('prov.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.settings_saved') }}</div>
 {% endif %}
 
 <form method="POST" id="provider-form">
   <div class="card">
-    <h2><span class="mdi mdi-store-outline"></span> Leverancier</h2>
+    <h2><span class="mdi mdi-store-outline"></span> {{ t('prov.provider_card') }}</h2>
 
     <div class="field">
-      <label>Leverancier</label>
+      <label>{{ t('prov.provider_label') }}</label>
       <select name="provider_driver" id="provider-select" onchange="showProviderFields()">
         {% set current = provider.provider_driver if provider else '' %}
         <option value="anwb"       {% if current == 'anwb' %}selected{% endif %}>ANWB Energie (via EnergyZero)</option>
         <option value="energyzero" {% if current == 'energyzero' %}selected{% endif %}>EnergyZero</option>
         <option value="tibber"     {% if current == 'tibber' %}selected{% endif %}>Tibber</option>
-        <option value="entsoe"     {% if current == 'entsoe' %}selected{% endif %}>ENTSO-E (Europese day-ahead)</option>
-        <option value="ha_energyzero" {% if current == 'ha_energyzero' %}selected{% endif %}>HA EnergyZero sensor (aanbevolen)</option>
-        <option value="frank"      {% if current == 'frank' %}selected{% endif %}>Frank Energie (nog niet beschikbaar)</option>
-        <option value="ha_price_sensor" {% if current == 'ha_price_sensor' %}selected{% endif %}>Generieke HA prijssensor</option>
+        <option value="entsoe"     {% if current == 'entsoe' %}selected{% endif %}>ENTSO-E ({{ t('prov.entsoe_dayahead') }})</option>
+        <option value="ha_energyzero" {% if current == 'ha_energyzero' %}selected{% endif %}>HA EnergyZero sensor ({{ t('prov.recommended') }})</option>
+        <option value="frank"      {% if current == 'frank' %}selected{% endif %}>Frank Energie ({{ t('prov.not_available_yet') }})</option>
+        <option value="ha_price_sensor" {% if current == 'ha_price_sensor' %}selected{% endif %}>{{ t('prov.generic_ha_sensor') }}</option>
       </select>
     </div>
 
@@ -36,22 +48,22 @@
     <div id="fields-anwb" class="provider-fields">
       <div class="field-row">
         <div class="field">
-          <label>BTW-percentage</label>
+          <label>{{ t('prov.vat_pct') }}</label>
           <input type="number" name="vat_pct" step="0.1" min="0" max="30"
                  value="{{ (provider.driver_config or {}).get('vat_pct', 21.0) if provider else 21.0 }}">
-          <div class="hint">Wordt toegepast op de marktprijs</div>
+          <div class="hint">{{ t('prov.vat_hint') }}</div>
         </div>
         <div class="field" style="max-width:200px; padding-top:28px">
           <label class="check-label">
             <input type="checkbox" name="incl_tax"
                    {% if provider and (provider.driver_config or {}).get('incl_tax') %}checked{% endif %}>
-            API levert inclusief BTW
+            {{ t('prov.api_incl_tax') }}
           </label>
         </div>
       </div>
       <div class="alert alert-info" style="margin-top:8px">
         <span class="mdi mdi-information-outline"></span>
-        ANWB Energie maakt gebruik van het EnergyZero platform. Prijzen van morgen worden rond 14:00 gepubliceerd.
+        {{ t('prov.anwb_info') }}
       </div>
     </div>
 
@@ -59,33 +71,33 @@
     <div id="fields-ha_energyzero" class="provider-fields" style="display:none">
       <div class="alert alert-info">
         <span class="mdi mdi-information-outline"></span>
-        Leest prijzen direct uit uw HA EnergyZero sensor — correcte lokale tijd, geen API-sleutel nodig.
+        {{ t('prov.ha_energyzero_info') }}
       </div>
       <div class="field">
-        <label>Entity ID</label>
+        <label>{{ t('prov.entity_id') }}</label>
         <input type="text" name="ha_entity_id"
                value="{{ (provider.driver_config or {}).get('entity_id', 'sensor.energy_prices_today') if provider else 'sensor.energy_prices_today' }}">
         <div class="hint">
-          Standaard: sensor.energy_prices_today — controleer Developer Tools → States in HA
+          {{ t('prov.entity_id_default_hint') }}
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>HA Host</label>
+          <label>{{ t('prov.ha_host') }}</label>
           <input type="text" name="ha_energyzero_host"
                  value="{{ (provider.driver_config or {}).get('ha_host', 'homeassistant') if provider else 'homeassistant' }}">
         </div>
         <div class="field" style="max-width:120px">
-          <label>Poort</label>
+          <label>{{ t('prov.port') }}</label>
           <input type="number" name="ha_energyzero_port"
                  value="{{ (provider.driver_config or {}).get('ha_port', 8123) if provider else 8123 }}">
         </div>
       </div>
       <div class="field">
-        <label>HA Token</label>
+        <label>{{ t('prov.ha_token') }}</label>
         <input type="password" name="ha_energyzero_token"
                value="{{ (provider.driver_config or {}).get('ha_token', '') if provider else '' }}">
-        <div class="hint">Zelfde token als op de Home Assistant instellingenpagina.</div>
+        <div class="hint">{{ t('prov.ha_token_same_hint') }}</div>
       </div>
     </div>
 
@@ -93,63 +105,62 @@
     <div id="fields-ha_price_sensor" class="provider-fields" style="display:none">
       <div class="alert alert-info">
         <span class="mdi mdi-information-outline"></span>
-        Leest prijzen uit elke HA sensor met een <code>prices</code> attribuut met
-        een lijst van <code>{timestamp, price}</code> vermeldingen.<br><br>
-        <strong>Vereist sensorformaat:</strong><br>
+        {{ t('prov.generic_sensor_info')|safe }}<br><br>
+        <strong>{{ t('prov.required_format') }}</strong><br>
         <code>prices:<br>
         &nbsp;&nbsp;- timestamp: "2026-06-07T21:00:00+00:00"<br>
         &nbsp;&nbsp;&nbsp;&nbsp;price: 0.172</code><br><br>
-        Timestamps mogen UTC of lokaal zijn, met of zonder offset.
+        {{ t('prov.timestamps_note') }}
       </div>
       <div class="field">
-        <label>Entity ID</label>
+        <label>{{ t('prov.entity_id') }}</label>
         <input type="text" name="ha_price_sensor_entity"
                value="{{ (provider.driver_config or {}).get('entity_id', 'sensor.energy_prices_today') if provider else 'sensor.energy_prices_today' }}">
-        <div class="hint">HA sensor entity ID — controleer Developer Tools → States</div>
+        <div class="hint">{{ t('prov.entity_id_default_hint') }}</div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Prijs attribuut</label>
+          <label>{{ t('prov.price_attribute') }}</label>
           <input type="text" name="ha_price_sensor_attr"
                  value="{{ (provider.driver_config or {}).get('price_attr', 'prices') if provider else 'prices' }}">
-          <div class="hint">Naam van het attribuut met de prijslijst</div>
+          <div class="hint">{{ t('prov.price_attribute_hint') }}</div>
         </div>
         <div class="field">
-          <label>Prijs inclusief BTW</label>
+          <label>{{ t('prov.price_incl_tax_label') }}</label>
           <select name="ha_price_sensor_incl_tax">
-            <option value="true" {% if (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>Ja</option>
-            <option value="false" {% if not (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>Nee</option>
+            <option value="true" {% if (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>{{ t('prov.yes') }}</option>
+            <option value="false" {% if not (provider.driver_config or {}).get('incl_tax', True) %}selected{% endif %}>{{ t('prov.no') }}</option>
           </select>
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>HA Host</label>
+          <label>{{ t('prov.ha_host') }}</label>
           <input type="text" name="ha_price_sensor_host"
                  value="{{ (provider.driver_config or {}).get('ha_host', 'homeassistant') if provider else 'homeassistant' }}">
         </div>
         <div class="field" style="max-width:120px">
-          <label>Poort</label>
+          <label>{{ t('prov.port') }}</label>
           <input type="number" name="ha_price_sensor_port"
                  value="{{ (provider.driver_config or {}).get('ha_port', 8123) if provider else 8123 }}">
         </div>
       </div>
       <div class="field">
-        <label>HA Token</label>
+        <label>{{ t('prov.ha_token') }}</label>
         <input type="password" name="ha_price_sensor_token"
                value="{{ (provider.driver_config or {}).get('ha_token', '') if provider else '' }}">
-        <div class="hint">Zelfde token als op de Home Assistant instellingenpagina.</div>
+        <div class="hint">{{ t('prov.ha_token_same_hint') }}</div>
       </div>
     </div>
 
     <!-- Tibber velden -->
     <div id="fields-tibber" class="provider-fields" style="display:none">
       <div class="field">
-        <label>Tibber API-token</label>
+        <label>{{ t('prov.tibber_token') }}</label>
         <input type="password" name="tibber_token"
                value="{{ (provider.driver_config or {}).get('token', '') if provider else '' }}">
         <div class="hint">
-          Haal uw token op via <a href="https://developer.tibber.com" target="_blank">developer.tibber.com</a>
+          {{ t('prov.tibber_token_hint')|safe }}
         </div>
       </div>
     </div>
@@ -157,16 +168,16 @@
     <!-- ENTSO-E velden -->
     <div id="fields-entsoe" class="provider-fields" style="display:none">
       <div class="field">
-        <label>ENTSO-E API-token</label>
+        <label>{{ t('prov.entsoe_token') }}</label>
         <input type="password" name="entsoe_token"
                value="{{ (provider.driver_config or {}).get('token', '') if provider else '' }}">
         <div class="hint">
-          Registreer op <a href="https://transparency.entsoe.eu" target="_blank">transparency.entsoe.eu</a>
+          {{ t('prov.entsoe_token_hint')|safe }}
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Biedzone</label>
+          <label>{{ t('prov.bidding_zone') }}</label>
           <select name="area_code">
             {% set current_area = (provider.driver_config or {}).get('area_code', '10YNL----------L') if provider else '10YNL----------L' %}
             <option value="10YNL----------L" {% if current_area == '10YNL----------L' %}selected{% endif %}>Nederland</option>
@@ -176,7 +187,7 @@
           </select>
         </div>
         <div class="field">
-          <label>BTW-percentage</label>
+          <label>{{ t('prov.vat_pct') }}</label>
           <input type="number" name="vat_pct" step="0.1" min="0" max="30"
                  value="{{ (provider.driver_config or {}).get('vat_pct', 21.0) if provider else 21.0 }}">
         </div>
@@ -184,7 +195,7 @@
     </div>
 
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
     </div>
   </div>
 </form>

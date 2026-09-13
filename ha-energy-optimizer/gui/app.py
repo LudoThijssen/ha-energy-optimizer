@@ -2,8 +2,21 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.26
+# part version:  p_v0.27
 # altered:       2026-09-09
+#
+# p_v0.27: zelfde regex-bugfix als translations/translator.py p_v0.7 —
+# _load_internal_sensors() stripte met `//.*` (zonder regelverankering)
+# alles ná een `//` waar dan ook in de regel, niet alleen echte
+# commentaarregels. internal_sensors.json bevat momenteel geen `//` in
+# een waarde, dus dit brak nog niets, maar was hetzelfde latente risico.
+# Nu ook hier `^\s*//.*` (MULTILINE).
+# p_v0.27: same regex bugfix as translations/translator.py p_v0.7 —
+# _load_internal_sensors() used `//.*` (without line anchoring), which
+# stripped everything after a `//` anywhere in the line, not just genuine
+# comment lines. internal_sensors.json currently contains no `//` inside
+# a value, so this hadn't broken anything yet, but it was the same latent
+# risk. Now anchored here too (`^\s*//.*`, MULTILINE).
 #
 # p_v0.26: twee dingen in deze versie:
 # 1. t() (laag 1 vertaalfunctie) generiek beschikbaar gemaakt in ALLE
@@ -211,7 +224,7 @@ def _load_internal_sensors() -> tuple[list, bool]:
     import json as _json, re as _re
     path = Path(__file__).parent.parent / "config" / "internal_sensors.json"
     try:
-        raw = _re.sub(r'//.*', '', path.read_text(encoding="utf-8"))
+        raw = _re.sub(r'(?m)^[ \t]*//.*\n?', '', path.read_text(encoding="utf-8"))
         return _json.loads(raw), True
     except Exception:
         import logging as _log

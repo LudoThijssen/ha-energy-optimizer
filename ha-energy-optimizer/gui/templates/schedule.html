@@ -2,112 +2,110 @@
 <!-- name:         schedule.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/schedule.html -->
-<!-- part version: p_v0.3 -->
-<!-- altered:      2026-08-13 -->
+<!-- part version: p_v0.4 -->
+<!-- altered:      2026-09-09 -->
 <!--
-p_v0.3: hardgecodeerde "ANWB / EnergyZero publiceert..." tekst in de
-info-alert bij "Ophaal-tijden energieprijzen" vervangen door een
-generieke tekst. Dit is een algemene GUI-pagina, niet specifiek voor
-Ludo's eigen ANWB-koppeling — de tekst suggereerde onterecht dat dit de
-enige/standaard leverancier is.
-p_v0.3: hardcoded "ANWB / EnergyZero publishes..." text in the info
-alert under "Price fetch times" replaced with generic wording. This is a
-general GUI page, not specific to Ludo's own ANWB setup — the text
-incorrectly suggested this was the only/default provider.
+p_v0.4: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+p_v0.4: fully converted to t(). Part of backlog item 9/10.
+-->
+<!--
+p_v0.3: hardgecodeerde "ANWB / EnergyZero publiceert..." tekst vervangen
+door een generieke tekst — algemene GUI-pagina, niet specifiek voor
+Ludo's eigen ANWB-koppeling.
+p_v0.3: hardcoded "ANWB / EnergyZero publishes..." text replaced with
+generic wording — general GUI page, not specific to Ludo's own ANWB setup.
 -->
 {% block title %}Tijden — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-clock-outline"></span> Tijden</h1>
-<p class="subtitle">Intervalinstellingen en dagelijkse tijden</p>
+<h1><span class="mdi mdi-clock-outline"></span> {{ t('nav.times') }}</h1>
+<p class="subtitle">{{ t('sch.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.settings_saved') }}</div>
 {% endif %}
 
 <form method="POST">
   <div class="card">
-    <h2><span class="mdi mdi-timer-sand"></span> Dataverzamelingsintervallen</h2>
+    <h2><span class="mdi mdi-timer-sand"></span> {{ t('sch.collection_intervals') }}</h2>
 
     <div class="field-row">
       <div class="field">
-        <label>HA sensorinterval (seconden)</label>
+        <label>{{ t('sch.ha_sensor_interval') }}</label>
         <input type="number" name="ha_interval" min="60" max="3600"
                value="{{ options.get('collectors', {}).get('ha_interval_seconds', 300) }}" required>
         <div class="hint">
-          Hoe vaak HA-sensoren worden uitgelezen. Standaard 300 = elke 5 min.
+          {{ t('sch.ha_sensor_interval_hint') }}
         </div>
       </div>
       <div class="field">
-        <label>Weerinterval (seconden)</label>
+        <label>{{ t('sch.weather_interval') }}</label>
         <input type="number" name="weather_interval" min="1800" max="21600"
                value="{{ options.get('collectors', {}).get('weather_interval_seconds', 3600) }}" required>
         <div class="hint">
-          Hoe vaak de weersvoorspelling wordt vernieuwd. Standaard 3600 = per uur.
+          {{ t('sch.weather_interval_hint') }}
         </div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-clock-fast"></span> Ophaal-tijden energieprijzen</h2>
+    <h2><span class="mdi mdi-clock-fast"></span> {{ t('sch.price_fetch_times') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Day-ahead prijzen worden door leveranciers op verschillende tijden gepubliceerd.
-      Controleer bij uw leverancier op welk tijdstip de prijzen van morgen
-      beschikbaar komen en stel de onderstaande tijden daarop af.
+      {{ t('sch.price_fetch_info') }}
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label>Huidige dag ophalen om</label>
+        <label>{{ t('sch.fetch_today') }}</label>
         <input type="time" name="price_time_today"
                value="{{ options.get('collectors', {}).get('price_fetch_time_today', '13:00') }}" required>
       </div>
       <div class="field">
-        <label>Volgende dag ophalen om</label>
+        <label>{{ t('sch.fetch_tomorrow') }}</label>
         <input type="time" name="price_time_tomorrow"
                value="{{ options.get('collectors', {}).get('price_fetch_time_tomorrow', '14:15') }}" required>
         <div class="hint">
-          Stel in na het publicatietijdstip van uw leverancier.
+          {{ t('sch.fetch_tomorrow_hint') }}
         </div>
       </div>
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label>Max. pogingen</label>
+        <label>{{ t('sch.max_retries') }}</label>
         <input type="number" name="price_retries" min="1" max="10"
                value="{{ options.get('collectors', {}).get('price_fetch_max_retries', 3) }}" required>
-        <div class="hint">Aantal nieuwe pogingen als prijzen niet beschikbaar zijn.</div>
+        <div class="hint">{{ t('sch.max_retries_hint') }}</div>
       </div>
       <div class="field">
-        <label>Interval tussen pogingen (minuten)</label>
+        <label>{{ t('sch.retry_interval') }}</label>
         <input type="number" name="price_retry_minutes" min="5" max="120"
                value="{{ options.get('collectors', {}).get('price_fetch_retry_minutes', 30) }}" required>
         <div class="hint">
-          Wachttijd tussen nieuwe pogingen.
+          {{ t('sch.retry_interval_hint') }}
         </div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-cog-sync-outline"></span> Optimizer &amp; rapportage</h2>
+    <h2><span class="mdi mdi-cog-sync-outline"></span> {{ t('sch.optimizer_reporting') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      De optimizer moet draaien nadat de prijzen van morgen zijn opgehaald.
+      {{ t('sch.optimizer_must_run_after') }}
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label>Optimizer-starttijd</label>
+        <label>{{ t('sch.optimizer_start_time') }}</label>
         <input type="time" name="optimizer_time"
                value="{{ options.get('optimizer', {}).get('run_time', '14:30') }}" required>
-        <div class="hint">Moet na de prijs-ophaaltijd liggen.</div>
+        <div class="hint">{{ t('sch.optimizer_start_hint') }}</div>
       </div>
       <div class="field">
-        <label>Dagrapport-tijd</label>
+        <label>{{ t('sch.daily_report_time') }}</label>
         <input type="time" name="report_time"
                value="{{ options.get('reporting', {}).get('daily_report_time', '07:00') }}" required>
       </div>
@@ -115,30 +113,29 @@ incorrectly suggested this was the only/default provider.
 
     <div class="field-row">
       <div class="field">
-        <label>Profielupdate-tijd</label>
+        <label>{{ t('sch.profile_update_time') }}</label>
         <input type="time" name="profile_update_time"
                value="{{ options.get('optimizer', {}).get('profile_update_time', '03:00') }}" required>
         <div class="hint">
-          Tijdstip voor herberekening van historische verbruiks-, zon- en prijsprofielen. Standaard 03:00.
+          {{ t('sch.profile_update_hint') }}
         </div>
       </div>
       <div class="field">
-        <label>Avondplanning-tijd</label>
+        <label>{{ t('sch.evening_planning_time') }}</label>
         <input type="time" name="evening_planning_time"
                value="{{ options.get('optimizer', {}).get('evening_planning_time', '21:00') }}" required>
         <div class="hint">
-          Tijdstip voor berekening dagbalans voor morgen. Standaard 21:00.
+          {{ t('sch.evening_planning_hint') }}
         </div>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Dashboard-verversingsinterval (seconden)</label>
+        <label>{{ t('sch.dashboard_refresh') }}</label>
         <input type="number" name="dashboard_refresh_seconds" min="60" max="3600"
                value="{{ options.get('reporting', {}).get('dashboard_refresh_seconds', 300) }}">
         <div class="hint">
-          Hoe vaak het dashboard live data vernieuwt. Standaard 300 = elke 5 min.<br>
-          <em>Let op: sneller verversen verhoogt systeembelasting</em>
+          {{ t('sch.dashboard_refresh_hint')|safe }}
         </div>
       </div>
     </div>
@@ -146,22 +143,22 @@ incorrectly suggested this was the only/default provider.
     <label class="check-label">
       <input type="checkbox" name="rerun"
              {% if options.get('optimizer', {}).get('rerun_on_price_update', True) %}checked{% endif %}>
-      Optimizer opnieuw uitvoeren bij nieuwe prijzen
+      {{ t('sch.rerun_on_price') }}
     </label>
     <label class="check-label">
       <input type="checkbox" name="notify_warning"
              {% if options.get('reporting', {}).get('notify_on_warning', True) %}checked{% endif %}>
-      HA-melding bij waarschuwingen
+      {{ t('sch.notify_warning') }}
     </label>
     <label class="check-label">
       <input type="checkbox" name="notify_error"
              {% if options.get('reporting', {}).get('notify_on_error', True) %}checked{% endif %}>
-      HA-melding bij fouten
+      {{ t('sch.notify_error') }}
     </label>
   </div>
 
   <div class="btn-row">
-    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
   </div>
 </form>
 {% endblock %}

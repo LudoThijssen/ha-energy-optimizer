@@ -2,66 +2,57 @@
 <!-- name:         entities.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/entities.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.6 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.6: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+p_v0.6: fully converted to t(). Part of backlog item 9/10.
+-->
 <!-- part version: p_v0.5 -->
 <!-- altered:      2026-08-13 -->
 <!--
 p_v0.5: eerlijke melding toegevoegd wanneer setup_incomplete waar is
 (geen database beschikbaar, en/of config/internal_sensors.json kon niet
-geladen worden — zie app.py p_v0.25). Voorheen viel dit terug op precies
-dezelfde "Alle relevante sensoren zijn gekoppeld"-melding als een echt
-voltooide koppeling, omdat de sensorenlijst door een bug in app.py
-sowieso altijd leeg binnenkwam. Nu een aparte waarschuwing, met
-onderscheid tussen "geen database" en "sensorenlijst niet geladen".
+geladen worden — zie app.py p_v0.25).
 p_v0.5: added an honest message for when setup_incomplete is true (no
 database available, and/or config/internal_sensors.json couldn't be
-loaded — see app.py p_v0.25). Previously this fell back to the exact
-same "All relevant sensors are mapped" message as a genuinely completed
-mapping, because a bug in app.py meant the sensor list always arrived
-empty regardless. Now shows a distinct warning, differentiating "no
-database" from "sensor list failed to load".
+loaded — see app.py p_v0.25).
 -->
 {% block title %}HA Entiteiten — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-link-variant"></span> HA entiteit-koppeling</h1>
-<p class="subtitle">Koppel Home Assistant-sensoren aan interne namen</p>
+<h1><span class="mdi mdi-link-variant"></span> {{ t('nav.entities') }}</h1>
+<p class="subtitle">{{ t('ent.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.saved') }}</div>
 {% endif %}
 
 {% if setup_incomplete %}
 <div class="alert alert-warning">
   <span class="mdi mdi-alert-outline"></span>
   {% if not db_available %}
-  Geen databaseverbinding — de setup is nog niet compleet. Rond eerst de
-  installatie af (zie Database) voordat u entiteiten koppelt; de lijst
-  met bekende sensoren hieronder kan nu niet getoond worden.
+  {{ t('ent.no_db_warning') }}
   {% elif not sensors_ok %}
-  De lijst met bekende sensoren (<code>config/internal_sensors.json</code>)
-  kon niet geladen worden — controleer of dat bestand aanwezig en geldig
-  is. U kunt hieronder nog wel handmatig een interne naam en entity-ID
-  invoeren.
+  {{ t('ent.sensors_not_loaded_warning')|safe }}
   {% endif %}
 </div>
 {% endif %}
 
 <!-- Entiteit toevoegen -->
 <div class="card">
-  <h2><span class="mdi mdi-plus-circle-outline"></span> Entiteit toevoegen</h2>
+  <h2><span class="mdi mdi-plus-circle-outline"></span> {{ t('ent.add_entity') }}</h2>
   <p style="font-size:13px; color:#6b7280; margin-bottom:16px; line-height:1.7;">
-    Selecteer een bekende interne naam uit de lijst, of typ een eigen naam.
+    {{ t('ent.add_entity_intro') }}
   </p>
   <form method="POST">
     <input type="hidden" name="action" value="add">
     <div class="field-row">
       <div class="field">
-        <label>Interne naam</label>
+        <label>{{ t('ent.internal_name') }}</label>
         {% if unmapped_names %}
         <select id="sensor-select" onchange="fillFromSelect()" style="margin-bottom:6px;">
-          <option value="">— kies —</option>
+          <option value="">{{ t('ent.choose') }}</option>
           {% for s in unmapped_names %}
           <option value="{{ s.internal_name }}"
                   data-unit="{{ s.unit }}"
@@ -73,39 +64,39 @@ database" from "sensor list failed to load".
         </select>
         {% elif not setup_incomplete %}
         <p style="font-size:13px; color:#16a34a; margin-bottom:6px;">
-          <span class="mdi mdi-check"></span> Alle relevante sensoren zijn gekoppeld
+          <span class="mdi mdi-check"></span> {{ t('ent.all_mapped') }}
         </p>
         {% endif %}
         <input type="text" name="internal_name_custom" id="custom-name"
-               placeholder="of typ eigen naam">
+               placeholder="{{ t('ent.custom_name_placeholder') }}">
       </div>
       <div class="field">
-        <label>Entity ID</label>
+        <label>{{ t('ent.entity_id_col') }}</label>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="text" name="entity_id" id="add-entity-id"
                  placeholder="sensor.mijn_sensor" oninput="clearValidation('add')">
           <button type="button" class="btn btn-secondary btn-sm"
                   onclick="validateEntity('add-entity-id', 'add-validation')">
-            Test
+            {{ t('general.test') }}
           </button>
         </div>
         <div id="add-validation" style="font-size:12px; margin-top:4px;"></div>
       </div>
       <div class="field" style="max-width:100px">
-        <label>Eenheid</label>
+        <label>{{ t('ent.unit') }}</label>
         <input type="text" name="unit" id="unit-field" placeholder="kW">
       </div>
     </div>
     <div class="field">
-      <label>Omschrijving</label>
+      <label>{{ t('ent.description') }}</label>
       <input type="text" name="description" id="desc-field"
-             placeholder="Wat meet deze sensor?">
+             placeholder="{{ t('ent.description_placeholder') }}">
     </div>
     <div class="btn-row">
       <button type="submit" id="btn-add-save" class="btn btn-primary" disabled>
-        <span class="mdi mdi-plus"></span> Toevoegen
+        <span class="mdi mdi-plus"></span> {{ t('ent.add_button') }}
       </button>
-      <span style="font-size:12px; color:#6b7280;">Test de entiteit eerst</span>
+      <span style="font-size:12px; color:#6b7280;">{{ t('ent.test_first') }}</span>
     </div>
   </form>
 </div>
@@ -113,14 +104,14 @@ database" from "sensor list failed to load".
 <!-- Gekoppelde entiteiten -->
 {% if entities %}
 <div class="card">
-  <h2><span class="mdi mdi-format-list-bulleted"></span> Gekoppelde entiteiten</h2>
+  <h2><span class="mdi mdi-format-list-bulleted"></span> {{ t('ent.mapped_entities') }}</h2>
   <table>
     <thead>
       <tr>
-        <th style="width:180px">Interne naam</th>
-        <th style="width:180px">Omschrijving</th>
-        <th>Entity ID</th>
-        <th style="width:55px">Eenheid</th>
+        <th style="width:180px">{{ t('ent.internal_name') }}</th>
+        <th style="width:180px">{{ t('ent.description') }}</th>
+        <th>{{ t('ent.entity_id_col') }}</th>
+        <th style="width:55px">{{ t('ent.unit') }}</th>
         <th style="width:130px"></th>
       </tr>
     </thead>
@@ -132,7 +123,7 @@ database" from "sensor list failed to load".
         <td>
           <code style="font-size:12px">{{ e.internal_name }}</code>
           {% if is_required %}
-          <span style="font-size:10px; color:#3b82f6; display:block; margin-top:2px;">verplicht</span>
+          <span style="font-size:10px; color:#3b82f6; display:block; margin-top:2px;">{{ t('ent.required') }}</span>
           {% endif %}
         </td>
         <td style="font-size:12px; color:#6b7280;">
@@ -152,10 +143,10 @@ database" from "sensor list failed to load".
                    oninput="clearValidation('val-{{ e.id }}')">
             <button type="button" class="btn btn-secondary btn-sm"
                     onclick="validateEntity('eid-{{ e.id }}', 'val-{{ e.id }}')">
-              Test
+              {{ t('general.test') }}
             </button>
             <button type="submit" class="btn btn-primary btn-sm btn-save-entity" disabled>
-              Opslaan
+              {{ t('general.save') }}
             </button>
           </form>
           <div id="val-{{ e.id }}" style="font-size:12px; margin-top:3px;"></div>
@@ -167,13 +158,13 @@ database" from "sensor list failed to load".
           {% if not is_required %}
           <form method="POST" action="{{ nav_url('delete_entity', entity_id=e.id) }}">
             <button type="submit" class="btn btn-danger btn-sm"
-                    onclick="return confirm('Koppeling voor {{ e.internal_name }} verwijderen?')"
-                    title="Verwijder">
-              <span class="mdi mdi-close"></span> Verwijder
+                    onclick="return confirm('{{ t('ent.confirm_remove', name=e.internal_name) }}')"
+                    title="{{ t('ent.remove') }}">
+              <span class="mdi mdi-close"></span> {{ t('ent.remove') }}
             </button>
           </form>
           {% else %}
-          <span style="font-size:11px; color:#94a3b8;">verplicht — kan niet verwijderd worden</span>
+          <span style="font-size:11px; color:#94a3b8;">{{ t('ent.required_cannot_remove') }}</span>
           {% endif %}
         </td>
       </tr>
@@ -184,7 +175,7 @@ database" from "sensor list failed to load".
 {% else %}
 <div class="card">
   <p style="color:#6b7280; font-size:13px;">
-    Nog geen entiteiten gekoppeld. Voeg er hierboven een toe.
+    {{ t('ent.none_mapped') }}
   </p>
 </div>
 {% endif %}
@@ -199,17 +190,21 @@ button:disabled {
 </style>
 
 <script>
+const MSG_ENTER_ID    = {{ t('ent.js_enter_entity_id')|tojson }};
+const MSG_CHECKING    = {{ t('ent.js_checking')|tojson }};
+const MSG_REQ_FAILED  = {{ t('ent.js_request_failed')|tojson }};
+
 async function validateEntity(inputId, resultId) {
   const input = document.getElementById(inputId);
   const result = document.getElementById(resultId);
   if (!input || !result) return;
   const entity_id = input.value.trim();
   if (!entity_id) {
-    result.textContent = 'Vul eerst een entiteit-ID in';
+    result.textContent = MSG_ENTER_ID;
     result.style.color = '#6b7280';
     return;
   }
-  result.textContent = 'Controleren...';
+  result.textContent = MSG_CHECKING;
   result.style.color = '#6b7280';
   try {
     const resp = await fetch(apiUrl('/entities/validate'), {
@@ -221,7 +216,6 @@ async function validateEntity(inputId, resultId) {
     result.textContent = data.message;
     result.style.color = data.ok ? '#16a34a' : '#dc2626';
 
-    // Save-knop in-/uitschakelen op basis van testresultaat
     const inputEl = document.getElementById(inputId);
     if (inputEl) {
       const form = inputEl.closest('form');
@@ -239,7 +233,7 @@ async function validateEntity(inputId, resultId) {
       addBtn.style.opacity = data.ok ? '1' : '0.4';
     }
   } catch(e) {
-    result.textContent = '✗ Verzoek mislukt: ' + e.message;
+    result.textContent = MSG_REQ_FAILED + e.message;
     result.style.color = '#dc2626';
   }
 }
@@ -247,7 +241,6 @@ async function validateEntity(inputId, resultId) {
 function clearValidation(resultId) {
   const el = document.getElementById(resultId);
   if (el) { el.textContent = ''; }
-  // Save-knop uitschakelen als input verandert — opnieuw testen vereist
   if (resultId === 'add-validation') {
     const btn = document.getElementById('btn-add-save');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }

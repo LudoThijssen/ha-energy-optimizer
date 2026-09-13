@@ -2,45 +2,53 @@
 <!-- name:         inverter.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/inverter.html -->
-<!-- part version: p_v0.2 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.3 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.3: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+Merken/modellen (FOX ESS, AC1-6.0-E, BYD, Pylontech, HVM 11.0) blijven
+letterlijk — dat zijn producteigennamen, geen te vertalen tekst.
+p_v0.3: fully converted to t(). Part of backlog item 9/10. Brand/model
+names (FOX ESS, AC1-6.0-E, BYD, Pylontech, HVM 11.0) stay literal —
+those are product names, not translatable text.
+-->
 {% block title %}Inverter & Batterij — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-battery-charging-80"></span> Inverter &amp; batterij</h1>
-<p class="subtitle">Configureer uw inverter en batterij</p>
+<h1><span class="mdi mdi-battery-charging-80"></span> {{ t('nav.inverter_battery') }}</h1>
+<p class="subtitle">{{ t('inv.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.saved') }}</div>
 {% endif %}
 
 <form method="POST">
   <div class="card">
-    <h2><span class="mdi mdi-flash-outline"></span> Inverter</h2>
+    <h2><span class="mdi mdi-flash-outline"></span> {{ t('inv.inverter') }}</h2>
 
     <div class="field-row">
       <div class="field">
-        <label>Merk</label>
+        <label>{{ t('inv.brand') }}</label>
         <input type="text" name="brand" value="{{ inverter.brand if inverter else 'FOX ESS' }}" placeholder="FOX ESS">
       </div>
       <div class="field">
-        <label>Model</label>
+        <label>{{ t('inv.model') }}</label>
         <input type="text" name="model" value="{{ inverter.model if inverter else 'AC1-6.0-E' }}" placeholder="AC1-6.0-E">
       </div>
     </div>
 
     <div class="field">
-      <label>Driver</label>
+      <label>{{ t('inv.driver') }}</label>
       <select name="driver" id="driver-select" onchange="showDriverFields()">
         <option value="simulate" {% if not inverter or inverter.driver == 'simulate' %}selected{% endif %}>
-          Simulatie — Veilig testen (aanbevolen)
+          {{ t('inv.driver_simulate') }}
         </option>
         <option value="modbus" {% if inverter and inverter.driver == 'modbus' %}selected{% endif %}>
-          Modbus TCP — Directe inverterverbinding
+          {{ t('inv.driver_modbus') }}
         </option>
       </select>
       <p class="hint">
-        Gebruik Simulatie zolang u nog geen Modbus-toegang heeft.
+        {{ t('inv.driver_hint') }}
       </p>
     </div>
 
@@ -48,16 +56,16 @@
     <div id="simulate-fields">
       <div class="field-row">
         <div class="field">
-          <label>Begin laadtoestand %</label>
+          <label>{{ t('inv.initial_soc') }}</label>
           <input type="number" name="initial_soc" value="{{ driver_cfg.get('initial_soc_pct', 65) }}" min="0" max="100" step="0.1">
-          <p class="hint">Begin laadniveau batterij</p>
+          <p class="hint">{{ t('inv.initial_soc_hint') }}</p>
         </div>
         <div class="field">
-          <label>Gesimuleerde capaciteit kWh</label>
+          <label>{{ t('inv.sim_capacity') }}</label>
           <input type="number" name="sim_capacity_kwh" value="{{ driver_cfg.get('capacity_kwh', 17.281) }}" min="1" max="100" step="0.001">
         </div>
         <div class="field">
-          <label>Gesimuleerde temperatuur °C</label>
+          <label>{{ t('inv.sim_temperature') }}</label>
           <input type="number" name="temperature_c" value="{{ driver_cfg.get('temperature_c', 22.0) }}" min="-10" max="60" step="0.1">
         </div>
       </div>
@@ -67,19 +75,19 @@
     <div id="modbus-fields" style="display:none;">
       <div class="alert alert-info">
         <span class="mdi mdi-information-outline"></span>
-        U heeft het Modbus TCP-adres, poort en slave-ID uit de handleiding van uw inverter nodig.
+        {{ t('inv.modbus_info') }}
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Modbus host (IP-adres)</label>
+          <label>{{ t('inv.modbus_host') }}</label>
           <input type="text" name="modbus_host" placeholder="192.168.1.xxx">
         </div>
         <div class="field">
-          <label>Modbus poort</label>
+          <label>{{ t('inv.modbus_port') }}</label>
           <input type="number" name="modbus_port" value="502">
         </div>
         <div class="field">
-          <label>Slave ID</label>
+          <label>{{ t('inv.slave_id') }}</label>
           <input type="number" name="modbus_slave_id" value="1">
         </div>
       </div>
@@ -87,14 +95,14 @@
 
     <div class="field-row">
       <div class="field">
-        <label>Max laadvermogen kW</label>
+        <label>{{ t('inv.max_charge_kw') }}</label>
         <input type="number" name="max_charge_kw"
                value="{{ inverter.max_charge_kw if inverter else '6.0' }}"
                min="0.1" max="50" step="0.001">
         <p class="hint">FOX ESS AC1-6.0-E: 6,0 kW</p>
       </div>
       <div class="field">
-        <label>Max ontlaadvermogen kW</label>
+        <label>{{ t('inv.max_discharge_kw') }}</label>
         <input type="number" name="max_discharge_kw"
                value="{{ inverter.max_discharge_kw if inverter else '6.0' }}"
                min="0.1" max="50" step="0.001">
@@ -104,16 +112,16 @@
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-battery-outline"></span> Batterij</h2>
+    <h2><span class="mdi mdi-battery-outline"></span> {{ t('inv.battery') }}</h2>
 
     <div class="field-row">
       <div class="field">
-        <label>Merk</label>
+        <label>{{ t('inv.brand') }}</label>
         <input type="text" name="bat_brand"
                value="{{ battery.brand if battery else '' }}" placeholder="bijv. BYD, Pylontech, FOX ESS">
       </div>
       <div class="field">
-        <label>Model</label>
+        <label>{{ t('inv.model') }}</label>
         <input type="text" name="bat_model"
                value="{{ battery.model if battery else '' }}" placeholder="bijv. HVM 11.0">
       </div>
@@ -121,30 +129,30 @@
 
     <div class="field-row">
       <div class="field">
-        <label>Totale capaciteit kWh</label>
+        <label>{{ t('inv.total_capacity') }}</label>
         <input type="number" name="capacity_kwh"
                value="{{ battery.capacity_kwh if battery else '' }}"
                min="0.1" max="500" step="0.001" placeholder="bijv. 10,0">
       </div>
       <div class="field">
-        <label>Bruikbare capaciteit kWh</label>
+        <label>{{ t('inv.usable_capacity') }}</label>
         <input type="number" name="usable_kwh"
                value="{{ battery.usable_capacity_kwh if battery else '' }}"
                min="0.1" max="500" step="0.001" placeholder="bijv. 9,5">
-        <p class="hint">Meestal 90-95% van totaal</p>
+        <p class="hint">{{ t('inv.usable_capacity_hint') }}</p>
       </div>
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label>Minimale laadtoestand %</label>
+        <label>{{ t('inv.min_soc') }}</label>
         <input type="number" name="min_soc"
                value="{{ battery.min_soc_pct if battery else '10' }}"
                min="0" max="50" step="0.01">
-        <p class="hint">Beschermt levensduur batterij</p>
+        <p class="hint">{{ t('inv.min_soc_hint') }}</p>
       </div>
       <div class="field">
-        <label>Maximale laadtoestand %</label>
+        <label>{{ t('inv.max_soc') }}</label>
         <input type="number" name="max_soc"
                value="{{ battery.max_soc_pct if battery else '95' }}"
                min="50" max="100" step="0.01">
@@ -153,8 +161,8 @@
   </div>
 
   <div class="btn-row">
-    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
-    <a href="{{ url_for('index') }}" class="btn btn-secondary"><span class="mdi mdi-close"></span> Annuleren</a>
+    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary"><span class="mdi mdi-close"></span> {{ t('inv.cancel') }}</a>
   </div>
 </form>
 

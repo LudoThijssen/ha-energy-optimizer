@@ -2,23 +2,32 @@
 <!-- name:         prices.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/prices.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.5: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+Namespace fixedprices.* gebruikt i.p.v. price.* om verwarring met de
+al bestaande price.*-sleutels (voor het tonen van energie-prijswaarden)
+te voorkomen — deze pagina gaat over vaste gas/stadsverwarmingprijzen.
+p_v0.5: fully converted to t(). Part of backlog item 9/10. Namespace
+fixedprices.* used instead of price.* to avoid confusion with the
+already-existing price.* keys (for displaying energy price values) —
+this page is about fixed gas/district-heating prices.
+-->
 {% block title %}Prijzen — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-currency-eur"></span> Energieprijzen</h1>
-<p class="subtitle">Vaste prijzen voor gas en stadsverwarming</p>
+<h1><span class="mdi mdi-currency-eur"></span> {{ t('nav.prices') }}</h1>
+<p class="subtitle">{{ t('fixedprices.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.saved') }}</div>
 {% endif %}
 
 {% if not system_config %}
 <div class="alert alert-info">
   <span class="mdi mdi-information-outline"></span>
-  Configureer eerst uw systeem op de <a href="{{ nav_url('system') }}">Systeem-pagina</a>
-  om te zien welke aansluitingen van toepassing zijn.
+  {{ t('fixedprices.configure_system_first', link=nav_url('system'))|safe }}
 </div>
 {% endif %}
 
@@ -26,28 +35,28 @@
 
   {% if not system_config or system_config.has_gas %}
   <div class="card">
-    <h2><span class="mdi mdi-fire"></span> Gas</h2>
+    <h2><span class="mdi mdi-fire"></span> {{ t('fixedprices.gas') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Wordt later uitgebreid met dynamische gasprijzen via HA-sensor.
+      {{ t('fixedprices.gas_dynamic_note') }}
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Gasprijs (€/m³ incl. BTW)</label>
+        <label>{{ t('fixedprices.gas_price') }}</label>
         <input type="number" name="gas_price_eur_m3" step="0.00001" min="0"
                value="{{ config.gas_price_eur_m3 if config and config.gas_price_eur_m3 else '' }}"
                placeholder="bijv. 1,20000">
         <div class="hint">
-          Vaste gasprijs inclusief BTW en vaste kosten per m³.
+          {{ t('fixedprices.gas_price_hint') }}
         </div>
       </div>
       <div class="field">
-        <label>HA entiteit (optioneel)</label>
+        <label>{{ t('fixedprices.ha_entity_optional') }}</label>
         <input type="text" name="gas_price_entity_id"
                value="{{ config.gas_price_entity_id if config and config.gas_price_entity_id else '' }}"
                placeholder="sensor.gas_price (voor later)">
         <div class="hint">
-          Nog niet actief — voor toekomstige dynamische gasprijzen.
+          {{ t('fixedprices.not_active_yet') }}
         </div>
       </div>
     </div>
@@ -56,28 +65,28 @@
 
   {% if not system_config or system_config.has_district_heating %}
   <div class="card">
-    <h2><span class="mdi mdi-radiator"></span> Stadsverwarming</h2>
+    <h2><span class="mdi mdi-radiator"></span> {{ t('fixedprices.heating') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Wordt later uitgebreid met dynamische stadsverwarmingprijzen via HA-sensor.
+      {{ t('fixedprices.heating_dynamic_note') }}
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Stadsverwarmingprijs (€/GJ incl. BTW)</label>
+        <label>{{ t('fixedprices.heating_price') }}</label>
         <input type="number" name="heating_price_eur_gj" step="0.00001" min="0"
                value="{{ config.heating_price_eur_gj if config and config.heating_price_eur_gj else '' }}"
                placeholder="bijv. 35,00000">
         <div class="hint">
-          Vaste prijs per gigajoule inclusief BTW.
+          {{ t('fixedprices.heating_price_hint') }}
         </div>
       </div>
       <div class="field">
-        <label>HA entiteit (optioneel)</label>
+        <label>{{ t('fixedprices.ha_entity_optional') }}</label>
         <input type="text" name="heating_price_entity_id"
                value="{{ config.heating_price_entity_id if config and config.heating_price_entity_id else '' }}"
                placeholder="sensor.heating_price (voor later)">
         <div class="hint">
-          Nog niet actief — voor toekomstige dynamische stadsverwarmingprijzen.
+          {{ t('fixedprices.not_active_yet_heating') }}
         </div>
       </div>
     </div>
@@ -87,14 +96,14 @@
   {% if system_config and not system_config.has_gas and not system_config.has_district_heating %}
   <div class="card">
     <p style="color:#6b7280; font-size:13px;">
-      Gas en stadsverwarming zijn niet aangevinkt in de systeeminstellingen.
-      <a href="{{ nav_url('system') }}">Systeeminstellingen</a>
+      {{ t('fixedprices.none_applicable') }}
+      <a href="{{ nav_url('system') }}">{{ t('fixedprices.system_settings_link') }}</a>
     </p>
   </div>
   {% endif %}
 
   <div class="btn-row">
-    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
   </div>
 </form>
 {% endblock %}

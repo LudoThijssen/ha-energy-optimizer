@@ -2,29 +2,43 @@
 <!-- name:         reportlog.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/reportlog.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.5: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10. De
+type/categorie-badges in de filterbalk zelf ({{ t }} en {{ cat }}) komen
+rechtstreeks uit de database (report_type/category kolommen, Engelse
+interne waarden zoals "warning"/"optimizer") en worden bewust NIET
+vertaald — dat zijn technische identifiers, geen UI-tekst. Alleen de
+vaste labels in de tabelrijen zelf (rlog.type_*) zijn vertaald.
+p_v0.5: fully converted to t(). Part of backlog item 9/10. The
+type/category badges in the filter bar itself ({{ t }} and {{ cat }})
+come directly from the database (report_type/category columns, English
+internal values like "warning"/"optimizer") and are deliberately NOT
+translated — those are technical identifiers, not UI text. Only the
+fixed labels in the table rows themselves (rlog.type_*) are translated.
+-->
 {% block title %}Rapportage log — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-text-box-outline"></span> Rapportage log</h1>
-<p class="subtitle">Systeemmeldingen en optimalisatiebeslissingen</p>
+<h1><span class="mdi mdi-text-box-outline"></span> {{ t('nav.reportlog') }}</h1>
+<p class="subtitle">{{ t('rlog.subtitle') }}</p>
 
 <!-- Filterbalk -->
 <div class="card" style="padding:16px;">
   <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-    <span style="font-size:13px; font-weight:500; color:#374151;">Filter:</span>
+    <span style="font-size:13px; font-weight:500; color:#374151;">{{ t('rlog.filter') }}</span>
 
     <a href="{{ nav_url('reportlog') }}"
        class="btn btn-sm {% if not active_type and not active_cat %}btn-primary{% else %}btn-secondary{% endif %}">
-      Alles ({{ total_count }})
+      {{ t('rlog.all', count=total_count) }}
     </a>
 
-    {% for t, count in type_counts.items() %}
-    <a href="{{ nav_url('reportlog') }}?type={{ t }}"
-       class="btn btn-sm {% if active_type == t %}btn-primary{% else %}btn-secondary{% endif %}"
-       style="{% if t == 'error' %}border-color:#fca5a5;{% elif t == 'warning' %}border-color:#fcd34d;{% elif t == 'daily' %}border-color:#86efac;{% endif %}">
-      {{ t }} ({{ count }})
+    {% for t_, count in type_counts.items() %}
+    <a href="{{ nav_url('reportlog') }}?type={{ t_ }}"
+       class="btn btn-sm {% if active_type == t_ %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="{% if t_ == 'error' %}border-color:#fca5a5;{% elif t_ == 'warning' %}border-color:#fcd34d;{% elif t_ == 'daily' %}border-color:#86efac;{% endif %}">
+      {{ t_ }} ({{ count }})
     </a>
     {% endfor %}
 
@@ -39,7 +53,7 @@
 
     {% if active_type or active_cat %}
     <a href="{{ nav_url('reportlog') }}" class="btn btn-sm btn-secondary"
-       style="margin-left:8px;"><span class="mdi mdi-close"></span> Wis filter</a>
+       style="margin-left:8px;"><span class="mdi mdi-close"></span> {{ t('rlog.clear_filter') }}</a>
     {% endif %}
   </div>
 </div>
@@ -50,10 +64,10 @@
   <table>
     <thead>
       <tr>
-        <th style="width:145px">Tijd</th>
-        <th style="width:70px">Type</th>
-        <th style="width:120px">Categorie</th>
-        <th>Bericht</th>
+        <th style="width:145px">{{ t('rlog.time') }}</th>
+        <th style="width:70px">{{ t('rlog.type') }}</th>
+        <th style="width:120px">{{ t('rlog.category') }}</th>
+        <th>{{ t('rlog.message') }}</th>
       </tr>
     </thead>
     <tbody>
@@ -64,13 +78,13 @@
         </td>
         <td>
           {% if e.report_type == 'error' %}
-            <span style="color:#dc2626; font-size:12px; font-weight:600;"><span class="mdi mdi-alert-circle-outline"></span> fout</span>
+            <span style="color:#dc2626; font-size:12px; font-weight:600;"><span class="mdi mdi-alert-circle-outline"></span> {{ t('rlog.type_error') }}</span>
           {% elif e.report_type == 'warning' %}
-            <span style="color:#d97706; font-size:12px; font-weight:600;"><span class="mdi mdi-alert-outline"></span> waarschuwing</span>
+            <span style="color:#d97706; font-size:12px; font-weight:600;"><span class="mdi mdi-alert-outline"></span> {{ t('rlog.type_warning') }}</span>
           {% elif e.report_type == 'daily' %}
-            <span style="color:#16a34a; font-size:12px; font-weight:600;"><span class="mdi mdi-calendar-check-outline"></span> dagelijks</span>
+            <span style="color:#16a34a; font-size:12px; font-weight:600;"><span class="mdi mdi-calendar-check-outline"></span> {{ t('rlog.type_daily') }}</span>
           {% else %}
-            <span style="color:#6b7280; font-size:12px;">info</span>
+            <span style="color:#6b7280; font-size:12px;">{{ t('rlog.type_info') }}</span>
           {% endif %}
         </td>
         <td style="font-size:12px; color:#6b7280;">{{ e.category or '—' }}</td>
@@ -84,16 +98,16 @@
   {% if total_pages > 1 %}
   <div style="display:flex; gap:8px; padding:16px; align-items:center; border-top:1px solid #f1f5f9;">
     <span style="font-size:13px; color:#6b7280;">
-      Pagina {{ page }} van {{ total_pages }} ({{ total_count }} regels)
+      {{ t('rlog.page_of', page=page, total=total_pages, count=total_count) }}
     </span>
     <div style="margin-left:auto; display:flex; gap:6px;">
       {% if page > 1 %}
       <a href="{{ nav_url('reportlog') }}?page={{ page - 1 }}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_cat %}&category={{ active_cat }}{% endif %}"
-         class="btn btn-secondary btn-sm"><span class="mdi mdi-chevron-left"></span> Vorige</a>
+         class="btn btn-secondary btn-sm"><span class="mdi mdi-chevron-left"></span> {{ t('rlog.previous') }}</a>
       {% endif %}
       {% if page < total_pages %}
       <a href="{{ nav_url('reportlog') }}?page={{ page + 1 }}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_cat %}&category={{ active_cat }}{% endif %}"
-         class="btn btn-secondary btn-sm">Volgende <span class="mdi mdi-chevron-right"></span></a>
+         class="btn btn-secondary btn-sm">{{ t('rlog.next') }} <span class="mdi mdi-chevron-right"></span></a>
       {% endif %}
     </div>
   </div>
@@ -101,7 +115,7 @@
 
   {% else %}
   <p style="padding:24px; color:#6b7280; font-size:13px;">
-    Geen logregels gevonden.
+    {{ t('rlog.no_entries') }}
   </p>
   {% endif %}
 </div>

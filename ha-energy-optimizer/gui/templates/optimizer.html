@@ -2,8 +2,18 @@
 <!-- name:         optimizer.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/optimizer.html -->
-<!-- part version: p_v0.16 -->
-<!-- altered:      2026-07-30 -->
+<!-- part version: p_v0.17 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.17: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+Namespace thresh.* gebruikt i.p.v. optimizer.* om verwarring met de al
+bestaande optimizer.*-sleutels (voor de batterijplanning-weergave) te
+voorkomen — deze pagina gaat over de drempelwaarde-instellingen.
+p_v0.17: fully converted to t(). Part of backlog item 9/10. Namespace
+thresh.* used instead of optimizer.* to avoid confusion with the
+already-existing optimizer.* keys (for the battery schedule display) —
+this page is about the threshold settings.
+-->
 <!--
 p_v0.16: nieuw kaartje "Off-grid reserve" — instellingen voor de
 dynamische SoC-ondergrens (hoog/laag, nachtdrempel, bevestigingsslots).
@@ -29,38 +39,36 @@ separate hardcoded hex values that happened to look similar. "Inactief"
 {% block title %}Drempelwaarden — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-tune-variant"></span> Optimizer-drempelwaarden</h1>
-<p class="subtitle">Regels voor laad- en ontlaadkeuzes</p>
+<h1><span class="mdi mdi-tune-variant"></span> {{ t('nav.thresholds') }}</h1>
+<p class="subtitle">{{ t('thresh.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.settings_saved') }}</div>
 {% endif %}
 
 <form method="POST">
   <div class="card">
-    <h2><span class="mdi mdi-currency-eur"></span> Prijsdrempelwaarden</h2>
+    <h2><span class="mdi mdi-currency-eur"></span> {{ t('thresh.price_thresholds') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Deze waarden bepalen wanneer het financieel zinvol is de batterij te laden of te ontladen.
+      {{ t('thresh.price_info') }}
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label>Minimale prijs voor ontladen (€/kWh)</label>
+        <label>{{ t('thresh.min_discharge_price') }}</label>
         <input type="number" name="min_discharge_price" step="0.001" min="-1"
                value="{{ config.min_price_to_discharge if config else 0.22 }}">
         <div class="hint">
-          Ontlaad de batterij alleen als de stroomprijs gelijk is aan of hoger dan deze waarde.<br>
-          <em>Voorbeeld: 0.220 = 22 ct/kWh</em>
+          {{ t('thresh.min_discharge_hint')|safe }}
         </div>
       </div>
       <div class="field">
-        <label>Maximale prijs voor laden vanaf net (€/kWh)</label>
+        <label>{{ t('thresh.max_charge_price') }}</label>
         <input type="number" name="max_charge_price" step="0.001" min="-1"
                value="{{ config.max_price_to_charge if config else 0.10 }}">
         <div class="hint">
-          Laad alleen vanaf het net als de stroomprijs gelijk is aan of lager dan deze waarde.<br>
-          <em>Voorbeeld: 0.100 = 10 ct/kWh</em>
+          {{ t('thresh.max_charge_hint')|safe }}
         </div>
       </div>
     </div>
@@ -70,203 +78,190 @@ separate hardcoded hex values that happened to look similar. "Inactief"
         <input type="checkbox" name="price_incl_tax"
                {% if config and config.price_incl_tax %}checked{% endif %}
                {% if provider_incl_tax is not none %}disabled{% endif %}>
-        Prijzen zijn inclusief belasting
+        {{ t('thresh.price_incl_tax') }}
       </label>
       {% if provider_incl_tax is not none %}
       <div class="alert alert-info" style="margin-top:6px; font-size:12.5px;">
         <span class="mdi mdi-link-variant"></span>
         {% if provider_incl_tax %}
-          Automatisch ingesteld op <strong>incl. BTW</strong> op basis van uw leverancier.
-          Wijzig dit op de <a href="{{ nav_url('provider') }}">Leveranciers-pagina</a>.
+          {{ t('thresh.auto_incl', link=nav_url('provider'))|safe }}
         {% else %}
-          Automatisch ingesteld op <strong>excl. BTW</strong> op basis van uw leverancier.
-          Wijzig dit op de <a href="{{ nav_url('provider') }}">Leveranciers-pagina</a>.
+          {{ t('thresh.auto_excl', link=nav_url('provider'))|safe }}
         {% endif %}
       </div>
       {% else %}
       <div class="hint" style="margin-top:4px">
-        Moet overeenkomen met de instelling op de Leveranciers-pagina.
+        {{ t('thresh.must_match_provider') }}
       </div>
       {% endif %}
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-battery-sync-outline"></span> Batterijrendement</h2>
+    <h2><span class="mdi mdi-battery-sync-outline"></span> {{ t('thresh.efficiency') }}</h2>
     <div class="field">
-      <label>Omzettingsrendement (%)</label>
+      <label>{{ t('thresh.conversion_efficiency') }}</label>
       <input type="number" name="battery_efficiency" step="0.5" min="50" max="100"
              value="{{ config.battery_efficiency_pct if config else 75.0 }}">
       <div class="hint">
-        Energie die overblijft na een volledige laad- en ontlaadcyclus.<br>
-        <em>75 = 25% verlies (100 kWh in &rarr; 75 kWh uit)</em>
+        {{ t('thresh.efficiency_hint')|safe }}
       </div>
     </div>
     <div class="field">
-      <label>Harde minimale ontlaadprijs excl. BTW (&euro;/kWh)</label>
+      <label>{{ t('thresh.hard_min_price') }}</label>
       <input type="number" name="hard_min_discharge_price" step="0.001" min="0"
              value="{{ config.hard_min_discharge_price_excl if config else 0.05 }}">
       <div class="hint">
-        Batterij ontlaadt nooit als prijs hieronder ligt, ongeacht overige instellingen.<br>
-        <em>Standaard: 0.050 = 5 ct/kWh excl. BTW</em>
+        {{ t('thresh.hard_min_price_hint')|safe }}
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-currency-eur-off"></span> Batterijafschrijving</h2>
+    <h2><span class="mdi mdi-currency-eur-off"></span> {{ t('thresh.depreciation') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Optioneel. Voegt afschrijvingskosten per kWh toe aan optimizer-berekeningen.<br>
-      Formule: kosten_per_kWh = aanschafprijs / (verwachte_cycli × bruikbare_capaciteit_kWh)
+      {{ t('thresh.depreciation_info')|safe }}
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Aanschafprijs (&euro;)</label>
+        <label>{{ t('thresh.purchase_price') }}</label>
         <input type="number" name="battery_cost_eur" step="100" min="0"
                value="{{ battery.cost_eur if battery and battery.cost_eur else '' }}"
                placeholder="bijv. 3000">
       </div>
       <div class="field">
-        <label>Verwachte laadcycli</label>
+        <label>{{ t('thresh.expected_cycles') }}</label>
         <input type="number" name="expected_cycles" step="100" min="0"
                value="{{ battery.expected_cycles if battery and battery.expected_cycles else '' }}"
                placeholder="bijv. 3000">
-        <div class="hint">Typisch 3000-6000 voor lithium</div>
+        <div class="hint">{{ t('thresh.expected_cycles_hint') }}</div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-battery-outline"></span> Laadtoestand-grenzen</h2>
+    <h2><span class="mdi mdi-battery-outline"></span> {{ t('thresh.soc_limits') }}</h2>
     <div class="field-row">
       <div class="field">
-        <label>Minimale laadtoestand (%)</label>
+        <label>{{ t('thresh.min_soc') }}</label>
         <input type="number" name="min_soc" step="1" min="0" max="40"
                value="{{ battery.min_soc_pct if battery else 10 }}">
         <div class="hint">
-          De optimizer plant nooit een ontlading onder dit niveau.
+          {{ t('thresh.min_soc_hint') }}
         </div>
       </div>
       <div class="field">
-        <label>Maximale laadtoestand (%)</label>
+        <label>{{ t('thresh.max_soc') }}</label>
         <input type="number" name="max_soc" step="1" min="60" max="100"
                value="{{ battery.max_soc_pct if battery else 95 }}">
         <div class="hint">
-          De optimizer plant nooit een lading boven dit niveau.
+          {{ t('thresh.max_soc_hint') }}
         </div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-help-circle-outline"></span> Hoe de optimizer beslist</h2>
+    <h2><span class="mdi mdi-help-circle-outline"></span> {{ t('thresh.how_it_decides') }}</h2>
     <table>
       <thead>
         <tr>
-          <th>Situatie</th>
-          <th>Actie</th>
-          <th>Reden</th>
+          <th>{{ t('thresh.situation') }}</th>
+          <th>{{ t('idx.action') }}</th>
+          <th>{{ t('thresh.reason') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Zonne-overschot + batterij niet vol</td>
-          <td><span style="color:{{ colors.solar_charge if colors else '#16a34a' }};font-weight:500"><span class="mdi mdi-arrow-up-bold"></span> Opladen</span></td>
-          <td>Gratis zonne-energie</td>
+          <td>{{ t('thresh.situation_solar_surplus') }}</td>
+          <td><span style="color:{{ colors.solar_charge if colors else '#16a34a' }};font-weight:500"><span class="mdi mdi-arrow-up-bold"></span> {{ t('battery.action.charge') }}</span></td>
+          <td>{{ t('thresh.reason_free_solar') }}</td>
         </tr>
         <tr>
-          <td>Prijs ≥ minimale ontlaadprijs</td>
-          <td><span style="color:{{ colors.discharge if colors else '#b45309' }};font-weight:500"><span class="mdi mdi-arrow-down-bold"></span> Ontladen naar het net</span></td>
-          <td>Hoge prijs — opgeslagen energie verkopen</td>
+          <td>{{ t('thresh.situation_price_high') }}</td>
+          <td><span style="color:{{ colors.discharge if colors else '#b45309' }};font-weight:500"><span class="mdi mdi-arrow-down-bold"></span> {{ t('battery.action.discharge_to_grid') }}</span></td>
+          <td>{{ t('thresh.reason_high_price_sell') }}</td>
         </tr>
         <tr>
-          <td>Prijs ≤ maximale laadprijs</td>
-          <td><span style="color:{{ colors.charge if colors else '#1d4ed8' }};font-weight:500"><span class="mdi mdi-transmission-tower"></span> Laden van het net</span></td>
-          <td>Lage prijs — goedkope energie inkopen</td>
+          <td>{{ t('thresh.situation_price_low') }}</td>
+          <td><span style="color:{{ colors.charge if colors else '#1d4ed8' }};font-weight:500"><span class="mdi mdi-transmission-tower"></span> {{ t('battery.action.charge_from_grid') }}</span></td>
+          <td>{{ t('thresh.reason_low_price_buy') }}</td>
         </tr>
         <tr>
-          <td>Geen duidelijk voordeel</td>
-          <td><span style="color:#6b7280;font-weight:500"><span class="mdi mdi-minus"></span> Inactief</span></td>
-          <td>Batterij rust</td>
+          <td>{{ t('thresh.situation_no_advantage') }}</td>
+          <td><span style="color:#6b7280;font-weight:500"><span class="mdi mdi-minus"></span> {{ t('thresh.action_idle') }}</span></td>
+          <td>{{ t('thresh.reason_battery_rests') }}</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-white-balance-sunny"></span> Zon-laaddrempel</h2>
+    <h2><span class="mdi mdi-white-balance-sunny"></span> {{ t('thresh.solar_threshold') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Laden van het net wordt geblokkeerd wanneer verwachte zonopbrengst deze fractie van de bruikbare capaciteit overschrijdt.
+      {{ t('thresh.solar_threshold_info') }}
     </div>
     <div class="field">
-      <label>Zon-laaddrempel (0,0 – 1,0)</label>
+      <label>{{ t('thresh.solar_threshold_label') }}</label>
       <input type="number" name="solar_charge_threshold" step="0.05" min="0.0" max="1.0"
              value="{{ config.solar_charge_threshold if config and config.solar_charge_threshold else 0.80 }}">
       <div class="hint">
-        0,80 = blokkeer nettoladen als zon ≥ 80% van bruikbare capaciteit.<br>
-        <em>Voorbeeld: 15,55 kWh × 0,80 = 12,44 kWh verwachte zon → geen nettoladen</em>
+        {{ t('thresh.solar_threshold_hint')|safe }}
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-power-plug-off-outline"></span> Off-grid reserve</h2>
+    <h2><span class="mdi mdi-power-plug-off-outline"></span> {{ t('thresh.offgrid_reserve') }}</h2>
     {% if config and config.has_offgrid_switch %}
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Actief. De batterij-ondergrens schuift automatisch tussen de hoge (dag) en lage
-      (nacht) waarde hieronder — de vaste "Minimale laadtoestand" hierboven wordt dan niet
-      meer gebruikt als dagelijkse ondergrens.
+      {{ t('thresh.offgrid_active_info') }}
     </div>
     {% else %}
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Niet actief — vink "Off-grid schakeling" aan op de
-      <a href="{{ nav_url('system') }}">Systeem-pagina</a> om dit te gebruiken.
-      Tot die tijd geldt gewoon de vaste "Minimale laadtoestand" hierboven, zoals nu.
+      {{ t('thresh.offgrid_inactive_info', link=nav_url('system'))|safe }}
     </div>
     {% endif %}
     <div class="field-row">
       <div class="field">
-        <label>Ondergrens overdag (%)</label>
+        <label>{{ t('thresh.floor_day') }}</label>
         <input type="number" name="offgrid_reserve_high" step="0.5" min="0" max="100"
                value="{{ config.offgrid_reserve_high_pct if config and config.offgrid_reserve_high_pct is not none else 10 }}">
-        <div class="hint">Vanaf zonsopkomst + 1 uur.</div>
+        <div class="hint">{{ t('thresh.floor_day_hint') }}</div>
       </div>
       <div class="field">
-        <label>Ondergrens 's nachts (%)</label>
+        <label>{{ t('thresh.floor_night') }}</label>
         <input type="number" name="offgrid_reserve_low" step="0.5" min="0" max="100"
                value="{{ config.offgrid_reserve_low_pct if config and config.offgrid_reserve_low_pct is not none else 5 }}">
-        <div class="hint">Vanaf begin geleerd nachtverbruik + 1 uur.</div>
+        <div class="hint">{{ t('thresh.floor_night_hint') }}</div>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Nachtdrempel (% van daggemiddelde)</label>
+        <label>{{ t('thresh.night_threshold') }}</label>
         <input type="number" name="offgrid_night_threshold" step="1" min="1" max="99"
                value="{{ config.offgrid_night_threshold_pct if config and config.offgrid_night_threshold_pct is not none else 50 }}">
         <div class="hint">
-          Een kwartier-slot telt als "nacht" zodra het geleerde gemiddelde verbruik
-          onder dit percentage van het daggemiddelde zakt.
+          {{ t('thresh.night_threshold_hint') }}
         </div>
       </div>
       <div class="field">
-        <label>Bevestiging (aantal kwartier-slots)</label>
+        <label>{{ t('thresh.confirm_slots') }}</label>
         <input type="number" name="offgrid_night_confirm_slots" step="1" min="1" max="32"
                value="{{ config.offgrid_night_confirm_slots if config and config.offgrid_night_confirm_slots is not none else 8 }}">
         <div class="hint">
-          Zoveel opeenvolgende slots moeten onder de nachtdrempel blijven voor het als
-          "begin nacht" telt. 8 = 2 uur. Voorkomt dat een toevallige avonddip als nacht
-          wordt gezien.
+          {{ t('thresh.confirm_slots_hint') }}
         </div>
       </div>
     </div>
   </div>
 
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
     </div>
 </form>
 {% endblock %}

@@ -2,98 +2,29 @@
 <!-- name:         dashboard.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/dashboard.html -->
-<!-- part version: p_v1.7 -->
-<!-- altered:      2026-08-11 -->
+<!-- part version: p_v1.8 -->
+<!-- altered:      2026-09-09 -->
 <!--
-p_v1.7: schema-tabel: kolom "Besparing" hernoemd naar "Kosten" (was al
-zo genoemd in history.html) — een besparing per slot is misleidend, het
-werkelijke beeld ontstaat pas als alles bij elkaar wordt opgeteld in
-Energiekosten. Kosten nu rood met minteken, opbrengst (ontladen) groen,
-zelfde patroon als history.html. Uitgebreid met het nieuwe
-grid_consume_kw-veld (netverbruik tijdens rust, SoC-vloer bereikt — zie
-migratie 021) — telt nu ook mee als kosten, en krijgt een eigen label
-"Verbruik van het net" i.p.v. "Rust". Tevens een labelfout gecorrigeerd:
-een laadactie werd altijd "Laden van het net" genoemd, ook als
-is_solar_charge/grid_charge_kw aangaven dat het volledig uit zon-overschot
-kwam — nu conditioneel. Geen wijziging aan de grafieken (Grafiek 1/2), op
-uitdrukkelijk verzoek — alleen de tabel.
-p_v1.7: schedule table: column "Besparing" (saving) renamed to "Kosten"
-(cost) (already named that way in history.html) — a per-slot saving is
-misleading, the real picture only emerges once everything is summed in
-Energy costs. Cost now red with a minus sign, revenue (discharge) green,
-same pattern as history.html. Extended with the new grid_consume_kw field
-(grid consumption during idle, SoC floor reached — see migration 021) —
-now also counts as a cost, and gets its own label "Verbruik van het net"
-instead of "Rust". Also fixed a labeling bug: a charge action was always
-called "Laden van het net", even when is_solar_charge/grid_charge_kw
-showed it came entirely from solar surplus — now conditional. No change
-to the charts (Chart 1/2), per explicit request — table only.
--->
-<!--
-p_v1.6: COLORS.charge wijst nu naar de nieuwe, eigen instelling
-colors.charge i.p.v. colors.import_kw ("Netafname") te hergebruiken —
-zie colors.html p_v0.7.
-p_v1.6: COLORS.charge now points to the new, dedicated colors.charge
-setting instead of reusing colors.import_kw ("Netafname") — see
-colors.html p_v0.7.
--->
-<!--
-p_v1.5: Grafiek 2-labels uniform gemaakt met Grafiek 1: "Verbruik" →
-"Eigen verbruik", "Netafname" → "Laden van het net", "Teruglevering" →
-"Ontladen naar het net". Let op: de onderliggende data blijft gemeten
-netstroom (incl. huishoudverbruik buiten batterij om), niet specifiek
-batterij-acties zoals in Grafiek 1 — bewuste naamkeuze voor uniformiteit.
-p_v1.5: Chart 2 labels made uniform with Chart 1: "Verbruik" → "Eigen
-verbruik", "Netafname" → "Laden van het net", "Teruglevering" → "Ontladen
-naar het net". Note: the underlying data remains measured grid flow
-(including household consumption outside the battery), not specifically
-battery actions as in Chart 1 — deliberate naming choice for uniformity.
--->
-<!--
-p_v1.4: Grafiek 2 (Gemeten waarden) krijgt dezelfde klikbare, gevuld-
-rondje legenda als Grafiek 1 — statische HTML-legenda vervangen door
-Chart.js' eigen legenda. En passant "Verbruik gemeten" losgekoppelde
-hardcoded #6366f1 weggehaald (zat in de nu verwijderde statische legenda).
-Grafiek 3 (prijzen) bewust ongewijzigd — komt aan bod bij de in/verkoop-
-prijs-uitbreiding.
-p_v1.4: Chart 2 (Measured values) gets the same clickable, filled-dot
-legend as Chart 1 — static HTML legend replaced by Chart.js' own legend.
-Also removed a stray hardcoded #6366f1 for "Verbruik gemeten" (was in the
-now-removed static legend). Chart 3 (prices) deliberately unchanged — will
-be addressed with the buy/sell price extension.
--->
-<!--
-p_v1.3: Positief/Negatief (besparing/kosten) nu instelbaar i.p.v. hardcoded
-— zie colors.html. Terzelfdertijd twee losstaande categorie-fouten
-gecorrigeerd die opvielen tijdens dit werk: de actie-labels "Laden"/
-"Ontladen"/"Zelf verbruik" in de schema-tabel en de "Ontladen"-legenda bij
-Grafiek 3 gebruikten losse hex-waarden die toevallig op de juiste kleur
-leken i.p.v. daadwerkelijk aan colors.import_kw/discharge/solar_charge
-gekoppeld te zijn.
-p_v1.3: Positive/Negative (saving/cost) now configurable instead of
-hardcoded — see colors.html. Also fixed two separate category mismatches
-noticed along the way: the "Laden"/"Ontladen"/"Zelf verbruik" action labels
-in the schedule table and the "Ontladen" legend on Chart 3 used separate
-hex values that happened to look like the right color instead of actually
-being tied to colors.import_kw/discharge/solar_charge.
--->
-<!--
-p_v1.2: Grafiek 1 herzien op verzoek:
-  - "Nettoladen" was verwarrend (klonk als "net laden" = vanaf het net,
-    maar toonde ELKE laadactie inclusief zon-laden). Nu opgesplitst in
-    "Laden van het net" (balk, alleen het net-gevoede deel) en
-    "Netto laden" (lijn, het totaal — zon + net), zie migratie 016.
-  - "Verbruik" hernoemd naar "Eigen verbruik".
-  - Statische, niet-klikbare HTML-legenda vervangen door Chart.js' eigen
-    interactieve legenda — klik op een label om die reeks te verbergen/tonen.
-p_v1.2: Chart 1 revised per request:
-  - "Nettoladen" (net charging) was confusing — sounded like "grid
-    charging" but showed EVERY charge action including solar-charging. Now
-    split into "Laden van het net" (bar, only the grid-fed portion) and
-    "Netto laden" (line, the total — solar + grid), see migration 016.
-  - "Verbruik" renamed to "Eigen verbruik".
-  - Static, non-clickable HTML legend replaced by Chart.js' own interactive
-    legend — click a label to hide/show that series.
+p_v1.8: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+Bilinguale combinaties ("Tijdstip / Time", "Vandaag / Today") vervangen
+door één vertaalde tekst per taal. Alle labels die eerder als JS-
+stringliteral in de Chart.js-config of tabel-opbouw stonden komen nu uit
+één centraal T-object, gevuld via {{ t('key')|tojson }}. 'nl-NL'
+toLocaleTimeString-locale nu gekoppeld aan de actieve taal.
+LET OP: eerdere changelog-regels (p_v1.2 t/m p_v1.7) zijn hier bewust
+ingekort tot deze ene notitie om het bestand behapbaar te houden — de
+functionele geschiedenis staat nog volledig in eerdere versies van dit
+bestand / in de gespreksgeschiedenis met Claude.
+p_v1.8: fully converted to t(). Part of backlog item 9/10. Bilingual
+combinations ("Tijdstip / Time", "Vandaag / Today") replaced with a
+single translated text per language. All labels that previously sat as
+JS string literals in the Chart.js config or table-building code now
+come from one central T object, filled via {{ t('key')|tojson }}. The
+'nl-NL' toLocaleTimeString locale is now tied to the active language.
+NOTE: earlier changelog entries (p_v1.2 through p_v1.7) are deliberately
+condensed to this one note to keep the file manageable — the functional
+history is still fully preserved in earlier versions of this file / in
+the conversation history with Claude.
 -->
 {% block title %}Dashboard — HA Energy Optimizer{% endblock %}
 {% block content %}
@@ -112,8 +43,6 @@ p_v1.2: Chart 1 revised per request:
   }
 </style>
 <script>
-  // Expose colors to JavaScript for Chart.js datasets
-  // Kleuren beschikbaar stellen aan JavaScript voor Chart.js datasets
   const COLORS = {
     solar:       "{{ colors.solar }}",
     consume:     "{{ colors.consume }}",
@@ -126,55 +55,87 @@ p_v1.2: Chart 1 revised per request:
     positive:    "{{ colors.positive }}",
     negative:    "{{ colors.negative }}",
   };
+
+  const T = {
+    loading:            {{ t('general.loading')|tojson }},
+    refreshing:         {{ t('dash.status_refreshing')|tojson }},
+    error:              {{ t('dash.status_error')|tojson }},
+    updatedAt:          {{ t('dash.status_updated_at')|tojson }},
+    today:              {{ t('dash.today')|tojson }},
+    tomorrow:           {{ t('dash.tomorrow')|tojson }},
+    tomorrowArrow:      {{ t('dash.tomorrow_arrow')|tojson }},
+    noSchedule:         {{ t('dash.no_schedule')|tojson }},
+    colTime:            {{ t('dash.col_time')|tojson }},
+    colAction:          {{ t('dash.col_action')|tojson }},
+    colPower:           {{ t('dash.col_power')|tojson }},
+    colPrice:           {{ t('dash.col_price_col')|tojson }},
+    colSolar:           {{ t('dash.col_solar_col')|tojson }},
+    colCost:            {{ t('dash.col_cost')|tojson }},
+    chargeFromSolar:    {{ t('dash.charge_from_solar')|tojson }},
+    chargeFromGrid:     {{ t('dash.charge_from_grid')|tojson }},
+    dischargeToGrid:    {{ t('dash.discharge_to_grid')|tojson }},
+    selfConsume:        {{ t('dash.self_consume')|tojson }},
+    gridConsumption:    {{ t('dash.grid_consumption_action')|tojson }},
+    rest:               {{ t('dash.rest')|tojson }},
+    legendSolar:        {{ t('dash.legend_solar')|tojson }},
+    legendOwnConsumption: {{ t('dash.legend_own_consumption')|tojson }},
+    legendChargeGrid:   {{ t('dash.legend_charge_grid')|tojson }},
+    legendDischargeGrid:{{ t('dash.legend_discharge_grid')|tojson }},
+    legendNetCharge:    {{ t('dash.legend_net_charge')|tojson }},
+    legendSoc:          {{ t('dash.legend_soc')|tojson }},
+    legendPrice:        {{ t('dash.legend_price')|tojson }},
+  };
+  const LOCALE_MAP = {nl:'nl-NL', en:'en-US', de:'de-DE', es:'es-ES', fr:'fr-FR'};
+  const ACTIVE_LOCALE = LOCALE_MAP[{{ active_language|tojson }}] || 'en-US';
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-  <h1 style="margin-bottom:0;"><span class="mdi mdi-view-dashboard"></span> Dashboard</h1>
+  <h1 style="margin-bottom:0;"><span class="mdi mdi-view-dashboard"></span> {{ t('nav.dashboard') }}</h1>
   <div style="display:flex; align-items:center; gap:12px;">
     <span id="refresh-countdown" style="font-size:12px; color:#94a3b8;"></span>
-    <button id="refresh-btn" class="btn btn-secondary btn-sm">&#8635; Refresh</button>
+    <button id="refresh-btn" class="btn btn-secondary btn-sm">&#8635; {{ t('dash.refresh_button') }}</button>
   </div>
 </div>
-<p class="subtitle">Live energie-overzicht — 48 uur</p>
-<div id="status-bar" style="font-size:12px; color:#6b7280; margin-bottom:12px;">Laden...</div>
+<p class="subtitle">{{ t('dash.subtitle') }}</p>
+<div id="status-bar" style="font-size:12px; color:#6b7280; margin-bottom:12px;">{{ t('general.loading') }}</div>
 
 <!-- Live tiles -->
 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:20px;">
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
-    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Prijs nu</div>
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">{{ t('dash.price_now') }}</div>
     <div id="val-price" style="font-size:24px; font-weight:700; margin:4px 0;">—</div>
     <div style="font-size:10px; color:#6b7280;">€/kWh</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;
     {% if system_config and not system_config.has_solar_panels %}opacity:0.35; filter:grayscale(1);{% endif %}">
-    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Zonne-energie</div>
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">{{ t('dash.solar_energy') }}</div>
     <div id="val-solar" style="font-size:24px; font-weight:700; color:var(--c-solar); margin:4px 0;">
       {% if system_config and not system_config.has_solar_panels %}n/a{% else %}—{% endif %}
     </div>
     <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
-    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Netafname</div>
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">{{ t('dash.grid_import_tile') }}</div>
     <div id="val-import" style="font-size:24px; font-weight:700; color:var(--c-import); margin:4px 0;">—</div>
     <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
-    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Teruglevering</div>
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">{{ t('dash.grid_export_tile') }}</div>
     <div id="val-export" style="font-size:24px; font-weight:700; color:var(--c-export); margin:4px 0;">—</div>
     <div style="font-size:10px; color:#6b7280;">kW</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;
     {% if system_config and not system_config.has_battery %}opacity:0.35; filter:grayscale(1);{% endif %}">
-    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Batterij SoC</div>
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">{{ t('colors.battery_soc') }}</div>
     <div id="val-soc" style="font-size:24px; font-weight:700; color:var(--c-soc); margin:4px 0;">
       {% if system_config and not system_config.has_battery %}n/a{% else %}—{% endif %}
     </div>
     <div style="font-size:10px; color:#6b7280;">%</div>
   </div>
   <div class="card" style="padding:14px; text-align:center; margin-bottom:0;">
-    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">Besparing vandaag</div>
+    <div style="font-size:10px; color:#6b7280; text-transform:uppercase;">{{ t('report.daily.saving_today') }}</div>
     <div id="val-saving" style="font-size:24px; font-weight:700; color:{{ colors.positive }}; margin:4px 0;">—</div>
     <div style="font-size:10px; color:#6b7280;">€</div>
   </div>
@@ -182,27 +143,27 @@ p_v1.2: Chart 1 revised per request:
 
 <!-- Today summary -->
 <div class="card">
-  <h2>Vandaag / Today</h2>
+  <h2>{{ t('dash.today') }}</h2>
   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; font-size:13px;">
     <div style="{% if system_config and not system_config.has_solar_panels %}opacity:0.35;{% endif %}">
-      <div style="color:#6b7280; margin-bottom:3px;">Zonopbrengst</div>
+      <div style="color:#6b7280; margin-bottom:3px;">{{ t('report.daily.solar_yield') }}</div>
       <div id="today-solar" style="font-weight:600;">{% if system_config and not system_config.has_solar_panels %}n/a{% else %}— kWh{% endif %}</div>
     </div>
-    <div><div style="color:#6b7280; margin-bottom:3px;">Netafname</div>
+    <div><div style="color:#6b7280; margin-bottom:3px;">{{ t('dash.grid_import_tile') }}</div>
          <div id="today-import" style="font-weight:600;">— kWh</div></div>
-    <div><div style="color:#6b7280; margin-bottom:3px;">Teruglevering</div>
+    <div><div style="color:#6b7280; margin-bottom:3px;">{{ t('dash.grid_export_tile') }}</div>
          <div id="today-export" style="font-weight:600;">— kWh</div></div>
-    <div><div style="color:#6b7280; margin-bottom:3px;">Verwachte besparing</div>
+    <div><div style="color:#6b7280; margin-bottom:3px;">{{ t('optimizer.expected_saving') }}</div>
          <div id="today-saving" style="font-weight:600;">— €</div></div>
   </div>
 </div>
 
 <!-- Grafiek 1: Verwachting 48h -->
 <div class="card">
-  <h2><span class="mdi mdi-chart-timeline-variant"></span> Grafiek 1 — Verwachting 48 uur</h2>
+  <h2><span class="mdi mdi-chart-timeline-variant"></span> {{ t('dash.chart1_title') }}</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
-    Verwacht zon, verbruik en acties
-    <span style="margin-left:12px; color:#94a3b8;">| Verticale lijn = nu | Klik op de legenda om een reeks te verbergen/tonen</span>
+    {{ t('dash.chart1_desc') }}
+    <span style="margin-left:12px; color:#94a3b8;">{{ t('dash.chart_hint_now') }}</span>
   </p>
   <div style="position:relative; height:220px; overflow-x:auto;">
     <canvas id="chart-forecast"></canvas>
@@ -211,10 +172,10 @@ p_v1.2: Chart 1 revised per request:
 
 <!-- Grafiek 2: Gemeten 48h -->
 <div class="card">
-  <h2><span class="mdi mdi-gauge"></span> Grafiek 2 — Gemeten waarden</h2>
+  <h2><span class="mdi mdi-gauge"></span> {{ t('dash.chart2_title') }}</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
-    Werkelijke metingen — toekomstige uren = 0
-    <span style="margin-left:12px; color:#94a3b8;">| Klik op de legenda om een reeks te verbergen/tonen</span>
+    {{ t('dash.chart2_desc') }}
+    <span style="margin-left:12px; color:#94a3b8;">{{ t('dash.chart_hint_click') }}</span>
   </p>
   <div style="position:relative; height:200px; overflow-x:auto;">
     <canvas id="chart-measured"></canvas>
@@ -223,71 +184,68 @@ p_v1.2: Chart 1 revised per request:
 
 <!-- Grafiek 3: Energiekosten 48h -->
 <div class="card">
-  <h2><span class="mdi mdi-currency-eur"></span> Grafiek 3 — Energieprijs 48 uur</h2>
+  <h2><span class="mdi mdi-currency-eur"></span> {{ t('dash.chart3_title') }}</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
-    Prijs per uur in € — negatief = opbrengst
+    {{ t('dash.chart3_desc') }}
   </p>
   <div style="position:relative; height:200px; overflow-x:auto;">
     <canvas id="chart-prices"></canvas>
   </div>
   <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#6b7280; flex-wrap:wrap;">
-    <span style="color:var(--c-charge);">&#9646; Laden van het net</span>
-    <span style="color:var(--c-discharge);">&#9646; Ontladen naar het net</span>
-    <span style="color:var(--c-solar-charge);">&#9646; Zonne-lading</span>
-    <span style="color:#6b7280;">&#9646; Rust</span>
+    <span style="color:var(--c-charge);">&#9646; {{ t('dash.charge_from_grid') }}</span>
+    <span style="color:var(--c-discharge);">&#9646; {{ t('dash.discharge_to_grid') }}</span>
+    <span style="color:var(--c-solar-charge);">&#9646; {{ t('colors.solar_charge') }}</span>
+    <span style="color:#6b7280;">&#9646; {{ t('dash.rest') }}</span>
   </div>
 </div>
 
 <!-- Schedule tabel 48h / Schedule table 48h -->
 <div class="card">
-  <h2><span class="mdi mdi-table-clock"></span> Optimizer schema — 48 uur</h2>
+  <h2><span class="mdi mdi-table-clock"></span> {{ t('dash.schedule_title') }}</h2>
   <div id="schedule-table-wrap">
-    <p style="font-size:13px; color:#6b7280;">Laden...</p>
+    <p style="font-size:13px; color:#6b7280;">{{ t('general.loading') }}</p>
   </div>
 </div>
 
 <script>
 (function() {
   'use strict';
-  const BASE      = "{{ ingress_path }}";
-  const REFRESH_S = {{ refresh_seconds }};
-  let charts      = {};
-  let remaining   = REFRESH_S;
+  var BASE      = "{{ ingress_path }}";
+  var REFRESH_S = {{ refresh_seconds }};
+  var charts      = {};
+  var remaining   = REFRESH_S;
 
-  // ── Color helper / Kleurhulpfunctie ──────────────────────────────────────
   function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1,3), 16);
-    const g = parseInt(hex.slice(3,5), 16);
-    const b = parseInt(hex.slice(5,7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
+    var r = parseInt(hex.slice(1,3), 16);
+    var g = parseInt(hex.slice(3,5), 16);
+    var b = parseInt(hex.slice(5,7), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
   }
 
-  // ── Fetch ───────────────────────────────────────────────────────────────────
   async function loadData() {
-    document.getElementById('status-bar').textContent = 'Vernieuwen...';
+    document.getElementById('status-bar').textContent = T.refreshing;
     try {
       const resp = await fetch(BASE + '/api/dashboard-data', {credentials: 'include'});
-      if (!resp.ok) { document.getElementById('status-bar').textContent = 'Fout: HTTP ' + resp.status; return; }
+      if (!resp.ok) { document.getElementById('status-bar').textContent = T.error + 'HTTP ' + resp.status; return; }
       const d = await resp.json();
-      if (d.error) { document.getElementById('status-bar').textContent = 'Fout: ' + d.error; return; }
+      if (d.error) { document.getElementById('status-bar').textContent = T.error + d.error; return; }
 
       updateLive(d.live   || {});
       updateToday(d.today || {});
       build48hCharts(d.prices || [], d.schedule || [], d.measured || []);
       updateScheduleTable(d.schedule || []);
       remaining = REFRESH_S;
-      const now = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
-      document.getElementById('status-bar').textContent = 'Bijgewerkt om ' + now;
+      var now = new Date().toLocaleTimeString(ACTIVE_LOCALE, {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('status-bar').textContent = T.updatedAt + now;
     } catch(e) {
-      document.getElementById('status-bar').textContent = 'Fout: ' + e.message;
+      document.getElementById('status-bar').textContent = T.error + e.message;
     }
   }
 
-  // ── Live tiles ──────────────────────────────────────────────────────────────
   function updateLive(live) {
-    const price = live.current_price;
+    var price = live.current_price;
     if (price != null) {
-      const el = document.getElementById('val-price');
+      var el = document.getElementById('val-price');
       el.textContent = price.toFixed(5);
       el.style.color = price < 0 ? '#ef4444' : price < 0.05 ? '#f59e0b' : '#0f172a';
     }
@@ -301,7 +259,6 @@ p_v1.2: Chart 1 revised per request:
     {% endif %}
   }
 
-  // ── Today summary ───────────────────────────────────────────────────────────
   function updateToday(t) {
     {% if not system_config or system_config.has_solar_panels %}
     if (t.solar_kwh  != null) document.getElementById('today-solar').textContent  = t.solar_kwh.toFixed(2)  + ' kWh';
@@ -309,88 +266,71 @@ p_v1.2: Chart 1 revised per request:
     if (t.import_kwh != null) document.getElementById('today-import').textContent = t.import_kwh.toFixed(2) + ' kWh';
     if (t.export_kwh != null) document.getElementById('today-export').textContent = t.export_kwh.toFixed(2) + ' kWh';
     if (t.expected_saving != null) {
-      const s = t.expected_saving;
-      const el = document.getElementById('val-saving');
+      var s = t.expected_saving;
+      var el = document.getElementById('val-saving');
       el.textContent = (s >= 0 ? '+' : '') + s.toFixed(2);
       el.style.color = s >= 0 ? COLORS.positive : COLORS.negative;
       document.getElementById('today-saving').textContent = (s >= 0 ? '+' : '') + s.toFixed(4) + ' €';
     }
   }
 
-  // ── Schedule tabel / Schedule table ───────────────────────────────────────
   function updateScheduleTable(schedule) {
-    const wrap = document.getElementById('schedule-table-wrap');
+    var wrap = document.getElementById('schedule-table-wrap');
     if (!schedule.length) {
-      wrap.innerHTML = '<p style="font-size:13px; color:#6b7280;">Geen schema beschikbaar / No schedule available.</p>';
+      wrap.innerHTML = '<p style="font-size:13px; color:#6b7280;">' + T.noSchedule + '</p>';
       return;
     }
 
-    // p_v1.7: label nu een functie i.p.v. statische lookup — een
-    // laadactie kan volledig uit zon komen (is_solar_charge, geen
-    // grid_charge_kw) en een rust-slot kan alsnog netverbruik hebben
-    // (grid_consume_kw, SoC-vloer bereikt) — beide hadden voorheen altijd
-    // hetzelfde label, ongeacht die velden.
-    // p_v1.7: label is now a function instead of a static lookup — a
-    // charge action can come entirely from solar (is_solar_charge, no
-    // grid_charge_kw) and an idle slot can still have grid consumption
-    // (grid_consume_kw, SoC floor reached) — both previously always got
-    // the same label, regardless of those fields.
     function actionLabel(s) {
       if (s.action === 'charge') {
         if (s.is_solar_charge && !(s.grid_charge_kw > 0)) {
-          return '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; Laden van zon</span>';
+          return '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; ' + T.chargeFromSolar + '</span>';
         }
-        return '<span style="color:' + COLORS.charge + '; font-weight:600;">&#8593; Laden van het net</span>';
+        return '<span style="color:' + COLORS.charge + '; font-weight:600;">&#8593; ' + T.chargeFromGrid + '</span>';
       }
       if (s.action === 'discharge') {
-        return '<span style="color:' + COLORS.discharge + '; font-weight:600;">&#8595; Ontladen naar het net</span>';
+        return '<span style="color:' + COLORS.discharge + '; font-weight:600;">&#8595; ' + T.dischargeToGrid + '</span>';
       }
       if (s.action === 'self_consume') {
-        return '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; Zelf verbruik</span>';
+        return '<span style="color:' + COLORS.solarCharge + '; font-weight:600;">&#9728; ' + T.selfConsume + '</span>';
       }
       if (s.action === 'idle' && s.grid_consume_kw > 0) {
-        return '<span style="color:' + COLORS.negative + '; font-weight:600;">&#9889; Verbruik van het net</span>';
+        return '<span style="color:' + COLORS.negative + '; font-weight:600;">&#9889; ' + T.gridConsumption + '</span>';
       }
-      return '<span style="color:#6b7280;">&#8212; Rust</span>';
+      return '<span style="color:#6b7280;">&#8212; ' + T.rest + '</span>';
     }
 
-    let html = '<table><thead><tr>'
-      + '<th style="width:110px">Tijdstip / Time</th>'
-      + '<th style="width:130px">Actie / Action</th>'
-      + '<th style="width:80px">Vermogen / Power</th>'
-      + '<th style="width:80px">Prijs / Price</th>'
+    var html = '<table><thead><tr>'
+      + '<th style="width:110px">' + T.colTime + '</th>'
+      + '<th style="width:130px">' + T.colAction + '</th>'
+      + '<th style="width:80px">' + T.colPower + '</th>'
+      + '<th style="width:80px">' + T.colPrice + '</th>'
       + '<th style="width:70px">SoC %</th>'
-      + '<th style="width:70px">Zon / Solar</th>'
-      + '<th>Kosten / Cost</th>'
+      + '<th style="width:70px">' + T.colSolar + '</th>'
+      + '<th>' + T.colCost + '</th>'
       + '</tr></thead><tbody>';
 
-    let lastDay = null;
-    schedule.forEach(s => {
+    var lastDay = null;
+    schedule.forEach(function(s) {
       if (s.day !== lastDay) {
-        const dayLabel = s.day === schedule[0].day ? 'Vandaag / Today' : 'Morgen / Tomorrow';
+        var dayLabel = s.day === schedule[0].day ? T.today : T.tomorrow;
         html += '<tr><td colspan="7" style="background:#f1f5f9; font-size:11px; font-weight:700;'
               + ' color:#475569; padding:6px 12px; text-transform:uppercase; letter-spacing:.05em;">'
               + dayLabel + ' — ' + s.day + '</td></tr>';
         lastDay = s.day;
       }
-      const isNetVerbruik = s.action === 'idle' && s.grid_consume_kw > 0;
-      const rowBg = s.action === 'charge' ? 'background:#f0fdf4;'
+      var isNetVerbruik = s.action === 'idle' && s.grid_consume_kw > 0;
+      var rowBg = s.action === 'charge' ? 'background:#f0fdf4;'
                   : s.action === 'discharge' ? 'background:#fef2f2;'
                   : s.action === 'self_consume' ? 'background:#fffbeb;'
                   : isNetVerbruik ? 'background:#fef2f2;' : '';
-      // p_v1.7: "Kosten" i.p.v. "Besparing" — kosten (laden van het net,
-      // netverbruik tijdens rust) rood met minteken, opbrengst (ontladen)
-      // groen. Zelfde patroon als history.html.
-      // p_v1.7: "Cost" instead of "Saving" — costs (charging from the
-      // grid, grid consumption during idle) red with a minus sign,
-      // revenue (discharging) green. Same pattern as history.html.
-      const netKosten = s.action === 'charge'    ? (s.cost > 0 ? -s.cost : 0)
+      var netKosten = s.action === 'charge'    ? (s.cost > 0 ? -s.cost : 0)
                        : s.action === 'discharge' ? (s.saving || 0)
                        : isNetVerbruik          ? (s.cost > 0 ? -s.cost : 0)
                        : 0;
-      const kostenStr = netKosten !== 0 ? (netKosten >= 0 ? '+' : '') + netKosten.toFixed(4) + ' €' : '—';
-      const kostenKleur = netKosten > 0 ? COLORS.positive : netKosten < 0 ? COLORS.negative : '#6b7280';
-      const powerStr = s.power_kw ? s.power_kw.toFixed(2) + ' kW'
+      var kostenStr = netKosten !== 0 ? (netKosten >= 0 ? '+' : '') + netKosten.toFixed(4) + ' €' : '—';
+      var kostenKleur = netKosten > 0 ? COLORS.positive : netKosten < 0 ? COLORS.negative : '#6b7280';
+      var powerStr = s.power_kw ? s.power_kw.toFixed(2) + ' kW'
                       : isNetVerbruik ? s.grid_consume_kw.toFixed(2) + ' kW' : '—';
       html += '<tr style="' + rowBg + '">'
             + '<td style="font-size:13px; font-weight:500;">' + s.hour_only + '</td>'
@@ -407,85 +347,61 @@ p_v1.2: Chart 1 revised per request:
     wrap.innerHTML = html;
   }
 
-  // ── Build 48h aligned charts ────────────────────────────────────────────────
   function build48hCharts(prices, schedule, measured) {
-    // Build complete 48-hour label array (today 00:00 to tomorrow 23:00)
-    // Bouw een volledig 48-uurs labelarray (vandaag 00:00 tot morgen 23:00)
-    const today    = new Date();
+    var today    = new Date();
     today.setHours(0, 0, 0, 0);
-    const labels48 = [];
-    const days48   = [];
-    for (let i = 0; i < 48; i++) {
-      const d = new Date(today.getTime() + i * 3600000);
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const hh = String(d.getHours()).padStart(2, '0');
+    var labels48 = [];
+    var days48   = [];
+    for (var i = 0; i < 48; i++) {
+      var d = new Date(today.getTime() + i * 3600000);
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var dd = String(d.getDate()).padStart(2, '0');
+      var hh = String(d.getHours()).padStart(2, '0');
       labels48.push(hh + ':00');
       days48.push(d.getFullYear() + '-' + mm + '-' + dd);
     }
 
-    // Find current hour index for vertical "now" line
-    const nowHour = new Date().getHours();
-    const nowIndex = nowHour; // today's hours are index 0-23
+    var nowHour = new Date().getHours();
+    var nowIndex = nowHour;
 
-    // Build lookup maps / Bouw opzoektabellen
-    const schedMap   = {};
-    schedule.forEach(s => { schedMap[s.day + ' ' + s.hour_only] = s; });
+    var schedMap   = {};
+    schedule.forEach(function(s) { schedMap[s.day + ' ' + s.hour_only] = s; });
 
-    const measMap = {};
-    measured.forEach(m => {
-      // measured has hour like "12:00" — map to today only
-      const todayStr = days48[0];
+    var measMap = {};
+    measured.forEach(function(m) {
+      var todayStr = days48[0];
       measMap[todayStr + ' ' + m.hour] = m;
     });
 
-    const priceMap = {};
-    prices.forEach(p => { priceMap[p.day + ' ' + p.hour_only] = p; });
+    var priceMap = {};
+    prices.forEach(function(p) { priceMap[p.day + ' ' + p.hour_only] = p; });
 
-    // Build datasets for each index
-    const solar48    = [], consume48 = [], disch48 = [], soc48 = [];
-    const gridCharge48 = [], nettoCharge48 = [];
-    const mSolar48   = [], mConsume48= [], mImport48= [], mExport48= [], mSoc48= [];
-    const price48    = [], priceColors = [];
-    const actionColors = {
+    var solar48 = [], consume48 = [], disch48 = [], soc48 = [];
+    var gridCharge48 = [], nettoCharge48 = [];
+    var mSolar48 = [], mConsume48 = [], mImport48 = [], mExport48 = [], mSoc48 = [];
+    var price48 = [], priceColors = [];
+    var actionColors = {
       charge:       hexToRgba(COLORS.charge, 0.8),
       discharge:    hexToRgba(COLORS.discharge, 0.8),
       self_consume: hexToRgba(COLORS.solarCharge, 0.7),
       idle:         'rgba(156,163,175,0.4)',
     };
 
-    for (let i = 0; i < 48; i++) {
-      const key = days48[i] + ' ' + labels48[i];
-      const s   = schedMap[key];
-      const m   = measMap[key];
-      const p   = priceMap[key];
+    for (var j = 0; j < 48; j++) {
+      var key = days48[j] + ' ' + labels48[j];
+      var s   = schedMap[key];
+      var m   = measMap[key];
+      var p   = priceMap[key];
 
-      // Forecast chart data
       solar48.push(s ? s.solar_kw   : null);
       consume48.push(s ? s.consumption_kw : null);
       disch48.push(s  && s.action === 'discharge' ? -s.power_kw : 0);
       soc48.push(s ? s.soc_pct : null);
 
-      // p_v1.2: zon/net-opsplitsing bij een laadactie — zie migratie 016.
-      // p_v1.2: solar/grid split for a charge action — see migration 016.
-      // "Laden van het net": alleen het net-gevoede deel. Bij een puur
-      // net-laadslot (is_solar_charge=false) is grid_charge_kw al gelijk
-      // aan het volledige power_kw (zie decision_engine.py::_to_slots).
-      // "Charging from the grid": only the grid-fed portion. For a pure
-      // grid-charge slot (is_solar_charge=false) grid_charge_kw already
-      // equals the full power_kw (see decision_engine.py::_to_slots).
       gridCharge48.push(s && s.action === 'charge' ? (s.grid_charge_kw || 0) : 0);
-      // "Netto laden": het totaal (zon + net) als lijn, zodat je nog steeds
-      // het volledige laadvermogen ziet zonder dat het verward wordt met de
-      // "laden van het net"-balk.
-      // "Net charging": the total (solar + grid) as a line, so the full
-      // charge power is still visible without being confused with the
-      // "charging from the grid" bar.
       nettoCharge48.push(s && s.action === 'charge' ? s.power_kw : null);
 
-      // Measured chart data (only past hours) — null for future = not plotted
-      // Gemeten grafiekdata (alleen verleden uren) — null voor toekomst = niet geplot
-      if (i <= nowHour && m) {
+      if (j <= nowHour && m) {
         mSolar48.push(m.solar_kw   != null ? m.solar_kw   : null);
         mConsume48.push(m.consumption_kw != null ? m.consumption_kw : null);
         mImport48.push(m.import_kw != null ? m.import_kw  : null);
@@ -499,19 +415,17 @@ p_v1.2: Chart 1 revised per request:
         mSoc48.push(null);
       }
 
-      // Price chart
       price48.push(p ? p.price : null);
       priceColors.push(s ? (actionColors[s.action] || actionColors.idle) : actionColors.idle);
     }
 
-    // Annotation plugin for "now" vertical line
-    const nowLinePlugin = {
+    var nowLinePlugin = {
       id: 'nowLine',
-      afterDraw(chart) {
-        const ctx   = chart.ctx;
-        const xAxis = chart.scales.x;
-        const yAxis = chart.scales.y;
-        const x = xAxis.getPixelForValue(nowIndex);
+      afterDraw: function(chart) {
+        var ctx   = chart.ctx;
+        var xAxis = chart.scales.x;
+        var yAxis = chart.scales.y;
+        var x = xAxis.getPixelForValue(nowIndex);
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(x, yAxis.top);
@@ -524,7 +438,7 @@ p_v1.2: Chart 1 revised per request:
       }
     };
 
-    const commonOpts = {
+    var commonOpts = {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
@@ -536,8 +450,7 @@ p_v1.2: Chart 1 revised per request:
             font: { size: 9 },
             maxTicksLimit: 24,
             callback: function(val, idx) {
-              // Show label every 2 hours, show day transition
-              if (idx === 24) return '→ morgen';
+              if (idx === 24) return T.tomorrowArrow;
               if (idx % 2 === 0) return labels48[idx];
               return '';
             }
@@ -547,178 +460,131 @@ p_v1.2: Chart 1 revised per request:
       }
     };
 
-    // Grafiek 1: Verwachting
+    function legendGenerateLabels(chart) {
+      var items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+      items.forEach(function(item) {
+        var ds = chart.data.datasets[item.datasetIndex];
+        if (ds.type === 'line') item.fillStyle = item.strokeStyle;
+      });
+      return items;
+    }
+
     makeChart('chart-forecast', {
       data: {
         labels: labels48,
         datasets: [
-          { type: 'line', label: 'Zon',      data: solar48,
+          { type: 'line', label: T.legendSolar,      data: solar48,
             borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.15),
             borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3, yAxisID: 'y' },
-          { type: 'line', label: 'Eigen verbruik', data: consume48,
+          { type: 'line', label: T.legendOwnConsumption, data: consume48,
             borderColor: COLORS.consume, backgroundColor: hexToRgba(COLORS.consume, 0.1),
             borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3, yAxisID: 'y' },
-          { type: 'bar',  label: 'Laden van het net', data: gridCharge48,
+          { type: 'bar',  label: T.legendChargeGrid, data: gridCharge48,
             backgroundColor: hexToRgba(COLORS.charge, 0.8), yAxisID: 'y' },
-          { type: 'bar',  label: 'Ontladen naar het net', data: disch48,
+          { type: 'bar',  label: T.legendDischargeGrid, data: disch48,
             backgroundColor: hexToRgba(COLORS.discharge, 0.8), yAxisID: 'y' },
-          { type: 'line', label: 'Netto laden', data: nettoCharge48,
+          { type: 'line', label: T.legendNetCharge, data: nettoCharge48,
             borderColor: COLORS.charge, backgroundColor: 'transparent',
             borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0,
             tension: 0.1, spanGaps: false, yAxisID: 'y' },
-          { type: 'line', label: 'SoC %',    data: soc48,
+          { type: 'line', label: T.legendSoc,    data: soc48,
             borderColor: COLORS.soc, backgroundColor: 'transparent',
             borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2', tension: 0.3,
             spanGaps: true },
         ]
       },
-      options: { ...commonOpts,
-        plugins: { ...commonOpts.plugins,
+      options: Object.assign({}, commonOpts, {
+        plugins: Object.assign({}, commonOpts.plugins, {
           legend: {
             display: true, position: 'bottom',
-            labels: {
-              boxWidth: 10, boxHeight: 10, font: { size: 11 },
-              usePointStyle: true, padding: 12,
-              // p_v1.2: forceer een gevuld rondje voor elke reeks — bij
-              // lijn-datasets zonder (volledig dekkende) achtergrondkleur
-              // (Netto laden, SoC) tekent Chart.js standaard een leeg/
-              // doorschijnend rondje, wat inconsistent oogt naast de
-              // gevulde balk-reeksen.
-              // p_v1.2: force a filled dot for every series — for line
-              // datasets without an (opaque) background color (Netto
-              // laden, SoC), Chart.js draws a hollow/translucent dot by
-              // default, which looks inconsistent next to the filled bar
-              // series.
-              generateLabels(chart) {
-                const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                // p_v1.7: alleen lijn-reeksen forceren naar hun lijnkleur —
-                // balk-reeksen (Laden/Ontladen) hebben al een correcte,
-                // solide backgroundColor en werden hier per ongeluk
-                // overschreven met hun (nooit ingestelde, dus bijna-witte
-                // default) borderColor. Vandaar de bijna-witte rondjes.
-                // p_v1.7: only force line series to their line color — bar
-                // series (Laden/Ontladen) already have a correct, solid
-                // backgroundColor and were being wrongly overwritten here
-                // with their (never set, so near-white default)
-                // borderColor. That's what caused the near-white dots.
-                items.forEach(item => {
-                  const ds = chart.data.datasets[item.datasetIndex];
-                  if (ds.type === 'line') item.fillStyle = item.strokeStyle;
-                });
-                return items;
-              }
-            }
+            labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, usePointStyle: true, padding: 12, generateLabels: legendGenerateLabels }
           }
-        },
-        scales: { ...commonOpts.scales,
+        }),
+        scales: Object.assign({}, commonOpts.scales, {
           y:  { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
           y2: { position: 'right', min: 0, max: 100,
                 title: { display: true, text: '%', font: { size: 10 } },
                 grid: { display: false } }
-        }
-      },
+        })
+      }),
       plugins: [nowLinePlugin]
     });
 
-    // Grafiek 2: Gemeten
     makeChart('chart-measured', {
       data: {
         labels: labels48,
         datasets: [
-          { type: 'line', label: 'Zon',          data: mSolar48,
+          { type: 'line', label: T.legendSolar,          data: mSolar48,
             borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.1),
             fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
-          { type: 'line', label: 'Eigen verbruik', data: mConsume48,
+          { type: 'line', label: T.legendOwnConsumption, data: mConsume48,
             borderColor: COLORS.consume, backgroundColor: 'transparent',
             tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
-          { type: 'bar',  label: 'Laden van het net', data: mImport48,
+          { type: 'bar',  label: T.legendChargeGrid, data: mImport48,
             backgroundColor: hexToRgba(COLORS.import_kw, 0.6) },
-          { type: 'bar',  label: 'Ontladen naar het net', data: mExport48,
+          { type: 'bar',  label: T.legendDischargeGrid, data: mExport48,
             backgroundColor: hexToRgba(COLORS.export_kw, 0.6) },
-          { type: 'line', label: 'Batterij SoC',  data: mSoc48,
+          { type: 'line', label: T.legendSoc,  data: mSoc48,
             borderColor: COLORS.soc, backgroundColor: 'transparent',
             borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2',
             tension: 0.3, spanGaps: false },
         ]
       },
-      options: { ...commonOpts,
-        plugins: { ...commonOpts.plugins,
+      options: Object.assign({}, commonOpts, {
+        plugins: Object.assign({}, commonOpts.plugins, {
           legend: {
             display: true, position: 'bottom',
-            labels: {
-              boxWidth: 10, boxHeight: 10, font: { size: 11 },
-              usePointStyle: true, padding: 12,
-              generateLabels(chart) {
-                const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                // p_v1.7: alleen lijn-reeksen forceren naar hun lijnkleur —
-                // balk-reeksen (Laden/Ontladen) hebben al een correcte,
-                // solide backgroundColor en werden hier per ongeluk
-                // overschreven met hun (nooit ingestelde, dus bijna-witte
-                // default) borderColor. Vandaar de bijna-witte rondjes.
-                // p_v1.7: only force line series to their line color — bar
-                // series (Laden/Ontladen) already have a correct, solid
-                // backgroundColor and were being wrongly overwritten here
-                // with their (never set, so near-white default)
-                // borderColor. That's what caused the near-white dots.
-                items.forEach(item => {
-                  const ds = chart.data.datasets[item.datasetIndex];
-                  if (ds.type === 'line') item.fillStyle = item.strokeStyle;
-                });
-                return items;
-              }
-            }
+            labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, usePointStyle: true, padding: 12, generateLabels: legendGenerateLabels }
           }
-        },
-        scales: { ...commonOpts.scales,
+        }),
+        scales: Object.assign({}, commonOpts.scales, {
           y:  { title: { display: true, text: 'kW', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
           y2: { position: 'right', min: 0, max: 100,
                 title: { display: true, text: '%', font: { size: 10 } },
                 grid: { display: false } }
-        }
-      },
+        })
+      }),
       plugins: [nowLinePlugin]
     });
 
-    // Grafiek 3: Prijzen
     makeChart('chart-prices', {
       data: {
         labels: labels48,
         datasets: [{
-          type: 'bar', label: 'Prijs', data: price48,
+          type: 'bar', label: T.legendPrice, data: price48,
           backgroundColor: priceColors, borderWidth: 0
         }]
       },
-      options: { ...commonOpts,
-        plugins: { ...commonOpts.plugins,
-          tooltip: { callbacks: { label: ctx => (ctx.raw * 100).toFixed(1) + ' ct/kWh' } }
-        },
-        scales: { ...commonOpts.scales,
+      options: Object.assign({}, commonOpts, {
+        plugins: Object.assign({}, commonOpts.plugins, {
+          tooltip: { callbacks: { label: function(ctx) { return (ctx.raw * 100).toFixed(1) + ' ct/kWh'; } } }
+        }),
+        scales: Object.assign({}, commonOpts.scales, {
           y: { title: { display: true, text: '€/kWh', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
-        }
-      },
+        })
+      }),
       plugins: [nowLinePlugin]
     });
   }
 
   function makeChart(id, config) {
     if (charts[id]) { charts[id].destroy(); }
-    const ctx = document.getElementById(id).getContext('2d');
+    var ctx = document.getElementById(id).getContext('2d');
     charts[id] = new Chart(ctx, config);
   }
 
-  // ── Countdown ───────────────────────────────────────────────────────────────
   function tick() {
     remaining--;
     if (remaining <= 0) { loadData(); }
     else {
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
+      var m = Math.floor(remaining / 60);
+      var s = remaining % 60;
       document.getElementById('refresh-countdown').textContent =
         m + ':' + String(s).padStart(2, '0');
     }
   }
 
-  document.getElementById('refresh-btn').addEventListener('click', () => { remaining = REFRESH_S; loadData(); });
+  document.getElementById('refresh-btn').addEventListener('click', function() { remaining = REFRESH_S; loadData(); });
   loadData();
   setInterval(tick, 1000);
 })();

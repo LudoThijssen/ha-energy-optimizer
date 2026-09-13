@@ -2,8 +2,24 @@
 # name:          translator.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/translations/translator.py
-# part version:  p_v0.6
+# part version:  p_v0.7
 # altered:       2026-09-09
+#
+# p_v0.7: kritieke bugfix in _read_json_stripped() — de regex `//.*`
+# stripte niet alleen commentaarregels, maar ook alles ná een `//` die
+# ergens MIDDEN in een regel voorkomt. Een vertaalwaarde met een URL
+# (bijv. "https://developer.tibber.com" in een hint-tekst) werd daardoor
+# afgekapt vanaf die `//`, met kapotte JSON tot gevolg. Nu verankerd aan
+# het begin van de regel (`^\s*//.*`, MULTILINE) — strip alleen echte
+# commentaarregels, nooit een `//` die toevallig middenin een waarde
+# staat.
+# p_v0.7: critical bugfix in _read_json_stripped() — the `//.*` regex
+# didn't just strip comment lines, but also everything after a `//`
+# occurring anywhere MID-line. A translation value containing a URL
+# (e.g. "https://developer.tibber.com" in a hint text) got truncated
+# from that `//` onward, resulting in broken JSON. Now anchored to the
+# start of the line (`^\s*//.*`, MULTILINE) — only strips genuine
+# comment lines, never a `//` that happens to sit inside a value.
 #
 # p_v0.6: '//'-header-strip generiek gemaakt via nieuwe helper
 # _read_json_stripped(), nu gebruikt door _load_master(),
@@ -80,7 +96,7 @@ def _read_json_stripped(path: Path) -> dict:
     strip the same way, so a '//' header is safe everywhere in this file
     type, including in de/es/fr.json.
     """
-    raw = re.sub(r'//.*', '', path.read_text(encoding="utf-8"))
+    raw = re.sub(r'(?m)^[ \t]*//.*\n?', '', path.read_text(encoding="utf-8"))
     return json.loads(raw)
 
 

@@ -2,75 +2,90 @@
 <!-- name:         homeassistant.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/homeassistant.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.5: volledig omgezet naar t() — alle hardgecodeerde NL-tekst
+vervangen door vertaalsleutels (ha.* + herbruikbare general.*), inclusief
+de JS-strings in testConnection() (via {{ t('key')|tojson }}, JS-veilig
+geëscaped). Onderdeel van backlog-punt 9/10. Hints met opmaak (<br>,
+<code>, <strong>, <em>) gebruiken {{ t('key')|safe }} — de opmaak zit in
+de vertaalstring zelf, blijft dus consistent per taal.
+Nog NIET vertaald: data.message van de /homeassistant/test respons zelf
+komt uit app.py, niet uit deze template — apart punt.
+p_v0.5: fully converted to t() — all hardcoded Dutch text replaced with
+translation keys (ha.* + reusable general.*), including the JS strings
+in testConnection() (via {{ t('key')|tojson }}, JS-safely escaped). Part
+of backlog item 9/10. Hints with markup (<br>, <code>, <strong>, <em>)
+use {{ t('key')|safe }} — the markup lives inside the translation string
+itself, so it stays consistent per language.
+NOT YET translated: data.message from the /homeassistant/test response
+itself comes from app.py, not this template — separate item.
+-->
 {% block title %}Home Assistant — HA Energy Optimizer{% endblock %}
 {% block content %}
 
 <h1><span class="mdi mdi-home-assistant"></span> Home Assistant</h1>
-<p class="subtitle">Verbindingsinstellingen</p>
+<p class="subtitle">{{ t('ha.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.settings_saved') }}</div>
 {% endif %}
 
 <form method="POST" id="ha-form">
   <div class="card">
-    <h2><span class="mdi mdi-lan-connect"></span> Verbinding</h2>
+    <h2><span class="mdi mdi-lan-connect"></span> {{ t('ha.connection') }}</h2>
 
     <div class="field-row">
       <div class="field">
-        <label>Host</label>
+        <label>{{ t('ha.host') }}</label>
         <input type="text" name="host" id="ha-host" placeholder="homeassistant.local"
                value="{{ options.get('homeassistant', {}).get('host', '') }}" required>
-        <div class="hint">
-          IP-adres of hostnaam.<br>
-          Gebruik <code>homeassistant.local</code> of het IP-adres van uw HA-installatie.
-        </div>
+        <div class="hint">{{ t('ha.host_hint')|safe }}</div>
       </div>
       <div class="field" style="max-width:130px">
-        <label>Poort</label>
+        <label>{{ t('ha.port') }}</label>
         <input type="number" name="port" id="ha-port"
                value="{{ options.get('homeassistant', {}).get('port', 8123) }}" required>
       </div>
     </div>
 
     <div class="field">
-      <label>Langdurig toegangstoken</label>
+      <label>{{ t('ha.token') }}</label>
       <input type="password" name="token" id="ha-token"
              value="{{ options.get('homeassistant', {}).get('token', '') }}" required>
-      <div class="hint">
-        Maak een token aan in Home Assistant via:<br>
-        <strong>Profiel → Beveiliging → Langdurige toegangstokens → Token aanmaken</strong>
-      </div>
+      <div class="hint">{{ t('ha.token_hint')|safe }}</div>
     </div>
 
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
       <button type="button" class="btn btn-secondary" onclick="testConnection()">
-        <span class="mdi mdi-connection"></span> Test verbinding
+        <span class="mdi mdi-connection"></span> {{ t('ha.test_connection') }}
       </button>
       <span id="test-result"></span>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-key-outline"></span> Token aanmaken</h2>
+    <h2><span class="mdi mdi-key-outline"></span> {{ t('ha.create_token_heading') }}</h2>
     <ol style="font-size:13.5px; color:#374151; line-height:2; padding-left:20px">
-      <li>Open Home Assistant in uw browser</li>
-      <li>Klik op uw profielicoon (linksonder)</li>
-      <li>Scroll naar <strong>Beveiliging</strong></li>
-      <li>Klik op <strong>Token aanmaken</strong> bij Langdurige toegangstokens</li>
-      <li>Geef het een naam zoals <em>HA Energy Optimizer</em></li>
-      <li>Kopieer het token en plak het hierboven</li>
+      <li>{{ t('ha.step1') }}</li>
+      <li>{{ t('ha.step2') }}</li>
+      <li>{{ t('ha.step3')|safe }}</li>
+      <li>{{ t('ha.step4')|safe }}</li>
+      <li>{{ t('ha.step5')|safe }}</li>
+      <li>{{ t('ha.step6') }}</li>
     </ol>
   </div>
 </form>
 
 <script>
+const MSG_TESTING = {{ t('ha.testing')|tojson }};
+const MSG_REQUEST_FAILED = {{ t('ha.request_failed')|tojson }};
+
 async function testConnection() {
   const result = document.getElementById("test-result");
-  result.textContent = "Testen...";
+  result.textContent = MSG_TESTING;
   result.style.color = "#6b7280";
 
   const payload = {
@@ -89,7 +104,7 @@ async function testConnection() {
     result.textContent = data.message;
     result.style.color = data.ok ? "#16a34a" : "#dc2626";
   } catch (e) {
-    result.textContent = "Verzoek mislukt: " + e.message;
+    result.textContent = MSG_REQUEST_FAILED + e.message;
     result.style.color = "#dc2626";
   }
 }

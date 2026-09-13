@@ -2,61 +2,38 @@
 <!-- name:         history.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/history.html -->
-<!-- part version: p_v0.9 -->
-<!-- altered:      2026-08-11 -->
+<!-- part version: p_v1.0 -->
+<!-- altered:      2026-09-09 -->
 <!--
-p_v0.9: zelfde tabelwijziging als dashboard.html p_v1.7 — label nu een
-functie (laadactie kan volledig uit zon komen, rust-slot kan netverbruik
-hebben bij SoC-vloer, zie migratie 021) en de Kosten-kolom telt nu ook
-dat netverbruik mee (rood, minteken). Dagtotaal-rij (al aanwezig)
-reflecteert dit automatisch via de bestaande totalCost-optelling.
-p_v0.9: same table change as dashboard.html p_v1.7 — label is now a
-function (a charge action can come entirely from solar, an idle slot can
-have grid consumption at the SoC floor, see migration 021) and the Cost
-column now also counts that grid consumption (red, minus sign). The day
-total row (already present) reflects this automatically via the existing
-totalCost summation.
--->
-<!--
-p_v0.7: Grafiek 2-labels uniform gemaakt met Grafiek 1 — zie
-dashboard.html p_v1.5 voor de volledige toelichting.
-p_v0.7: Chart 2 labels made uniform with Chart 1 — see dashboard.html
-p_v1.5 for the full explanation.
--->
-<!--
-p_v0.6: Grafiek 2 (Gemeten waarden) krijgt dezelfde klikbare, gevuld-
-rondje legenda als Grafiek 1. Grafiek 3 (prijzen) bewust ongewijzigd —
-komt aan bod bij de in/verkoop-prijs-uitbreiding.
-p_v0.6: Chart 2 (Measured values) gets the same clickable, filled-dot
-legend as Chart 1. Chart 3 (prices) deliberately unchanged — will be
-addressed with the buy/sell price extension.
--->
-<!--
-p_v0.5: Grafiek 1 (Verwacht schema) nu dezelfde opbouw als Dashboard
-Grafiek 1 — "Nettoladen" opgesplitst in "Laden van het net" (balk) en
-"Netto laden" (lijn), "Eigen verbruik" toegevoegd, statische legenda
-vervangen door Chart.js' klikbare legenda. Zie migratie 016 en
-app.py p_v0.19.
-p_v0.5: Chart 1 (Expected schedule) now has the same structure as
-Dashboard Chart 1 — "Nettoladen" split into "Laden van het net" (bar) and
-"Netto laden" (line), "Eigen verbruik" added, static legend replaced by
-Chart.js' clickable legend. See migration 016 and app.py p_v0.19.
+p_v1.0: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10.
+Hergebruikt zoveel mogelijk dezelfde sleutels als dashboard.html
+(dash.charge_from_grid, dash.rest, etc.) omdat dit exact dezelfde
+actie-labels/legenda's zijn — alleen de datumnavigatie, samenvattings-
+kaarten en kolomkopjes die uniek zijn aan deze pagina kregen nieuwe
+hist.*-sleutels. 'nl-NL' toLocaleDateString-locale nu gekoppeld aan de
+actieve taal i.p.v. hardcoded Nederlands.
+p_v1.0: fully converted to t(). Part of backlog item 9/10. Reuses the
+same keys as dashboard.html wherever possible (dash.charge_from_grid,
+dash.rest, etc.) since these are the exact same action labels/legends —
+only the date navigation, summary tiles and column headers unique to
+this page got new hist.* keys. The 'nl-NL' toLocaleDateString locale is
+now tied to the active language instead of hardcoded Dutch.
 -->
 {% block title %}Geschiedenis — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-history"></span> Geschiedenis</h1>
-<p class="subtitle">Bekijk historische data per dag</p>
+<h1><span class="mdi mdi-history"></span> {{ t('nav.history') }}</h1>
+<p class="subtitle">{{ t('hist.subtitle') }}</p>
 
 <!-- Date navigation / Datumnavigatie -->
 <div class="card" style="padding:16px;">
   <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-    <button class="btn btn-secondary" id="btn-prev" onclick="changeDay(+1)"><span class="mdi mdi-chevron-left"></span> Vorige dag</button>
+    <button class="btn btn-secondary" id="btn-prev" onclick="changeDay(+1)"><span class="mdi mdi-chevron-left"></span> {{ t('hist.prev_day') }}</button>
     <input type="date" id="date-picker"
            style="padding:8px 11px; border:1px solid #d1d5db; border-radius:6px; font-size:14px;"
            onchange="loadDate(this.value)">
-    <button class="btn btn-secondary" id="btn-next" onclick="changeDay(-1)">Volgende dag <span class="mdi mdi-chevron-right"></span></button>
-    <button class="btn btn-secondary" onclick="loadDate(todayStr())">Vandaag</button>
+    <button class="btn btn-secondary" id="btn-next" onclick="changeDay(-1)">{{ t('hist.next_day') }} <span class="mdi mdi-chevron-right"></span></button>
+    <button class="btn btn-secondary" onclick="loadDate(todayStr())">{{ t('dash.today') }}</button>
     <span id="date-label" style="font-size:13px; color:#6b7280; margin-left:8px;"></span>
   </div>
 </div>
@@ -64,81 +41,80 @@ Chart.js' clickable legend. See migration 016 and app.py p_v0.19.
 <!-- Summary cards / Samenvattingskaarten -->
 <div id="summary-row" style="display:none; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
-    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Zon totaal</div>
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">{{ t('hist.sum_solar') }}</div>
     <div id="sum-solar" style="font-size:20px; font-weight:600; color:#f59e0b;">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
-    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Netafname</div>
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">{{ t('dash.grid_import_tile') }}</div>
     <div id="sum-import" style="font-size:20px; font-weight:600; color:#3b82f6;">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
-    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Teruglevering</div>
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">{{ t('dash.grid_export_tile') }}</div>
     <div id="sum-export" style="font-size:20px; font-weight:600; color:#10b981;">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
-    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Gem. prijs</div>
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">{{ t('hist.sum_avg_price') }}</div>
     <div id="sum-price" style="font-size:20px; font-weight:600; color:#8b5cf6;">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
-    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Besparing</div>
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">{{ t('hist.saving') }}</div>
     <div id="sum-saving" style="font-size:20px; font-weight:600; color:{{ colors.positive }};">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
-    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Laadkosten</div>
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">{{ t('hist.sum_cost') }}</div>
     <div id="sum-cost" style="font-size:20px; font-weight:600; color:{{ colors.negative }};">—</div>
   </div>
   <div class="card" style="flex:1; min-width:140px; padding:16px; text-align:center;">
-    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Netto</div>
+    <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">{{ t('hist.sum_net') }}</div>
     <div id="sum-net" style="font-size:20px; font-weight:600; color:#0f172a;">—</div>
   </div>
 </div>
 
 <!-- Loading indicator -->
 <div id="loading" style="display:none; padding:24px; text-align:center; color:#6b7280; font-size:13px;">
-  Laden...
+  {{ t('general.loading') }}
 </div>
 
 <!-- No data message -->
 <div id="no-data" style="display:none;" class="card">
   <p style="color:#6b7280; font-size:13px; padding:8px 0;">
-    Geen data beschikbaar voor deze datum.
+    {{ t('hist.no_data') }}
   </p>
 </div>
 
-<!-- Grafiek 1: <span class="mdi mdi-chart-timeline-variant"></span> Verwacht schema -->
+<!-- Grafiek 1: Verwacht schema -->
 <div class="card" id="card-schedule" style="display:none;">
-  <h2><span class="mdi mdi-chart-timeline-variant"></span> Verwacht schema</h2>
+  <h2><span class="mdi mdi-chart-timeline-variant"></span> {{ t('hist.chart1_title') }}</h2>
   <p style="font-size:12px; color:#6b7280; margin-bottom:12px;">
-    Optimizer-beslissingen voor deze dag / Optimizer decisions for this day
-    <span style="margin-left:12px; color:#94a3b8;">| Klik op de legenda om een reeks te verbergen/tonen</span>
+    {{ t('hist.chart1_desc') }}
+    <span style="margin-left:12px; color:#94a3b8;">{{ t('dash.chart_hint_click') }}</span>
   </p>
   <canvas id="chart-schedule" height="90"></canvas>
 </div>
 
-<!-- Grafiek 2: <span class="mdi mdi-gauge"></span> Gemeten waarden -->
+<!-- Grafiek 2: Gemeten waarden -->
 <div class="card" id="card-measured" style="display:none;">
-  <h2><span class="mdi mdi-gauge"></span> Gemeten waarden</h2>
+  <h2><span class="mdi mdi-gauge"></span> {{ t('hist.measured_values') }}</h2>
   <p style="font-size:12px; color:#94a3b8; margin-bottom:8px;">
-    Klik op de legenda om een reeks te verbergen/tonen
+    {{ t('dash.chart_hint_click') }}
   </p>
   <canvas id="chart-measured" height="90"></canvas>
 </div>
 
-<!-- Grafiek 3: <span class="mdi mdi-currency-eur"></span> Energieprijzen -->
+<!-- Grafiek 3: Energieprijzen -->
 <div class="card" id="card-prices" style="display:none;">
-  <h2><span class="mdi mdi-currency-eur"></span> Energieprijzen</h2>
+  <h2><span class="mdi mdi-currency-eur"></span> {{ t('hist.energy_prices') }}</h2>
   <canvas id="chart-prices" height="70"></canvas>
 </div>
 
 <!-- Schema tabel / Schedule table -->
 <div class="card" id="card-table" style="display:none;">
-  <h2><span class="mdi mdi-table"></span> Uur-voor-uur schema</h2>
+  <h2><span class="mdi mdi-table"></span> {{ t('hist.table_title') }}</h2>
   <div id="schedule-table-wrap"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
-// ── Colors from settings / Kleuren uit instellingen ────────────────────────
 const COLORS = {
   solar:       "{{ colors.solar }}",
   consume:     "{{ colors.consume }}",
@@ -152,13 +128,39 @@ const COLORS = {
   negative:    "{{ colors.negative }}",
 };
 
+const T = {
+  chargeFromSolar:    {{ t('dash.charge_from_solar')|tojson }},
+  chargeFromGrid:     {{ t('dash.charge_from_grid')|tojson }},
+  dischargeToGrid:    {{ t('dash.discharge_to_grid')|tojson }},
+  selfConsume:        {{ t('dash.self_consume')|tojson }},
+  gridConsumption:    {{ t('dash.grid_consumption_action')|tojson }},
+  rest:               {{ t('dash.rest')|tojson }},
+  noSchedule:         {{ t('dash.no_schedule')|tojson }},
+  colTime:            {{ t('hist.col_time')|tojson }},
+  colAction:          {{ t('dash.col_action')|tojson }},
+  colPower:           {{ t('dash.col_power')|tojson }},
+  colPrice:           {{ t('dash.col_price_col')|tojson }},
+  colSoc:             {{ t('hist.col_soc')|tojson }},
+  colSolar:           {{ t('dash.col_solar_col')|tojson }},
+  colCost:            {{ t('dash.col_cost')|tojson }},
+  colReason:          {{ t('thresh.reason')|tojson }},
+  dayTotal:           {{ t('hist.day_total')|tojson }},
+  legendSolar:        {{ t('dash.legend_solar')|tojson }},
+  legendOwnConsumption: {{ t('dash.legend_own_consumption')|tojson }},
+  legendChargeGrid:   {{ t('dash.legend_charge_grid')|tojson }},
+  legendDischargeGrid:{{ t('dash.legend_discharge_grid')|tojson }},
+  legendNetCharge:    {{ t('dash.legend_net_charge')|tojson }},
+  legendSoc:          {{ t('dash.legend_soc')|tojson }},
+};
+const LOCALE_MAP = {nl:'nl-NL', en:'en-US', de:'de-DE', es:'es-ES', fr:'fr-FR'};
+const ACTIVE_LOCALE = LOCALE_MAP[{{ active_language|tojson }}] || 'en-US';
+
 function hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1,3), 16);
   const g = parseInt(hex.slice(3,5), 16);
   const b = parseInt(hex.slice(5,7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
-// ── State / Toestand ────────────────────────────────────────────────────────
 let currentDate = todayStr();
 let availableDates = [];
 let charts = {};
@@ -168,24 +170,18 @@ function todayStr() {
   return d.toISOString().slice(0, 10);
 }
 
-// ── Init / Initialisatie ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const picker = document.getElementById('date-picker');
   picker.max = todayStr();
   picker.value = currentDate;
-  // Disable nav buttons until dates are loaded
-  // Navigatieknoppen uitschakelen totdat datums geladen zijn
   document.getElementById('btn-prev').disabled = true;
   document.getElementById('btn-next').disabled = true;
   loadDate(currentDate);
 });
 
-// ── Date navigation / Datumnavigatie ───────────────────────────────────────
 function changeDay(delta) {
   if (!availableDates.length) return;
   const idx = availableDates.indexOf(currentDate);
-  // availableDates is DESC (newest first)
-  // delta -1 = newer (lower index), delta +1 = older (higher index)
   const newIdx = idx + delta;
   if (newIdx >= 0 && newIdx < availableDates.length) {
     loadDate(availableDates[newIdx]);
@@ -196,12 +192,10 @@ function loadDate(dateStr) {
   currentDate = dateStr;
   document.getElementById('date-picker').value = dateStr;
 
-  // Update label
   const d = new Date(dateStr + 'T12:00:00');
   document.getElementById('date-label').textContent =
-    d.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    d.toLocaleDateString(ACTIVE_LOCALE, {weekday:'long', day:'numeric', month:'long', year:'numeric'});
 
-  // Show loading
   document.getElementById('loading').style.display = 'block';
   document.getElementById('no-data').style.display  = 'none';
   ['card-schedule','card-measured','card-prices','card-table','summary-row'].forEach(id => {
@@ -229,13 +223,10 @@ function loadDate(dateStr) {
 
 function updateNavButtons() {
   const idx = availableDates.indexOf(currentDate);
-  // btn-prev = vorige dag (older = higher index in DESC array)
-  // btn-next = volgende dag (newer = lower index in DESC array)
   document.getElementById('btn-prev').disabled = idx < 0 || idx >= availableDates.length - 1;
   document.getElementById('btn-next').disabled = idx <= 0;
 }
 
-// ── Render all / Alles renderen ────────────────────────────────────────────
 function renderAll(d) {
   const hasSchedule = d.schedule && d.schedule.length > 0;
   const hasMeasured = d.measured && d.measured.length > 0;
@@ -246,7 +237,6 @@ function renderAll(d) {
     return;
   }
 
-  // Summary
   if (hasMeasured || hasPrices) {
     renderSummary(d);
     document.getElementById('summary-row').style.display = 'flex';
@@ -272,9 +262,7 @@ function renderAll(d) {
   }
 }
 
-// ── Summary / Samenvatting ──────────────────────────────────────────────────
 function renderSummary(d) {
-  // Solar total (kWh = sum of avg kW per hour)
   const solar = d.measured.reduce((s, m) => s + (m.solar_kw || 0), 0);
   document.getElementById('sum-solar').textContent = solar.toFixed(1) + ' kWh';
 
@@ -297,15 +285,12 @@ function renderSummary(d) {
   const cost = d.schedule.reduce((s, sl) => s + (sl.cost || 0), 0);
   document.getElementById('sum-cost').textContent = '-' + cost.toFixed(2) + ' €';
 
-  // Net result: saving from discharge minus cost of grid charging
-  // Netto resultaat: besparing van ontladen minus kosten van netladen
   const net = saving - cost;
   const netEl = document.getElementById('sum-net');
   netEl.textContent = (net >= 0 ? '+' : '') + net.toFixed(2) + ' €';
   netEl.style.color = net >= 0 ? COLORS.positive : COLORS.negative;
 }
 
-// ── Chart helpers / Grafiekhulpfuncties ────────────────────────────────────
 function destroyChart(id) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
 }
@@ -320,31 +305,29 @@ const commonOpts = {
   },
 };
 
-// ── Schedule chart / Schemegrafiek ──────────────────────────────────────────
+function legendGenerateLabels(chart) {
+  const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+  items.forEach(item => {
+    const ds = chart.data.datasets[item.datasetIndex];
+    if (ds.type === 'line') item.fillStyle = item.strokeStyle;
+  });
+  return items;
+}
+
 function renderScheduleChart(schedule, labels) {
   destroyChart('schedule');
   const schedMap = {};
   schedule.forEach(s => { schedMap[s.hour] = s; });
 
-  // p_v0.4: zelfde opbouw als dashboard.html Grafiek 1 — "Nettoladen" gaf
-  // hier dezelfde verwarring (toonde élke laadactie, ook zon-laden). Nu
-  // opgesplitst in "Laden van het net" (balk, alleen net-gevoed) en
-  // "Netto laden" (lijn, het totaal). Consumptie kwam voorheen niet mee in
-  // de schema-data (zie p_v0.4 in app.py) — "Eigen verbruik" toegevoegd.
-  // p_v0.4: same structure as dashboard.html Chart 1 — "Nettoladen" caused
-  // the same confusion here (showed every charge action, including
-  // solar-charging). Now split into "Laden van het net" (bar, grid-fed
-  // only) and "Netto laden" (line, the total). Consumption wasn't part of
-  // the schedule data before (see p_v0.4 in app.py) — "Eigen verbruik" added.
-  const gridCharge = [], nettoCharge = [], discharge = [], solar = [], consume = [], soc = [];
+  const solar = [], consume = [], gridCharge = [], disch = [], nettoCharge = [], soc = [];
   labels.forEach(h => {
     const s = schedMap[h];
+    solar.push(s ? s.solar_kw : null);
+    consume.push(s ? s.consumption_kw : null);
     gridCharge.push(s && s.action === 'charge' ? (s.grid_charge_kw || 0) : 0);
+    disch.push(s && s.action === 'discharge' ? -s.power_kw : 0);
     nettoCharge.push(s && s.action === 'charge' ? s.power_kw : null);
-    discharge.push(s && s.action === 'discharge' ? -s.power_kw : 0);
-    solar.push(s ? s.solar_kw || null : null);
-    consume.push(s ? s.consumption_kw || null : null);
-    soc.push(s ? s.soc_pct || null : null);
+    soc.push(s ? s.soc_pct : null);
   });
 
   const ctx = document.getElementById('chart-schedule').getContext('2d');
@@ -352,52 +335,29 @@ function renderScheduleChart(schedule, labels) {
     data: {
       labels,
       datasets: [
-        { type: 'line', label: 'Zon verwacht', data: solar,
+        { type: 'line', label: T.legendSolar, data: solar,
           borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.15),
-          fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
-        { type: 'line', label: 'Eigen verbruik', data: consume,
+          borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3, yAxisID: 'y' },
+        { type: 'line', label: T.legendOwnConsumption, data: consume,
           borderColor: COLORS.consume, backgroundColor: hexToRgba(COLORS.consume, 0.1),
-          fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
-        { type: 'bar',  label: 'Laden van het net', data: gridCharge,
-          backgroundColor: hexToRgba(COLORS.charge, 0.8) },
-        { type: 'bar',  label: 'Ontladen naar het net', data: discharge,
-          backgroundColor: hexToRgba(COLORS.discharge, 0.8) },
-        { type: 'line', label: 'Netto laden', data: nettoCharge,
+          borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3, yAxisID: 'y' },
+        { type: 'bar', label: T.legendChargeGrid, data: gridCharge,
+          backgroundColor: hexToRgba(COLORS.charge, 0.8), yAxisID: 'y' },
+        { type: 'bar', label: T.legendDischargeGrid, data: disch,
+          backgroundColor: hexToRgba(COLORS.discharge, 0.8), yAxisID: 'y' },
+        { type: 'line', label: T.legendNetCharge, data: nettoCharge,
           borderColor: COLORS.charge, backgroundColor: 'transparent',
-          borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0,
-          tension: 0.1, spanGaps: false },
-        { type: 'line', label: 'SoC',         data: soc,
-          borderColor: COLORS.soc, backgroundColor:'transparent',
-          borderWidth:1.5, pointRadius:0, yAxisID:'y2', tension:0.3, spanGaps:false },
+          borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, tension: 0.1, spanGaps: false, yAxisID: 'y' },
+        { type: 'line', label: T.legendSoc, data: soc,
+          borderColor: COLORS.soc, backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2', tension: 0.3, spanGaps: true },
       ]
     },
     options: { ...commonOpts,
       plugins: { ...commonOpts.plugins,
         legend: {
           display: true, position: 'bottom',
-          labels: {
-            boxWidth: 10, boxHeight: 10, font: { size: 11 },
-            usePointStyle: true, padding: 12,
-            // Zelfde fix als dashboard.html: gevuld rondje voor elke reeks.
-            // Same fix as dashboard.html: filled dot for every series.
-            generateLabels(chart) {
-              const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-              // p_v0.9: alleen lijn-reeksen forceren naar hun lijnkleur —
-              // balk-reeksen (Laden/Ontladen) hebben al een correcte,
-              // solide backgroundColor en werden hier per ongeluk
-              // overschreven met hun (nooit ingestelde, dus bijna-witte
-              // default) borderColor.
-              // p_v0.9: only force line series to their line color — bar
-              // series (Laden/Ontladen) already have a correct, solid
-              // backgroundColor and were being wrongly overwritten here
-              // with their (never set, so near-white default) borderColor.
-              items.forEach(item => {
-                const ds = chart.data.datasets[item.datasetIndex];
-                if (ds.type === 'line') item.fillStyle = item.strokeStyle;
-              });
-              return items;
-            }
-          }
+          labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, usePointStyle: true, padding: 12, generateLabels: legendGenerateLabels }
         }
       },
       scales: { ...commonOpts.scales,
@@ -409,18 +369,17 @@ function renderScheduleChart(schedule, labels) {
   });
 }
 
-// ── Measured chart / Gemeten grafiek ───────────────────────────────────────
 function renderMeasuredChart(measured, labels) {
   destroyChart('measured');
   const mMap = {};
   measured.forEach(m => { mMap[m.hour] = m; });
 
-  const solar=[], consume=[], imp=[], exp=[], soc=[];
+  const solar = [], consume = [], imp = [], exp = [], soc = [];
   labels.forEach(h => {
     const m = mMap[h];
-    solar.push(m ? m.solar_kw   : null);
+    solar.push(m ? m.solar_kw : null);
     consume.push(m ? m.consumption_kw : null);
-    imp.push(m ? m.import_kw   : null);
+    imp.push(m ? m.import_kw : null);
     exp.push(m ? (m.export_kw != null ? -m.export_kw : null) : null);
     soc.push(m ? m.battery_soc : null);
   });
@@ -430,46 +389,26 @@ function renderMeasuredChart(measured, labels) {
     data: {
       labels,
       datasets: [
-        { type:'line', label:'Zon',         data:solar,
+        { type: 'line', label: T.legendSolar, data: solar,
           borderColor: COLORS.solar, backgroundColor: hexToRgba(COLORS.solar, 0.1),
-          fill:true, tension:0.3, pointRadius:0, borderWidth:2, spanGaps:false },
-        { type:'line', label:'Eigen verbruik', data:consume,
-          borderColor: COLORS.consume, backgroundColor:'transparent',
-          tension:0.3, pointRadius:0, borderWidth:2, spanGaps:false },
-        { type:'bar',  label:'Laden van het net', data:imp,
+          fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
+        { type: 'line', label: T.legendOwnConsumption, data: consume,
+          borderColor: COLORS.consume, backgroundColor: 'transparent',
+          tension: 0.3, pointRadius: 0, borderWidth: 2, spanGaps: false },
+        { type: 'bar', label: T.legendChargeGrid, data: imp,
           backgroundColor: hexToRgba(COLORS.import_kw, 0.6) },
-        { type:'bar',  label:'Ontladen naar het net',data:exp,
+        { type: 'bar', label: T.legendDischargeGrid, data: exp,
           backgroundColor: hexToRgba(COLORS.export_kw, 0.6) },
-        { type:'line', label:'Batterij SoC',data:soc,
-          borderColor: COLORS.soc, backgroundColor:'transparent',
-          borderWidth:1.5, pointRadius:0, yAxisID:'y2', tension:0.3, spanGaps:false },
+        { type: 'line', label: T.legendSoc, data: soc,
+          borderColor: COLORS.soc, backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 0, yAxisID: 'y2', tension: 0.3, spanGaps: false },
       ]
     },
     options: { ...commonOpts,
       plugins: { ...commonOpts.plugins,
         legend: {
           display: true, position: 'bottom',
-          labels: {
-            boxWidth: 10, boxHeight: 10, font: { size: 11 },
-            usePointStyle: true, padding: 12,
-            generateLabels(chart) {
-              const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-              // p_v0.9: alleen lijn-reeksen forceren naar hun lijnkleur —
-              // balk-reeksen (Laden/Ontladen) hebben al een correcte,
-              // solide backgroundColor en werden hier per ongeluk
-              // overschreven met hun (nooit ingestelde, dus bijna-witte
-              // default) borderColor.
-              // p_v0.9: only force line series to their line color — bar
-              // series (Laden/Ontladen) already have a correct, solid
-              // backgroundColor and were being wrongly overwritten here
-              // with their (never set, so near-white default) borderColor.
-              items.forEach(item => {
-                const ds = chart.data.datasets[item.datasetIndex];
-                if (ds.type === 'line') item.fillStyle = item.strokeStyle;
-              });
-              return items;
-            }
-          }
+          labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, usePointStyle: true, padding: 12, generateLabels: legendGenerateLabels }
         }
       },
       scales: { ...commonOpts.scales,
@@ -481,7 +420,6 @@ function renderMeasuredChart(measured, labels) {
   });
 }
 
-// ── Price chart / Prijsgrafiek ──────────────────────────────────────────────
 function renderPriceChart(prices, labels) {
   destroyChart('prices');
   const pMap = {};
@@ -509,50 +447,42 @@ function renderPriceChart(prices, labels) {
   });
 }
 
-// ── Schedule table / Schematabel ───────────────────────────────────────────
 function renderScheduleTable(schedule) {
   const wrap = document.getElementById('schedule-table-wrap');
   if (!schedule.length) {
-    wrap.innerHTML = '<p style="font-size:13px;color:#6b7280;">Geen schema beschikbaar.</p>';
+    wrap.innerHTML = '<p style="font-size:13px;color:#6b7280;">' + T.noSchedule + '</p>';
     return;
   }
 
-  // p_v0.9: label nu een functie i.p.v. statische lookup — zelfde reden
-  // als dashboard.html p_v1.7: een laadactie kan volledig uit zon komen,
-  // en een rust-slot kan alsnog netverbruik hebben (SoC-vloer bereikt).
-  // p_v0.9: label is now a function instead of a static lookup — same
-  // reason as dashboard.html p_v1.7: a charge action can come entirely
-  // from solar, and an idle slot can still have grid consumption (SoC
-  // floor reached).
   function actionLabel(s) {
     if (s.action === 'charge') {
       if (s.is_solar_charge && !(s.grid_charge_kw > 0)) {
-        return `<span style="color:${COLORS.solarCharge};font-weight:600;">&#9728; Laden van zon</span>`;
+        return '<span style="color:' + COLORS.solarCharge + ';font-weight:600;">&#9728; ' + T.chargeFromSolar + '</span>';
       }
-      return `<span style="color:${COLORS.charge};font-weight:600;">&#8593; Laden van het net</span>`;
+      return '<span style="color:' + COLORS.charge + ';font-weight:600;">&#8593; ' + T.chargeFromGrid + '</span>';
     }
     if (s.action === 'discharge') {
-      return `<span style="color:${COLORS.discharge};font-weight:600;">&#8595; Ontladen naar het net</span>`;
+      return '<span style="color:' + COLORS.discharge + ';font-weight:600;">&#8595; ' + T.dischargeToGrid + '</span>';
     }
     if (s.action === 'self_consume') {
-      return `<span style="color:${COLORS.solarCharge};font-weight:600;">&#9728; Zelf verbruik</span>`;
+      return '<span style="color:' + COLORS.solarCharge + ';font-weight:600;">&#9728; ' + T.selfConsume + '</span>';
     }
     if (s.action === 'idle' && s.grid_consume_kw > 0) {
-      return `<span style="color:${COLORS.negative};font-weight:600;">&#9889; Verbruik van het net</span>`;
+      return '<span style="color:' + COLORS.negative + ';font-weight:600;">&#9889; ' + T.gridConsumption + '</span>';
     }
-    return '<span style="color:#6b7280;">&#8212; Rust</span>';
+    return '<span style="color:#6b7280;">&#8212; ' + T.rest + '</span>';
   }
 
   let html = '<table><thead>'
     + '<tr>'
-    + '<th style="width:80px">Tijd</th>'
-    + '<th style="width:130px">Actie</th>'
-    + '<th style="width:80px">Vermogen</th>'
-    + '<th style="width:70px">Prijs</th>'
-    + '<th style="width:60px">SoC</th>'
-    + '<th style="width:70px">Zon</th>'
-    + '<th style="width:100px">Kosten</th>'
-    + '<th>Reden</th>'
+    + '<th style="width:80px">' + T.colTime + '</th>'
+    + '<th style="width:130px">' + T.colAction + '</th>'
+    + '<th style="width:80px">' + T.colPower + '</th>'
+    + '<th style="width:70px">' + T.colPrice + '</th>'
+    + '<th style="width:60px">' + T.colSoc + '</th>'
+    + '<th style="width:70px">' + T.colSolar + '</th>'
+    + '<th style="width:100px">' + T.colCost + '</th>'
+    + '<th>' + T.colReason + '</th>'
     + '</tr>'
     + '<tr style="font-size:10px; color:#94a3b8; background:#f9fafb;">'
     + '<th></th>'
@@ -574,12 +504,6 @@ function renderScheduleTable(schedule) {
                   s.action === 'discharge' ? 'background:#fef2f2;' :
                   s.action === 'self_consume' ? 'background:#fffbeb;' :
                   isNetVerbruik ? 'background:#fef2f2;' : '';
-    // Kosten kolom: negatief (rood) bij laden of netverbruik tijdens
-    // rust (SoC-vloer bereikt, zie migratie 021), positief (groen) bij
-    // ontladen.
-    // Cost column: negative (red) when charging or during idle grid
-    // consumption (SoC floor reached, see migration 021), positive
-    // (green) when discharging.
     const netKosten = (s.action === 'charge' || isNetVerbruik)
       ? (s.cost > 0 ? -s.cost : 0)
       : (s.action === 'discharge' ? (s.saving || 0) : 0);
@@ -603,11 +527,10 @@ function renderScheduleTable(schedule) {
     </tr>`;
   });
 
-  // Day total row / Dagtotaal rij
   const netTotal = totalSaving - totalCost;
   html += `<tr style="background:#f1f5f9; font-weight:700; border-top:2px solid #cbd5e1;">
     <td colspan="6" style="font-size:12px; text-align:right; padding-right:12px;">
-      Dagtotaal / Day total — Netto: <span style="color:${netTotal >= 0 ? COLORS.positive : COLORS.negative};">
+      ${T.dayTotal} — Netto: <span style="color:${netTotal >= 0 ? COLORS.positive : COLORS.negative};">
         ${netTotal >= 0 ? '+' : ''}${netTotal.toFixed(4)} €</span>
     </td>
     <td style="font-size:13px; color:${netTotal >= 0 ? COLORS.positive : COLORS.negative}; font-weight:700;">

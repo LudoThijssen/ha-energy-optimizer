@@ -2,57 +2,63 @@
 <!-- name:         database.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/database.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-30 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.5: volledig omgezet naar t(), inclusief JS-strings via
+{{ t('key')|tojson }}. Onderdeel van backlog-punt 9/10.
+p_v0.5: fully converted to t(), including JS strings via
+{{ t('key')|tojson }}. Part of backlog item 9/10.
+-->
 {% block title %}Database — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-database-outline"></span> Database</h1>
-<p class="subtitle">MySQL-verbindingsinstellingen</p>
+<h1><span class="mdi mdi-database-outline"></span> {{ t('nav.database') }}</h1>
+<p class="subtitle">{{ t('db.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.settings_saved') }}</div>
 {% endif %}
 
 <form method="POST" id="db-form">
   <div class="card">
-    <h2><span class="mdi mdi-lan-connect"></span> Verbinding</h2>
+    <h2><span class="mdi mdi-lan-connect"></span> {{ t('db.connection') }}</h2>
     <div class="field-row">
       <div class="field">
-        <label>Host</label>
+        <label>{{ t('ha.host') }}</label>
         <input type="text" name="host" id="db-host"
                placeholder="core-mariadb of 192.168.1.100"
                value="{{ options.get('database', {}).get('host', '') }}" required>
-        <div class="hint">IP-adres of hostnaam van uw MySQL-server</div>
+        <div class="hint">{{ t('db.host_hint') }}</div>
       </div>
       <div class="field" style="max-width:120px">
-        <label>Poort</label>
+        <label>{{ t('db.port') }}</label>
         <input type="number" name="port" id="db-port"
                value="{{ options.get('database', {}).get('port', 3306) }}" required>
       </div>
     </div>
     <div class="field">
-      <label>Databasenaam</label>
+      <label>{{ t('db.name') }}</label>
       <input type="text" name="name" id="db-name"
              value="{{ options.get('database', {}).get('name', 'energy') }}" required>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Gebruikersnaam</label>
+        <label>{{ t('db.username') }}</label>
         <input type="text" name="user" id="db-user"
                value="{{ options.get('database', {}).get('user', 'energy') }}" required>
       </div>
       <div class="field">
-        <label>Wachtwoord</label>
+        <label>{{ t('db.password') }}</label>
         <input type="password" name="password" id="db-pass"
                value="{{ options.get('database', {}).get('password', '') }}">
       </div>
     </div>
 
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+      <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
       <button type="button" class="btn btn-secondary" onclick="testConnection()">
-        <span class="mdi mdi-connection"></span> Test verbinding
+        <span class="mdi mdi-connection"></span> {{ t('db.test_connection') }}
       </button>
       <span id="test-result"></span>
     </div>
@@ -60,9 +66,12 @@
 </form>
 
 <script>
+const MSG_TESTING = {{ t('ha.testing')|tojson }};
+const MSG_REQUEST_FAILED = {{ t('ha.request_failed')|tojson }};
+
 async function testConnection() {
   const result = document.getElementById("test-result");
-  result.textContent = "Testen...";
+  result.textContent = MSG_TESTING;
   result.style.color = "#6b7280";
 
   const payload = {
@@ -83,7 +92,7 @@ async function testConnection() {
     result.textContent = data.message;
     result.style.color = data.ok ? "#16a34a" : "#dc2626";
   } catch (e) {
-    result.textContent = "Verzoek mislukt: " + e.message;
+    result.textContent = MSG_REQUEST_FAILED + e.message;
     result.style.color = "#dc2626";
   }
 }

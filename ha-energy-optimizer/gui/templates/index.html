@@ -2,27 +2,33 @@
 <!-- name:         index.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/index.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-06-29 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.5: volledig omgezet naar t(), inclusief de JS-statusteksten via
+{{ t('key')|tojson }}. Onderdeel van backlog-punt 9/10.
+p_v0.5: fully converted to t(), including the JS status texts via
+{{ t('key')|tojson }}. Part of backlog item 9/10.
+-->
 {% block title %}Installatieoverzicht — HA Energy Optimizer{% endblock %}
 {% block content %}
 
 <h1><span class="mdi mdi-clipboard-list-outline"></span> HA Energy Optimizer</h1>
-<p class="subtitle">Installatieoverzicht</p>
+<p class="subtitle">{{ t('idx.overview_subtitle') }}</p>
 
 <!-- Snelle acties -->
 <div class="card">
-  <h2><span class="mdi mdi-lightning-bolt-outline"></span> Snelle acties</h2>
+  <h2><span class="mdi mdi-lightning-bolt-outline"></span> {{ t('idx.quick_actions') }}</h2>
 
   <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
     <button class="btn btn-primary" onclick="runOptimizer()">
-      <span class="mdi mdi-play"></span> Optimizer nu uitvoeren
+      <span class="mdi mdi-play"></span> {{ t('idx.run_optimizer_now') }}
     </button>
     <button class="btn btn-secondary" onclick="fetchPrices()">
-      <span class="mdi mdi-download-outline"></span> Prijzen nu ophalen
+      <span class="mdi mdi-download-outline"></span> {{ t('idx.fetch_prices_now') }}
     </button>
     <button class="btn btn-secondary" onclick="testEntities()">
-      <span class="mdi mdi-flash-outline"></span> Test HA entiteiten
+      <span class="mdi mdi-flash-outline"></span> {{ t('idx.test_ha_entities') }}
     </button>
   </div>
 
@@ -34,10 +40,10 @@
     <table>
       <thead>
         <tr>
-          <th>Interne naam</th>
-          <th>Entity ID</th>
-          <th>Waarde</th>
-          <th>Status</th>
+          <th>{{ t('idx.internal_name') }}</th>
+          <th>{{ t('idx.entity_id') }}</th>
+          <th>{{ t('idx.value') }}</th>
+          <th>{{ t('idx.status') }}</th>
         </tr>
       </thead>
       <tbody id="entity-table-body"></tbody>
@@ -47,56 +53,54 @@
 
 <!-- Installatiechecklist -->
 <div class="card">
-  <h2><span class="mdi mdi-format-list-checks"></span> Snelle installatie</h2>
+  <h2><span class="mdi mdi-format-list-checks"></span> {{ t('idx.checklist_title') }}</h2>
   <p style="font-size:13.5px; color:#374151; line-height:1.7; margin-bottom:16px;">
-    Voltooi onderstaande stappen om de add-on aan de praat te krijgen.
-    Bij eerste gebruik doorloopt u deze lijst stap voor stap; daarna kunt u
-    elk onderdeel afzonderlijk bewerken indien nodig.
+    {{ t('idx.checklist_intro') }}
   </p>
   <table>
-    <thead><tr><th>Stap</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>{{ t('idx.step') }}</th><th>{{ t('idx.status') }}</th><th></th></tr></thead>
     <tbody>
       <tr>
-        <td><strong>1. Systeem &amp; locatie</strong></td>
-        <td>{% if options.get("location") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> Ingesteld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('system') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>1. {{ t('idx.step_system') }}</strong></td>
+        <td>{% if options.get("location") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.configured') }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('system') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
       <tr>
-        <td><strong>2. Database</strong></td>
-        <td>{% if options.get("database") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> Ingesteld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('database') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>2. {{ t('idx.step_database') }}</strong></td>
+        <td>{% if options.get("database") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.configured') }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('database') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
       <tr>
-        <td><strong>3. Home Assistant</strong></td>
-        <td>{% if options.get("homeassistant") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> Ingesteld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('homeassistant') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>3. {{ t('idx.step_homeassistant') }}</strong></td>
+        <td>{% if options.get("homeassistant") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.configured') }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('homeassistant') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
       {% if not system_config or system_config.has_battery %}
       <tr>
-        <td><strong>4. Inverter &amp; batterij</strong></td>
-        <td>{% if inverter_ok %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> Ingesteld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('inverter') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>4. {{ t('idx.step_inverter') }}</strong></td>
+        <td>{% if inverter_ok %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.configured') }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('inverter') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
       {% endif %}
       <tr>
-        <td><strong>5. Energieleverancier</strong></td>
-        <td>{% if provider_ok %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> Ingesteld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('provider') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>5. {{ t('idx.step_provider') }}</strong></td>
+        <td>{% if provider_ok %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.configured') }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('provider') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
       <tr>
-        <td><strong>6. HA entiteit-koppeling</strong></td>
-        <td>{% if entity_count > 0 %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ entity_count }} sensor(en) gekoppeld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('entities') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>6. {{ t('idx.step_entities') }}</strong></td>
+        <td>{% if entity_count > 0 %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.step_entities_status', count=entity_count) }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('entities') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
       <tr>
-        <td><strong>7. Tijden</strong></td>
-        <td>{% if options.get("collectors") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> Ingesteld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('schedule') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>7. {{ t('idx.step_times') }}</strong></td>
+        <td>{% if options.get("collectors") %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.configured') }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('schedule') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
       <tr>
-        <td><strong>8. Optimizer-drempelwaarden</strong></td>
-        <td>{% if config_ok %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> Ingesteld</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet ingesteld</span>{% endif %}</td>
-        <td><a href="{{ nav_url('optimizer') }}" class="btn btn-secondary btn-sm">Bewerk</a></td>
+        <td><strong>8. {{ t('idx.step_thresholds') }}</strong></td>
+        <td>{% if config_ok %}<span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-check"></span> {{ t('idx.configured') }}</span>{% else %}<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> {{ t('idx.not_configured') }}</span>{% endif %}</td>
+        <td><a href="{{ nav_url('optimizer') }}" class="btn btn-secondary btn-sm">{{ t('idx.edit') }}</a></td>
       </tr>
     </tbody>
   </table>
@@ -105,15 +109,15 @@
 <!-- Laatste optimizer run -->
 {% if last_schedule %}
 <div class="card">
-  <h2><span class="mdi mdi-clock-fast"></span> Laatste optimizer-run</h2>
+  <h2><span class="mdi mdi-clock-fast"></span> {{ t('idx.last_run') }}</h2>
   <table>
     <thead>
       <tr>
-        <th>Uur</th>
-        <th>Actie</th>
-        <th>Vermogen</th>
-        <th>Besparing</th>
-        <th>Reden</th>
+        <th>{{ t('idx.hour') }}</th>
+        <th>{{ t('idx.action') }}</th>
+        <th>{{ t('idx.power') }}</th>
+        <th>{{ t('idx.saving') }}</th>
+        <th>{{ t('idx.reason') }}</th>
       </tr>
     </thead>
     <tbody>
@@ -122,11 +126,11 @@
         <td>{{ slot.schedule_for.strftime('%H:%M') }}</td>
         <td>
           {% if slot.action == 'charge' %}
-            <span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-arrow-up-bold"></span> Laden</span>
+            <span style="color:#16a34a;font-weight:500;"><span class="mdi mdi-arrow-up-bold"></span> {{ t('idx.action_charging') }}</span>
           {% elif slot.action == 'discharge' %}
-            <span style="color:#dc2626;font-weight:500;"><span class="mdi mdi-arrow-down-bold"></span> Ontladen</span>
+            <span style="color:#dc2626;font-weight:500;"><span class="mdi mdi-arrow-down-bold"></span> {{ t('idx.action_discharging') }}</span>
           {% else %}
-            <span style="color:#6b7280;"><span class="mdi mdi-minus"></span> Rust</span>
+            <span style="color:#6b7280;"><span class="mdi mdi-minus"></span> {{ t('idx.action_idle') }}</span>
           {% endif %}
         </td>
         <td>{{ "%.2f"|format(slot.target_power_kw or 0) }} kW</td>
@@ -140,14 +144,20 @@
 {% endif %}
 
 <div class="card">
-  <h2><span class="mdi mdi-information-outline"></span> Over deze add-on</h2>
+  <h2><span class="mdi mdi-information-outline"></span> {{ t('idx.about_heading') }}</h2>
   <p style="font-size:13px; color:#6b7280; line-height:1.8;">
-    HA Energy Optimizer optimaliseert het laad- en ontlaadschema van uw thuisbatterij
-    op basis van dynamische energieprijzen, zonverwachtingen en huishoudelijk verbruik.
+    {{ t('idx.about_body') }}
   </p>
 </div>
 
 <script>
+const MSG_RUN_OPTIMIZER = {{ t('idx.js_run_optimizer')|tojson }};
+const MSG_FETCH_PRICES  = {{ t('idx.js_fetch_prices')|tojson }};
+const MSG_TEST_ENTITIES = {{ t('idx.js_test_entities')|tojson }};
+const MSG_ERROR_PREFIX  = {{ t('idx.js_error')|tojson }};
+const MSG_OK            = {{ t('idx.js_ok')|tojson }};
+const MSG_NOT_FOUND     = {{ t('idx.js_not_found')|tojson }};
+
 function showResult(message, type) {
   const div = document.getElementById('action-result');
   const msg = document.getElementById('action-message');
@@ -157,7 +167,7 @@ function showResult(message, type) {
 }
 
 async function runOptimizer() {
-  showResult('Optimizer uitvoeren...', 'info');
+  showResult(MSG_RUN_OPTIMIZER, 'info');
   try {
     const resp = await fetch(apiUrl('/action/run-optimizer'), {
       method: 'POST',
@@ -167,12 +177,12 @@ async function runOptimizer() {
     showResult(data.message, data.ok ? 'success' : 'error');
     if (data.ok) setTimeout(() => location.reload(), 2000);
   } catch(e) {
-    showResult('Fout: ' + e.message, 'error');
+    showResult(MSG_ERROR_PREFIX + e.message, 'error');
   }
 }
 
 async function fetchPrices() {
-  showResult('Prijzen ophalen...', 'info');
+  showResult(MSG_FETCH_PRICES, 'info');
   try {
     const resp = await fetch(apiUrl('/action/fetch-prices'), {
       method: 'POST',
@@ -181,12 +191,12 @@ async function fetchPrices() {
     const data = await resp.json();
     showResult(data.message, data.ok ? 'success' : 'error');
   } catch(e) {
-    showResult('Fout: ' + e.message, 'error');
+    showResult(MSG_ERROR_PREFIX + e.message, 'error');
   }
 }
 
 async function testEntities() {
-  showResult('HA entiteiten lezen...', 'info');
+  showResult(MSG_TEST_ENTITIES, 'info');
   document.getElementById('entity-results').style.display = 'none';
   try {
     const resp = await fetch(apiUrl('/action/test-entities'), {
@@ -205,15 +215,15 @@ async function testEntities() {
           <td style="font-size:12px;">${e.entity_id}</td>
           <td><strong>${e.value}</strong> ${e.unit}</td>
           <td>${e.ok
-            ? '<span style="color:#16a34a;"><span class="mdi mdi-check"></span> OK</span>'
-            : '<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> Niet gevonden</span>'}</td>
+            ? '<span style="color:#16a34a;"><span class="mdi mdi-check"></span> ' + MSG_OK + '</span>'
+            : '<span style="color:#dc2626;"><span class="mdi mdi-minus"></span> ' + MSG_NOT_FOUND + '</span>'}</td>
         </tr>`;
         tbody.innerHTML += row;
       });
       document.getElementById('entity-results').style.display = 'block';
     }
   } catch(e) {
-    showResult('Fout: ' + e.message, 'error');
+    showResult(MSG_ERROR_PREFIX + e.message, 'error');
   }
 }
 </script>

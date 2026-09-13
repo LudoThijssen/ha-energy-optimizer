@@ -2,29 +2,41 @@
 <!-- name:         translations.html -->
 <!-- part of:      ha-energy-optimizer -->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/translations.html -->
-<!-- part version: p_v0.4 -->
-<!-- altered:      2026-07-05 -->
+<!-- part version: p_v0.5 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.5: volledig omgezet naar t(). Onderdeel van backlog-punt 9/10. Dit
+is de beheerpagina voor de databasegebaseerde OperationalTranslator-laag
+(reason strings e.d.) — inhoudelijk een ander systeem dan de t()-laag die
+deze pagina nu zelf gebruikt voor de eigen UI-tekst, maar dat is precies
+zoals het hoort: twee lagen, zie translator.py p_v0.7.
+p_v0.5: fully converted to t(). Part of backlog item 9/10. This is the
+management page for the database-backed OperationalTranslator layer
+(reason strings etc.) — a different system in substance from the t()
+layer this page now uses for its own UI text, but that's exactly as
+intended: two layers, see translator.py p_v0.7.
+-->
 {% block title %}Vertalingen — HA Energy Optimizer{% endblock %}
 {% block content %}
 
-<h1><span class="mdi mdi-translate"></span> Vertalingen</h1>
-<p class="subtitle">Bekijk en pas de operationele teksten aan per taal</p>
+<h1><span class="mdi mdi-translate"></span> {{ t('nav.translations') }}</h1>
+<p class="subtitle">{{ t('trn.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Vertaling opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('trn.saved') }}</div>
 {% endif %}
 
 {% if generated %}
 <div class="alert alert-success">
   <span class="mdi mdi-robot-outline"></span>
-  {{ generated }} vertalingen automatisch aangemaakt via AI voor '{{ active_language }}'
+  {{ t('trn.ai_generated', count=generated, language=active_language) }}
 </div>
 {% endif %}
 
 <!-- Taalkeuze en acties -->
 <div class="card" style="padding:16px;">
   <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-    <span style="font-size:13px; font-weight:500; color:#374151;">Taal:</span>
+    <span style="font-size:13px; font-weight:500; color:#374151;">{{ t('trn.language_label') }}</span>
     {% for code, label in languages %}
     <a href="?lang={{ code }}"
        class="btn btn-sm {% if active_language == code %}btn-primary{% else %}btn-secondary{% endif %}">
@@ -38,13 +50,13 @@
       <input type="hidden" name="action" value="generate">
       <input type="hidden" name="language" value="{{ active_language }}">
       <button type="submit" class="btn btn-secondary btn-sm"
-              {% if active_language in ('nl', 'en') %}disabled title="nl en en zijn de basistalen"{% endif %}>
-        <span class="mdi mdi-robot-outline"></span> AI aanvullen
+              {% if active_language in ('nl', 'en') %}disabled title="{{ t('trn.ai_fill_disabled_title') }}"{% endif %}>
+        <span class="mdi mdi-robot-outline"></span> {{ t('trn.ai_fill') }}
       </button>
     </form>
 
     <span style="font-size:12px; color:#6b7280;">
-      {{ entry_count }} teksten — {{ missing_count }} ontbrekend
+      {{ t('trn.entry_count', count=entry_count, missing=missing_count) }}
     </span>
   </div>
 </div>
@@ -52,8 +64,8 @@
 <!-- Groepfilter -->
 <div class="card" style="padding:12px 16px;">
   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-    <span style="font-size:12px; color:#6b7280;">Groep:</span>
-    <a href="?lang={{ active_language }}" class="btn btn-sm {% if not active_group %}btn-primary{% else %}btn-secondary{% endif %}">Alles</a>
+    <span style="font-size:12px; color:#6b7280;">{{ t('trn.group_label') }}</span>
+    <a href="?lang={{ active_language }}" class="btn btn-sm {% if not active_group %}btn-primary{% else %}btn-secondary{% endif %}">{{ t('trn.all') }}</a>
     {% for grp, grp_label in groups %}
     <a href="?lang={{ active_language }}&group={{ grp }}"
        class="btn btn-sm {% if active_group == grp %}btn-primary{% else %}btn-secondary{% endif %}">
@@ -69,8 +81,8 @@
   <table>
     <thead>
       <tr>
-        <th style="width:70px">Sleutel</th>
-        <th style="width:40%">Nederlands (basis)</th>
+        <th style="width:70px">{{ t('trn.key_col') }}</th>
+        <th style="width:40%">{{ t('trn.dutch_base') }}</th>
         <th>{{ active_language_label }}</th>
         <th style="width:80px"></th>
       </tr>
@@ -87,7 +99,7 @@
             <input type="hidden" name="key" value="{{ e.key }}">
             <input type="text" name="text" value="{{ e.translated or '' }}"
                    style="font-size:13px; {% if not e.translated %}border-color:#f59e0b;{% endif %}"
-                   placeholder="Vertaling ontbreekt...">
+                   placeholder="{{ t('trn.translation_missing') }}">
             <button type="submit" class="btn btn-primary btn-sm">
               <span class="mdi mdi-content-save-outline"></span>
             </button>
@@ -106,7 +118,7 @@
   </table>
   {% else %}
   <p style="padding:24px; color:#6b7280; font-size:13px;">
-    Geen teksten gevonden voor deze combinatie.
+    {{ t('trn.no_entries') }}
   </p>
   {% endif %}
 </div>

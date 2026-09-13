@@ -2,25 +2,30 @@
 <!-- name:         system.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/system.html -->
-<!-- part version: p_v0.6 -->
+<!-- part version: p_v0.7 -->
 <!-- altered:      2026-09-09 -->
+<!--
+p_v0.7: rest van de pagina omgezet naar t() (Locatie, Geïnstalleerde
+componenten, Off-grid uitvaldetectie, Taal) — de solar_reserve_strategy-
+kaart (p_v0.6) was de enige die dit al deed. Onderdeel van backlog-punt
+9/10. sys.offgrid_hint gebruikt een {link}-placeholder (ingevuld met
+nav_url('optimizer')) omdat een vertaalstring geen Jinja kan bevatten.
+p_v0.7: rest of the page converted to t() (Location, Installed
+components, Off-grid outage detection, Language) — the
+solar_reserve_strategy card (p_v0.6) was the only one already doing
+this. Part of backlog item 9/10. sys.offgrid_hint uses a {link}
+placeholder (filled with nav_url('optimizer')) since a translation
+string can't contain Jinja.
+-->
 <!--
 p_v0.6: nieuwe kaart "Batterijruimte reserveren voor zon"
 (solar_reserve_strategy, A/B, migratie 022) — radio-keuze tussen
 'block' en 'throttle', standaard 'throttle' (B). Zie decision_engine.py
-(volgt) voor het daadwerkelijke gedrag per keuze. Eerste plek in de app
-die t() gebruikt i.p.v. hardgecodeerde tekst — zie app.py p_v0.26
-(inject_globals) voor de generieke vertaal-wiring. De rest van deze
-pagina is bewust nog niet omgezet naar t(); dat is een apart, groter
-punt (backlog-punt 10).
+p_v0.14 voor het daadwerkelijke gedrag per keuze.
 p_v0.6: new card "Reserve battery capacity for solar"
 (solar_reserve_strategy, A/B, migration 022) — radio choice between
 'block' and 'throttle', default 'throttle' (B). See decision_engine.py
-(to follow) for the actual behaviour per choice. First place in the app
-using t() instead of hardcoded text — see app.py p_v0.26
-(inject_globals) for the generic translation wiring. The rest of this
-page is deliberately not yet converted to t(); that's a separate, larger
-item (backlog item 10).
+p_v0.14 for the actual behaviour per choice.
 -->
 <!--
 p_v0.4: "Off-grid schakeling" vinkje toegevoegd — schakelt de dynamische
@@ -45,34 +50,34 @@ decision_engine.py p_v0.12.
 {% block content %}
 
 <h1><span class="mdi mdi-map-marker-outline"></span> Systeem &amp; locatie</h1>
-<p class="subtitle">Basis installatiegegevens</p>
+<p class="subtitle">{{ t('sys.subtitle') }}</p>
 
 {% if saved %}
-<div class="alert alert-success"><span class="mdi mdi-check"></span> Instellingen opgeslagen</div>
+<div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('general.settings_saved') }}</div>
 {% endif %}
 {% if lang_changed %}
-<div class="alert alert-info"><span class="mdi mdi-translate"></span> Taal bijgewerkt — nieuwe vertalingen worden automatisch aangemaakt bij eerste gebruik.</div>
+<div class="alert alert-info"><span class="mdi mdi-translate"></span> {{ t('sys.lang_changed') }}</div>
 {% endif %}
 
 <form method="POST">
   <div class="card">
-    <h2><span class="mdi mdi-crosshairs-gps"></span> Locatie</h2>
+    <h2><span class="mdi mdi-crosshairs-gps"></span> {{ t('sys.location') }}</h2>
     <div class="field-row">
       <div class="field">
-        <label>Breedtegraad</label>
+        <label>{{ t('sys.latitude') }}</label>
         <input type="number" name="latitude" step="0.0001"
                value="{{ options.get('location', {}).get('latitude', '') }}" required>
-        <div class="hint">bijv. 52.1551 (Nederland)</div>
+        <div class="hint">{{ t('sys.latitude_hint') }}</div>
       </div>
       <div class="field">
-        <label>Lengtegraad</label>
+        <label>{{ t('sys.longitude') }}</label>
         <input type="number" name="longitude" step="0.0001"
                value="{{ options.get('location', {}).get('longitude', '') }}" required>
-        <div class="hint">bijv. 5.3872</div>
+        <div class="hint">{{ t('sys.longitude_hint') }}</div>
       </div>
     </div>
     <div class="field">
-      <label>Tijdzone</label>
+      <label>{{ t('sys.timezone') }}</label>
       <select name="timezone">
         {% for tz in ["Europe/Amsterdam","Europe/Brussels","Europe/Berlin","Europe/Paris","Europe/London","Europe/Madrid"] %}
         <option value="{{ tz }}" {% if options.get('location', {}).get('timezone') == tz %}selected{% endif %}>{{ tz }}</option>
@@ -82,36 +87,33 @@ decision_engine.py p_v0.12.
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-cog-outline"></span> Geïnstalleerde componenten</h2>
+    <h2><span class="mdi mdi-cog-outline"></span> {{ t('sys.installed_components') }}</h2>
     <label class="check-label">
       <input type="checkbox" name="has_grid" {% if options.get('system', {}).get('has_grid_connection', True) %}checked{% endif %}>
-      Netaansluiting
+      {{ t('sys.has_grid') }}
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_solar" {% if options.get('system', {}).get('has_solar_panels') %}checked{% endif %}>
-      Zonnepanelen
+      {{ t('sys.has_solar') }}
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_battery" {% if options.get('system', {}).get('has_battery') %}checked{% endif %}>
-      Thuisbatterij
+      {{ t('sys.has_battery') }}
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_gas" {% if options.get('system', {}).get('has_gas') %}checked{% endif %}>
-      Gasaansluiting
+      {{ t('sys.has_gas') }}
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_heating" {% if options.get('system', {}).get('has_district_heating') %}checked{% endif %}>
-      Stadsverwarming
+      {{ t('sys.has_heating') }}
     </label>
     <label class="check-label">
       <input type="checkbox" name="has_offgrid" {% if options.get('system', {}).get('has_offgrid_switch') %}checked{% endif %}>
-      Off-grid schakeling
+      {{ t('sys.has_offgrid') }}
     </label>
     <div class="hint" style="margin-top:4px; margin-left:24px;">
-      Indien aangevinkt: de batterij-ondergrens schuift automatisch tussen een hoge (dag)
-      en lage (nacht) waarde, gekoppeld aan zonsopkomst en het geleerde nachtverbruik.
-      Zonder dit vinkje blijft de vaste ondergrens gelden zoals nu. Instelbaar op de
-      <a href="{{ nav_url('optimizer') }}">Drempelwaarden-pagina</a>.
+      {{ t('sys.offgrid_hint', link=nav_url('optimizer'))|safe }}
     </div>
   </div>
 
@@ -134,67 +136,52 @@ decision_engine.py p_v0.12.
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-transmission-tower-off"></span> Off-grid uitvaldetectie</h2>
+    <h2><span class="mdi mdi-transmission-tower-off"></span> {{ t('sys.offgrid_detection') }}</h2>
     <div class="alert alert-info">
       <span class="mdi mdi-information-outline"></span>
-      Alleen actief als "Off-grid schakeling" hierboven is aangevinkt. Detecteert een
-      netuitval door periodiek (elke paar minuten) een HA-entiteit uit te lezen, schrijft
-      een alarm-entiteit terug naar HA (voor je eigen automations — deurbel, geluid, wat
-      dan ook) en pauzeert alle prijs-gestuurde laad/ontlaad-beslissingen zolang de
-      uitval duurt.
+      {{ t('sys.offgrid_detection_info') }}
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Primaire detectie-entiteit</label>
+        <label>{{ t('sys.offgrid_primary_entity') }}</label>
         <input type="text" name="offgrid_primary_entity"
                value="{{ config.offgrid_primary_entity_id if config and config.offgrid_primary_entity_id else '' }}"
                placeholder="bijv. binary_sensor.omvormer_netstatus">
-        <div class="hint">
-          Bij voorkeur de status van de off-grid schakelaar zelf — heeft voorrang boven
-          de terugval-entiteit hieronder. Laat leeg als je die nog niet hebt.
-        </div>
+        <div class="hint">{{ t('sys.offgrid_primary_entity_hint') }}</div>
       </div>
       <div class="field">
-        <label>Waarde die "off-grid" betekent</label>
+        <label>{{ t('sys.offgrid_off_value') }}</label>
         <input type="text" name="offgrid_primary_off_value"
                value="{{ config.offgrid_primary_off_value if config and config.offgrid_primary_off_value else 'off' }}">
-        <div class="hint">Exacte tekstwaarde van de entiteit hierboven, bijv. "off", "unavailable" of "0".</div>
+        <div class="hint">{{ t('sys.offgrid_off_value_hint') }}</div>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Terugval-entiteit (optioneel)</label>
+        <label>{{ t('sys.offgrid_fallback_entity') }}</label>
         <input type="text" name="offgrid_fallback_entity"
                value="{{ config.offgrid_fallback_entity_id if config and config.offgrid_fallback_entity_id else '' }}"
                placeholder="bijv. sensor.p1_meter_vermogen">
-        <div class="hint">
-          Wordt alleen gebruikt als de primaire entiteit leeg of niet leesbaar is. Telt
-          als signaal wanneer déze entiteit zelf "unavailable" wordt — minder betrouwbaar
-          (kan ook door wifi-hapering komen), dus alleen als terugval.
-        </div>
+        <div class="hint">{{ t('sys.offgrid_fallback_entity_hint') }}</div>
       </div>
       <div class="field">
-        <label>Alarm-entiteit (teruggeschreven naar HA)</label>
+        <label>{{ t('sys.offgrid_alarm_entity') }}</label>
         <input type="text" name="offgrid_alarm_entity"
                value="{{ config.offgrid_alarm_entity_id if config and config.offgrid_alarm_entity_id else 'binary_sensor.ha_energy_optimizer_offgrid' }}">
-        <div class="hint">
-          Wordt automatisch aangemaakt in HA zodra er een detectie plaatsvindt — geen
-          aparte stap nodig. Gebruik deze entity_id in je eigen HA-automation om op een
-          netuitval te reageren.
-        </div>
+        <div class="hint">{{ t('sys.offgrid_alarm_entity_hint') }}</div>
       </div>
     </div>
     {% if config %}
     <div class="field">
-      <label>Huidige status</label>
+      <label>{{ t('sys.offgrid_current_status') }}</label>
       <div class="hint" style="margin-top:0;">
         {% if config.offgrid_active %}
-          <span style="color:#dc2626; font-weight:600;"><span class="mdi mdi-alert"></span> Off-grid gedetecteerd</span>
+          <span style="color:#dc2626; font-weight:600;"><span class="mdi mdi-alert"></span> {{ t('sys.offgrid_detected') }}</span>
         {% else %}
-          <span style="color:#16a34a;">Normaal (net aanwezig)</span>
+          <span style="color:#16a34a;">{{ t('sys.offgrid_normal') }}</span>
         {% endif %}
         {% if config.offgrid_last_checked_at %}
-          — laatst gecontroleerd: {{ config.offgrid_last_checked_at.strftime('%d-%m-%Y %H:%M') }}
+          — {{ t('sys.offgrid_last_checked', time=config.offgrid_last_checked_at.strftime('%d-%m-%Y %H:%M')) }}
         {% endif %}
       </div>
     </div>
@@ -202,22 +189,20 @@ decision_engine.py p_v0.12.
   </div>
 
   <div class="card">
-    <h2><span class="mdi mdi-translate"></span> Taal</h2>
+    <h2><span class="mdi mdi-translate"></span> {{ t('system.language') }}</h2>
     <div class="field">
-      <label>Interfacetaal</label>
+      <label>{{ t('sys.interface_language') }}</label>
       <select name="language">
         {% for code, label in [("nl","Nederlands"),("en","English"),("de","Deutsch"),("fr","Français"),("es","Español")] %}
         <option value="{{ code }}" {% if options.get('language') == code %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <div class="hint">
-        Andere talen worden automatisch gegenereerd via AI bij eerste gebruik.
-      </div>
+      <div class="hint">{{ t('sys.language_hint') }}</div>
     </div>
   </div>
 
   <div class="btn-row">
-    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> Opslaan</button>
+    <button type="submit" class="btn btn-primary"><span class="mdi mdi-content-save-outline"></span> {{ t('general.save') }}</button>
   </div>
 </form>
 {% endblock %}

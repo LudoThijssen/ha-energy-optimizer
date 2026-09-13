@@ -2,20 +2,11 @@
 // name:          _context.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/_context.json
-// part version:  p_v0.2
+// part version:  p_v0.4
 // altered:       2026-09-09
 //
-// p_v0.2: 4 sleutels toegevoegd voor de nieuwe solar_reserve_strategy-
-// instelling op de Systeempagina (zie migratie 022, system.html,
-// app.py). Context expliciet uitgeschreven zodat de AI-vertaling voor
-// nieuwe talen het onderscheid tussen 'block'/'throttle' en de rol van
-// een negatief exportprijsvenster goed begrijpt.
-//
-// p_v0.2: added 4 keys for the new solar_reserve_strategy setting on the
-// System settings page (see migration 022, system.html, app.py). Context
-// spelled out explicitly so AI translation for new languages correctly
-// understands the 'block'/'throttle' distinction and the role of a
-// negative export price window.
+// p_v0.4: context toegevoegd voor de 233 nieuwe sleutels (zie en.json).
+// p_v0.4: added context for the 233 new keys (see en.json).
 //
 {
   "battery.action.charge": {
@@ -113,5 +104,1617 @@
   "system.solar_reserve_strategy.hint": {
     "context": "Explanatory help text shown under the system.solar_reserve_strategy setting on the System settings page of a home energy management app.",
     "example_nl": "Bepaalt wat de optimizer doet als er een negatief exportprijsvenster wordt verwacht én er genoeg zon voorspeld is om de batterij te vullen. Buiten die situatie verandert deze instelling niets — normaal prijsgedreven laden (ook bij een lage of negatieve prijs) blijft gewoon mogelijk."
+  },
+  "general.saved": {
+    "context": "Short confirmation shown after successfully saving a form, e.g. entity mappings.",
+    "example_nl": "Opgeslagen"
+  },
+  "general.settings_saved": {
+    "context": "Confirmation shown after successfully saving a settings form.",
+    "example_nl": "Instellingen opgeslagen"
+  },
+  "general.test": {
+    "context": "Short button label to test a connection or entity, e.g. next to an input field.",
+    "example_nl": "Test"
+  },
+  "ha.subtitle": {
+    "context": "Subtitle of the Home Assistant connection settings page.",
+    "example_nl": "Verbindingsinstellingen"
+  },
+  "ha.connection": {
+    "context": "Card heading for the Home Assistant host/port/token connection fields.",
+    "example_nl": "Verbinding"
+  },
+  "ha.host": {
+    "context": "Label for the Home Assistant hostname/IP input field.",
+    "example_nl": "Host"
+  },
+  "ha.host_hint": {
+    "context": "Help text under the Home Assistant host field. Contains inline HTML (<br>, <code>) — rendered with the safe filter, keep tags intact when translating.",
+    "example_nl": "IP-adres of hostnaam.<br>Gebruik <code>homeassistant.local</code> of het IP-adres van uw HA-installatie."
+  },
+  "ha.port": {
+    "context": "Label for the Home Assistant connection port number field.",
+    "example_nl": "Poort"
+  },
+  "ha.token": {
+    "context": "Label for the Home Assistant long-lived access token input field (a type of API credential).",
+    "example_nl": "Langdurig toegangstoken"
+  },
+  "ha.token_hint": {
+    "context": "Help text explaining where to generate a Home Assistant access token, referencing HA's own menu path. Contains inline HTML (<br>, <strong>) — rendered with the safe filter, keep tags intact when translating, only translate the menu label words themselves.",
+    "example_nl": "Maak een token aan in Home Assistant via:<br><strong>Profiel → Beveiliging → Langdurige toegangstokens → Token aanmaken</strong>"
+  },
+  "ha.test_connection": {
+    "context": "Button label to test the Home Assistant connection with the entered host/port/token.",
+    "example_nl": "Test verbinding"
+  },
+  "ha.create_token_heading": {
+    "context": "Card heading above the step-by-step instructions for creating a Home Assistant access token.",
+    "example_nl": "Token aanmaken"
+  },
+  "ha.step1": {
+    "context": "Step 1 of 6 in instructions for creating a Home Assistant access token.",
+    "example_nl": "Open Home Assistant in uw browser"
+  },
+  "ha.step2": {
+    "context": "Step 2 of 6 in instructions for creating a Home Assistant access token.",
+    "example_nl": "Klik op uw profielicoon (linksonder)"
+  },
+  "ha.step3": {
+    "context": "Step 3 of 6 in instructions for creating a Home Assistant access token. Contains inline <strong> — rendered with the safe filter, keep the tag.",
+    "example_nl": "Scroll naar <strong>Beveiliging</strong>"
+  },
+  "ha.step4": {
+    "context": "Step 4 of 6 in instructions for creating a Home Assistant access token. Contains inline <strong> — rendered with the safe filter, keep the tag.",
+    "example_nl": "Klik op <strong>Token aanmaken</strong> bij Langdurige toegangstokens"
+  },
+  "ha.step5": {
+    "context": "Step 5 of 6 in instructions for creating a Home Assistant access token. 'HA Energy Optimizer' is the product name — keep untranslated. Contains inline <em> — rendered with the safe filter, keep the tag.",
+    "example_nl": "Geef het een naam zoals <em>HA Energy Optimizer</em>"
+  },
+  "ha.step6": {
+    "context": "Step 6 of 6 in instructions for creating a Home Assistant access token.",
+    "example_nl": "Kopieer het token en plak het hierboven"
+  },
+  "ha.testing": {
+    "context": "Shown while a connection test to Home Assistant is in progress (JavaScript, short-lived status text).",
+    "example_nl": "Testen..."
+  },
+  "ha.request_failed": {
+    "context": "Prefix shown before a technical error message when a connection test request fails (JavaScript). Keep the trailing space/colon so it reads naturally with the appended error text.",
+    "example_nl": "Verzoek mislukt: "
+  },
+  "sys.subtitle": {
+    "context": "Subtitle of the System settings page.",
+    "example_nl": "Basis installatiegegevens"
+  },
+  "sys.lang_changed": {
+    "context": "Info banner shown after changing the interface language, explaining AI translation happens automatically.",
+    "example_nl": "Taal bijgewerkt — nieuwe vertalingen worden automatisch aangemaakt bij eerste gebruik."
+  },
+  "sys.location": {
+    "context": "Card heading for latitude/longitude/timezone settings.",
+    "example_nl": "Locatie"
+  },
+  "sys.latitude": {
+    "context": "Label for a geographic latitude input field, used for solar forecast calculations.",
+    "example_nl": "Breedtegraad"
+  },
+  "sys.latitude_hint": {
+    "context": "Example value hint under the latitude field. Keep the example number as-is.",
+    "example_nl": "bijv. 52.1551 (Nederland)"
+  },
+  "sys.longitude": {
+    "context": "Label for a geographic longitude input field, used for solar forecast calculations.",
+    "example_nl": "Lengtegraad"
+  },
+  "sys.longitude_hint": {
+    "context": "Example value hint under the longitude field. Keep the example number as-is.",
+    "example_nl": "bijv. 5.3872"
+  },
+  "sys.timezone": {
+    "context": "Label for the timezone selection dropdown.",
+    "example_nl": "Tijdzone"
+  },
+  "sys.installed_components": {
+    "context": "Card heading for checkboxes indicating which hardware components are present in the installation.",
+    "example_nl": "Geïnstalleerde componenten"
+  },
+  "sys.has_grid": {
+    "context": "Checkbox label: whether the installation has a public power grid connection.",
+    "example_nl": "Netaansluiting"
+  },
+  "sys.has_solar": {
+    "context": "Checkbox label: whether the installation has solar panels.",
+    "example_nl": "Zonnepanelen"
+  },
+  "sys.has_battery": {
+    "context": "Checkbox label: whether the installation has a home battery storage system.",
+    "example_nl": "Thuisbatterij"
+  },
+  "sys.has_gas": {
+    "context": "Checkbox label: whether the installation has a gas connection.",
+    "example_nl": "Gasaansluiting"
+  },
+  "sys.has_heating": {
+    "context": "Checkbox label: whether the installation is connected to district heating.",
+    "example_nl": "Stadsverwarming"
+  },
+  "sys.has_offgrid": {
+    "context": "Checkbox label enabling dynamic battery reserve behaviour tied to grid outage detection.",
+    "example_nl": "Off-grid schakeling"
+  },
+  "sys.offgrid_hint": {
+    "context": "Help text under the off-grid switching checkbox, explaining what it does. Contains a {link} placeholder (substituted with the URL to the thresholds settings page) and an <a> tag — rendered with the safe filter, keep the tag and placeholder intact.",
+    "example_nl": "Indien aangevinkt: de batterij-ondergrens schuift automatisch tussen een hoge (dag) en lage (nacht) waarde, gekoppeld aan zonsopkomst en het geleerde nachtverbruik. Zonder dit vinkje blijft de vaste ondergrens gelden zoals nu. Instelbaar op de <a href=\"{link}\">drempelwaarden-pagina</a>."
+  },
+  "sys.offgrid_detection": {
+    "context": "Card heading for grid outage detection settings (detects when the public grid is down).",
+    "example_nl": "Off-grid uitvaldetectie"
+  },
+  "sys.offgrid_detection_info": {
+    "context": "Info banner explaining the off-grid outage detection feature in detail.",
+    "example_nl": "Alleen actief als \"Off-grid schakeling\" hierboven is aangevinkt. Detecteert een netuitval door periodiek (elke paar minuten) een HA-entiteit uit te lezen, schrijft een alarm-entiteit terug naar HA (voor je eigen automations — deurbel, geluid, wat dan ook) en pauzeert alle prijs-gestuurde laad/ontlaad-beslissingen zolang de uitval duurt."
+  },
+  "sys.offgrid_primary_entity": {
+    "context": "Label for the HA entity ID input used as the primary grid-outage detection signal.",
+    "example_nl": "Primaire detectie-entiteit"
+  },
+  "sys.offgrid_primary_entity_hint": {
+    "context": "Help text under the primary detection entity field.",
+    "example_nl": "Bij voorkeur de status van de off-grid schakelaar zelf — heeft voorrang boven de terugval-entiteit hieronder. Laat leeg als je die nog niet hebt."
+  },
+  "sys.offgrid_off_value": {
+    "context": "Label for the field specifying which exact entity value indicates a grid outage.",
+    "example_nl": "Waarde die \"off-grid\" betekent"
+  },
+  "sys.offgrid_off_value_hint": {
+    "context": "Help text under the off-grid value field, giving example values.",
+    "example_nl": "Exacte tekstwaarde van de entiteit hierboven, bijv. \"off\", \"unavailable\" of \"0\"."
+  },
+  "sys.offgrid_fallback_entity": {
+    "context": "Label for an optional secondary HA entity used as a weaker fallback signal for grid outage detection.",
+    "example_nl": "Terugval-entiteit (optioneel)"
+  },
+  "sys.offgrid_fallback_entity_hint": {
+    "context": "Help text under the fallback entity field, explaining when and how it's used.",
+    "example_nl": "Wordt alleen gebruikt als de primaire entiteit leeg of niet leesbaar is. Telt als signaal wanneer déze entiteit zelf \"unavailable\" wordt — minder betrouwbaar (kan ook door wifi-hapering komen), dus alleen als terugval."
+  },
+  "sys.offgrid_alarm_entity": {
+    "context": "Label for the HA entity ID the system writes an alarm state back to when an outage is detected.",
+    "example_nl": "Alarm-entiteit (teruggeschreven naar HA)"
+  },
+  "sys.offgrid_alarm_entity_hint": {
+    "context": "Help text under the alarm entity field.",
+    "example_nl": "Wordt automatisch aangemaakt in HA zodra er een detectie plaatsvindt — geen aparte stap nodig. Gebruik deze entity_id in je eigen HA-automation om op een netuitval te reageren."
+  },
+  "sys.offgrid_current_status": {
+    "context": "Label above a live status display showing whether a grid outage is currently detected.",
+    "example_nl": "Huidige status"
+  },
+  "sys.offgrid_detected": {
+    "context": "Status text shown when a grid outage is currently active/detected.",
+    "example_nl": "Off-grid gedetecteerd"
+  },
+  "sys.offgrid_normal": {
+    "context": "Status text shown when the grid is present and no outage is detected.",
+    "example_nl": "Normaal (net aanwezig)"
+  },
+  "sys.offgrid_last_checked": {
+    "context": "Timestamp label showing when the outage detection last ran. {time} placeholder is substituted with a formatted date/time string.",
+    "example_nl": "laatst gecontroleerd: {time}"
+  },
+  "sys.interface_language": {
+    "context": "Label for the dropdown selecting the GUI's display language.",
+    "example_nl": "Interfacetaal"
+  },
+  "sys.language_hint": {
+    "context": "Help text under the language dropdown, explaining that non-seeded languages are AI-translated on demand.",
+    "example_nl": "Andere talen worden automatisch gegenereerd via AI bij eerste gebruik."
+  },
+  "nav.installation": {
+    "context": "Sidebar navigation section header grouping installation-related pages.",
+    "example_nl": "Installatie"
+  },
+  "nav.optimizer_section": {
+    "context": "Sidebar navigation section header grouping optimizer settings pages.",
+    "example_nl": "Optimizer"
+  },
+  "nav.personal": {
+    "context": "Sidebar navigation section header grouping personal/cosmetic preference pages (colors, translations).",
+    "example_nl": "Persoonlijk"
+  },
+  "nav.overview": {
+    "context": "Sidebar navigation link to the setup checklist / home page.",
+    "example_nl": "Installatieoverzicht"
+  },
+  "nav.system": {
+    "context": "Sidebar navigation link and page heading for the System settings page (location, installed components, language).",
+    "example_nl": "Systeem & locatie"
+  },
+  "nav.database": {
+    "context": "Sidebar navigation link to the database connection settings page.",
+    "example_nl": "Database"
+  },
+  "nav.inverter_battery": {
+    "context": "Sidebar navigation link to the inverter/battery hardware settings page.",
+    "example_nl": "Inverter & batterij"
+  },
+  "nav.provider": {
+    "context": "Sidebar navigation link to the electricity price provider settings page.",
+    "example_nl": "Energieleverancier"
+  },
+  "nav.entities": {
+    "context": "Sidebar navigation link to the Home Assistant entity mapping page.",
+    "example_nl": "HA entiteiten"
+  },
+  "nav.times": {
+    "context": "Sidebar navigation link to the collection/optimizer interval and schedule-time settings page.",
+    "example_nl": "Tijden"
+  },
+  "nav.thresholds": {
+    "context": "Sidebar navigation link to the optimizer price/SoC threshold settings page.",
+    "example_nl": "Drempelwaarden"
+  },
+  "nav.prices": {
+    "context": "Sidebar navigation link to the fixed gas/heating price settings page.",
+    "example_nl": "Prijzen"
+  },
+  "nav.reportlog": {
+    "context": "Sidebar navigation link to the system report/notification log page.",
+    "example_nl": "Rapportage log"
+  },
+  "nav.energy_costs": {
+    "context": "Sidebar navigation link to the actual measured energy cost overview page.",
+    "example_nl": "Energie kosten"
+  },
+  "nav.colors": {
+    "context": "Sidebar navigation link to the dashboard chart color customization page.",
+    "example_nl": "Kleuren"
+  },
+  "nav.translations": {
+    "context": "Sidebar navigation link to the operational text translation management page.",
+    "example_nl": "Vertalingen"
+  },
+  "db.subtitle": {
+    "context": "Subtitle of the Database settings page.",
+    "example_nl": "MySQL-verbindingsinstellingen"
+  },
+  "db.connection": {
+    "context": "Card heading for database host/port/credentials fields.",
+    "example_nl": "Verbinding"
+  },
+  "db.host_hint": {
+    "context": "Help text under the database host field.",
+    "example_nl": "IP-adres of hostnaam van uw MySQL-server"
+  },
+  "db.port": {
+    "context": "Label for the database port number field.",
+    "example_nl": "Poort"
+  },
+  "db.name": {
+    "context": "Label for the database name field.",
+    "example_nl": "Databasenaam"
+  },
+  "db.username": {
+    "context": "Label for the database username field.",
+    "example_nl": "Gebruikersnaam"
+  },
+  "db.password": {
+    "context": "Label for the database password field.",
+    "example_nl": "Wachtwoord"
+  },
+  "db.test_connection": {
+    "context": "Button label to test the database connection with the entered credentials.",
+    "example_nl": "Test verbinding"
+  },
+  "idx.overview_subtitle": {
+    "context": "Subtitle of the home/installation-overview page.",
+    "example_nl": "Installatieoverzicht"
+  },
+  "idx.quick_actions": {
+    "context": "Card heading for one-click action buttons (run optimizer now, fetch prices now, test entities).",
+    "example_nl": "Snelle acties"
+  },
+  "idx.run_optimizer_now": {
+    "context": "Button label to trigger an immediate optimizer run.",
+    "example_nl": "Optimizer nu uitvoeren"
+  },
+  "idx.fetch_prices_now": {
+    "context": "Button label to trigger an immediate electricity price fetch.",
+    "example_nl": "Prijzen nu ophalen"
+  },
+  "idx.test_ha_entities": {
+    "context": "Button label to test-read all mapped Home Assistant entities.",
+    "example_nl": "Test HA entiteiten"
+  },
+  "idx.internal_name": {
+    "context": "Table column header: the internal sensor name (e.g. battery_soc).",
+    "example_nl": "Interne naam"
+  },
+  "idx.entity_id": {
+    "context": "Table column header: the Home Assistant entity ID.",
+    "example_nl": "Entity ID"
+  },
+  "idx.value": {
+    "context": "Table column header: the current sensor reading.",
+    "example_nl": "Waarde"
+  },
+  "idx.status": {
+    "context": "Table column header: whether the entity read succeeded.",
+    "example_nl": "Status"
+  },
+  "idx.checklist_title": {
+    "context": "Card heading for the setup checklist listing configuration steps.",
+    "example_nl": "Snelle installatie"
+  },
+  "idx.checklist_intro": {
+    "context": "Intro paragraph on the setup checklist explaining how to use it.",
+    "example_nl": "Voltooi onderstaande stappen om de add-on aan de praat te krijgen. Bij eerste gebruik doorloopt u deze lijst stap voor stap; daarna kunt u elk onderdeel afzonderlijk bewerken indien nodig."
+  },
+  "idx.step": {
+    "context": "Table column header in the setup checklist.",
+    "example_nl": "Stap"
+  },
+  "idx.configured": {
+    "context": "Status shown in the setup checklist when a step has been completed.",
+    "example_nl": "Ingesteld"
+  },
+  "idx.not_configured": {
+    "context": "Status shown in the setup checklist when a step has not been completed yet.",
+    "example_nl": "Niet ingesteld"
+  },
+  "idx.edit": {
+    "context": "Short button label linking to a settings page from the setup checklist.",
+    "example_nl": "Bewerk"
+  },
+  "idx.step_system": {
+    "context": "Setup checklist step 1 label.",
+    "example_nl": "Systeem & locatie"
+  },
+  "idx.step_database": {
+    "context": "Setup checklist step 2 label.",
+    "example_nl": "Database"
+  },
+  "idx.step_homeassistant": {
+    "context": "Setup checklist step 3 label (product name, unchanged across languages).",
+    "example_nl": "Home Assistant"
+  },
+  "idx.step_inverter": {
+    "context": "Setup checklist step 4 label.",
+    "example_nl": "Inverter & batterij"
+  },
+  "idx.step_provider": {
+    "context": "Setup checklist step 5 label.",
+    "example_nl": "Energieleverancier"
+  },
+  "idx.step_entities": {
+    "context": "Setup checklist step 6 label.",
+    "example_nl": "HA entiteit-koppeling"
+  },
+  "idx.step_entities_status": {
+    "context": "Status text for the entity mapping checklist step when at least one entity is mapped, showing the count. {count} placeholder substituted with a number.",
+    "example_nl": "{count} sensor(en) gekoppeld"
+  },
+  "idx.step_times": {
+    "context": "Setup checklist step 7 label.",
+    "example_nl": "Tijden"
+  },
+  "idx.step_thresholds": {
+    "context": "Setup checklist step 8 label.",
+    "example_nl": "Optimizer-drempelwaarden"
+  },
+  "idx.last_run": {
+    "context": "Card heading showing the most recent optimizer schedule as a quick preview.",
+    "example_nl": "Laatste optimizer-run"
+  },
+  "idx.hour": {
+    "context": "Table column header for time of day.",
+    "example_nl": "Uur"
+  },
+  "idx.action": {
+    "context": "Table column header for the battery action taken.",
+    "example_nl": "Actie"
+  },
+  "idx.power": {
+    "context": "Table column header for power in kW.",
+    "example_nl": "Vermogen"
+  },
+  "idx.saving": {
+    "context": "Table column header for expected saving in euros.",
+    "example_nl": "Besparing"
+  },
+  "idx.reason": {
+    "context": "Table column header for the decision reason text.",
+    "example_nl": "Reden"
+  },
+  "idx.action_charging": {
+    "context": "Short action label: battery is charging.",
+    "example_nl": "Laden"
+  },
+  "idx.action_discharging": {
+    "context": "Short action label: battery is discharging.",
+    "example_nl": "Ontladen"
+  },
+  "idx.action_idle": {
+    "context": "Short action label: battery is idle.",
+    "example_nl": "Rust"
+  },
+  "idx.about_heading": {
+    "context": "Card heading for a short product description.",
+    "example_nl": "Over deze add-on"
+  },
+  "idx.about_body": {
+    "context": "Short product description shown on the overview page.",
+    "example_nl": "HA Energy Optimizer optimaliseert het laad- en ontlaadschema van uw thuisbatterij op basis van dynamische energieprijzen, zonverwachtingen en huishoudelijk verbruik."
+  },
+  "idx.js_run_optimizer": {
+    "context": "Status message shown while an immediate optimizer run is in progress (JavaScript).",
+    "example_nl": "Optimizer uitvoeren..."
+  },
+  "idx.js_fetch_prices": {
+    "context": "Status message shown while fetching electricity prices (JavaScript).",
+    "example_nl": "Prijzen ophalen..."
+  },
+  "idx.js_test_entities": {
+    "context": "Status message shown while testing Home Assistant entities (JavaScript).",
+    "example_nl": "HA entiteiten lezen..."
+  },
+  "idx.js_error": {
+    "context": "Prefix before a technical error message (JavaScript).",
+    "example_nl": "Fout: "
+  },
+  "idx.js_ok": {
+    "context": "Short status label: an entity read succeeded (JavaScript).",
+    "example_nl": "OK"
+  },
+  "idx.js_not_found": {
+    "context": "Short status label: an entity read failed / entity not found (JavaScript).",
+    "example_nl": "Niet gevonden"
+  },
+  "colors.subtitle": {
+    "context": "Subtitle of the dashboard color customization page.",
+    "example_nl": "Pas de grafiekkleuren aan naar uw voorkeur"
+  },
+  "colors.saved": {
+    "context": "Confirmation shown after saving color settings.",
+    "example_nl": "Kleuren opgeslagen"
+  },
+  "colors.energy": {
+    "context": "Card heading grouping colors for solar/consumption/grid import/export/SoC.",
+    "example_nl": "Energie"
+  },
+  "colors.solar": {
+    "context": "Label for the solar production color picker.",
+    "example_nl": "Zon"
+  },
+  "colors.consumption": {
+    "context": "Label for the household consumption color picker.",
+    "example_nl": "Verbruik"
+  },
+  "colors.grid_import": {
+    "context": "Label for the grid import (drawing power from the grid) color picker.",
+    "example_nl": "Netafname"
+  },
+  "colors.grid_export": {
+    "context": "Label for the grid export (feeding power back to the grid) color picker.",
+    "example_nl": "Teruglevering"
+  },
+  "colors.battery_soc": {
+    "context": "Label for the battery state-of-charge line color picker.",
+    "example_nl": "Batterij SoC"
+  },
+  "colors.optimizer_actions": {
+    "context": "Card heading grouping colors for charge/discharge/solar-charge actions.",
+    "example_nl": "Optimizer-acties"
+  },
+  "colors.charge_from_grid": {
+    "context": "Label for the grid-charging action color picker.",
+    "example_nl": "Laden van het net"
+  },
+  "colors.discharge_to_grid": {
+    "context": "Label for the grid-discharging action color picker.",
+    "example_nl": "Ontladen naar het net"
+  },
+  "colors.solar_charge": {
+    "context": "Label for the solar-charging action color picker.",
+    "example_nl": "Zonne-lading"
+  },
+  "colors.result": {
+    "context": "Card heading grouping the positive/negative (saving/cost) result colors.",
+    "example_nl": "Resultaat"
+  },
+  "colors.result_info": {
+    "context": "Info banner explaining the positive/negative result colors and where they're used.",
+    "example_nl": "Kleur voor besparing/opbrengst (positief) en kosten (negatief), gebruikt op Dashboard, Geschiedenis en Energie kosten. Persoonlijke voorkeur — kleurperceptie verschilt per persoon en scherm."
+  },
+  "colors.positive": {
+    "context": "Label for the positive-result (savings/revenue) color picker.",
+    "example_nl": "Positief (besparing / opbrengst)"
+  },
+  "colors.negative": {
+    "context": "Label for the negative-result (costs) color picker.",
+    "example_nl": "Negatief (kosten)"
+  },
+  "colors.preview": {
+    "context": "Card heading for the live color preview swatches at the bottom of the page.",
+    "example_nl": "Voorbeeld"
+  },
+  "colors.reset_default": {
+    "context": "Button label to reset all colors back to the application defaults.",
+    "example_nl": "Standaard"
+  },
+  "inv.subtitle": {
+    "context": "Subtitle of the Inverter & battery settings page.",
+    "example_nl": "Configureer uw inverter en batterij"
+  },
+  "inv.inverter": {
+    "context": "Card heading for inverter brand/model/driver settings.",
+    "example_nl": "Inverter"
+  },
+  "inv.brand": {
+    "context": "Label for a brand name input field.",
+    "example_nl": "Merk"
+  },
+  "inv.model": {
+    "context": "Label for a model name input field.",
+    "example_nl": "Model"
+  },
+  "inv.driver": {
+    "context": "Label for the inverter communication driver selection (how the app talks to the inverter hardware).",
+    "example_nl": "Driver"
+  },
+  "inv.driver_simulate": {
+    "context": "Dropdown option: a simulated/fake inverter driver for safe testing without real hardware.",
+    "example_nl": "Simulatie — Veilig testen (aanbevolen)"
+  },
+  "inv.driver_modbus": {
+    "context": "Dropdown option: a real Modbus TCP connection to the physical inverter.",
+    "example_nl": "Modbus TCP — Directe inverterverbinding"
+  },
+  "inv.driver_hint": {
+    "context": "Help text under the driver selection dropdown.",
+    "example_nl": "Gebruik Simulatie zolang u nog geen Modbus-toegang heeft."
+  },
+  "inv.initial_soc": {
+    "context": "Label for the simulated battery's starting state of charge (simulation driver only).",
+    "example_nl": "Begin laadtoestand %"
+  },
+  "inv.initial_soc_hint": {
+    "context": "Help text under the initial SoC field.",
+    "example_nl": "Begin laadniveau batterij"
+  },
+  "inv.sim_capacity": {
+    "context": "Label for the simulated battery capacity (simulation driver only).",
+    "example_nl": "Gesimuleerde capaciteit kWh"
+  },
+  "inv.sim_temperature": {
+    "context": "Label for the simulated battery temperature (simulation driver only).",
+    "example_nl": "Gesimuleerde temperatuur °C"
+  },
+  "inv.modbus_info": {
+    "context": "Info banner shown when the Modbus driver is selected, explaining what info is needed.",
+    "example_nl": "U heeft het Modbus TCP-adres, poort en slave-ID uit de handleiding van uw inverter nodig."
+  },
+  "inv.modbus_host": {
+    "context": "Label for the Modbus TCP host/IP address field.",
+    "example_nl": "Modbus host (IP-adres)"
+  },
+  "inv.modbus_port": {
+    "context": "Label for the Modbus TCP port field.",
+    "example_nl": "Modbus poort"
+  },
+  "inv.slave_id": {
+    "context": "Label for the Modbus slave/unit ID field.",
+    "example_nl": "Slave ID"
+  },
+  "inv.max_charge_kw": {
+    "context": "Label for the inverter's maximum charging power.",
+    "example_nl": "Max laadvermogen kW"
+  },
+  "inv.max_discharge_kw": {
+    "context": "Label for the inverter's maximum discharging power.",
+    "example_nl": "Max ontlaadvermogen kW"
+  },
+  "inv.battery": {
+    "context": "Card heading for battery brand/capacity/SoC-limit settings.",
+    "example_nl": "Batterij"
+  },
+  "inv.total_capacity": {
+    "context": "Label for the battery's total (nameplate) capacity.",
+    "example_nl": "Totale capaciteit kWh"
+  },
+  "inv.usable_capacity": {
+    "context": "Label for the battery's actually usable capacity (typically less than total).",
+    "example_nl": "Bruikbare capaciteit kWh"
+  },
+  "inv.usable_capacity_hint": {
+    "context": "Help text under the usable capacity field.",
+    "example_nl": "Meestal 90-95% van totaal"
+  },
+  "inv.min_soc": {
+    "context": "Label for the battery's minimum allowed state of charge.",
+    "example_nl": "Minimale laadtoestand %"
+  },
+  "inv.min_soc_hint": {
+    "context": "Help text under the minimum SoC field.",
+    "example_nl": "Beschermt levensduur batterij"
+  },
+  "inv.max_soc": {
+    "context": "Label for the battery's maximum allowed state of charge.",
+    "example_nl": "Maximale laadtoestand %"
+  },
+  "inv.cancel": {
+    "context": "Button label to discard changes and return to the overview page.",
+    "example_nl": "Annuleren"
+  },
+  "fixedprices.subtitle": {
+    "context": "Subtitle of the fixed gas/district-heating price settings page.",
+    "example_nl": "Vaste prijzen voor gas en stadsverwarming"
+  },
+  "fixedprices.configure_system_first": {
+    "context": "Info banner shown when system components haven't been configured yet. Contains a {link} placeholder and an <a> tag — rendered with the safe filter.",
+    "example_nl": "Configureer eerst uw systeem op de <a href=\"{link}\">Systeem-pagina</a> om te zien welke aansluitingen van toepassing zijn."
+  },
+  "fixedprices.gas": {
+    "context": "Card heading for gas price settings.",
+    "example_nl": "Gas"
+  },
+  "fixedprices.gas_dynamic_note": {
+    "context": "Info banner noting that dynamic gas pricing is a planned future feature.",
+    "example_nl": "Wordt later uitgebreid met dynamische gasprijzen via HA-sensor."
+  },
+  "fixedprices.gas_price": {
+    "context": "Label for the fixed gas price input field.",
+    "example_nl": "Gasprijs (€/m³ incl. BTW)"
+  },
+  "fixedprices.gas_price_hint": {
+    "context": "Help text under the fixed gas price field.",
+    "example_nl": "Vaste gasprijs inclusief BTW en vaste kosten per m³."
+  },
+  "fixedprices.ha_entity_optional": {
+    "context": "Label for an optional Home Assistant entity ID field, reserved for future dynamic pricing.",
+    "example_nl": "HA entiteit (optioneel)"
+  },
+  "fixedprices.not_active_yet": {
+    "context": "Help text noting a field is reserved for a not-yet-implemented feature (gas variant).",
+    "example_nl": "Nog niet actief — voor toekomstige dynamische gasprijzen."
+  },
+  "fixedprices.heating": {
+    "context": "Card heading for district heating price settings.",
+    "example_nl": "Stadsverwarming"
+  },
+  "fixedprices.heating_dynamic_note": {
+    "context": "Info banner noting that dynamic district-heating pricing is a planned future feature.",
+    "example_nl": "Wordt later uitgebreid met dynamische stadsverwarmingprijzen via HA-sensor."
+  },
+  "fixedprices.heating_price": {
+    "context": "Label for the fixed district heating price input field.",
+    "example_nl": "Stadsverwarmingprijs (€/GJ incl. BTW)"
+  },
+  "fixedprices.heating_price_hint": {
+    "context": "Help text under the fixed district heating price field.",
+    "example_nl": "Vaste prijs per gigajoule inclusief BTW."
+  },
+  "fixedprices.not_active_yet_heating": {
+    "context": "Help text noting a field is reserved for a not-yet-implemented feature (district heating variant).",
+    "example_nl": "Nog niet actief — voor toekomstige dynamische stadsverwarmingprijzen."
+  },
+  "fixedprices.none_applicable": {
+    "context": "Message shown when neither gas nor district heating is enabled on the System page, so this page has nothing to configure.",
+    "example_nl": "Gas en stadsverwarming zijn niet aangevinkt in de systeeminstellingen."
+  },
+  "fixedprices.system_settings_link": {
+    "context": "Link text pointing to the System settings page.",
+    "example_nl": "Systeeminstellingen"
+  },
+  "prov.subtitle": {
+    "context": "Subtitle of the electricity price provider settings page.",
+    "example_nl": "Bron voor dynamische stroomprijzen"
+  },
+  "prov.provider_card": {
+    "context": "Card heading for the price provider selection.",
+    "example_nl": "Leverancier"
+  },
+  "prov.provider_label": {
+    "context": "Label for the provider selection dropdown.",
+    "example_nl": "Leverancier"
+  },
+  "prov.vat_pct": {
+    "context": "Label for a VAT/sales tax percentage field.",
+    "example_nl": "BTW-percentage"
+  },
+  "prov.vat_hint": {
+    "context": "Help text under the VAT percentage field.",
+    "example_nl": "Wordt toegepast op de marktprijs"
+  },
+  "prov.api_incl_tax": {
+    "context": "Checkbox label: whether the provider's API already includes tax in its prices.",
+    "example_nl": "API levert inclusief BTW"
+  },
+  "prov.anwb_info": {
+    "context": "Info banner specific to the ANWB Energie / EnergyZero provider, explaining publication timing.",
+    "example_nl": "ANWB Energie maakt gebruik van het EnergyZero platform. Prijzen van morgen worden rond 14:00 gepubliceerd."
+  },
+  "prov.ha_energyzero_info": {
+    "context": "Info banner for the HA EnergyZero sensor provider option.",
+    "example_nl": "Leest prijzen direct uit uw HA EnergyZero sensor — correcte lokale tijd, geen API-sleutel nodig."
+  },
+  "prov.entity_id": {
+    "context": "Label for a Home Assistant entity ID field.",
+    "example_nl": "Entity ID"
+  },
+  "prov.entity_id_default_hint": {
+    "context": "Help text under the entity ID field, mentioning HA's Developer Tools menu path.",
+    "example_nl": "Standaard: sensor.energy_prices_today — controleer Developer Tools → States in HA"
+  },
+  "prov.ha_host": {
+    "context": "Label for the Home Assistant host field on the provider page.",
+    "example_nl": "HA Host"
+  },
+  "prov.port": {
+    "context": "Label for a port number field.",
+    "example_nl": "Poort"
+  },
+  "prov.ha_token": {
+    "context": "Label for a Home Assistant access token field.",
+    "example_nl": "HA Token"
+  },
+  "prov.ha_token_same_hint": {
+    "context": "Help text noting the token should match the one entered on the Home Assistant connection page.",
+    "example_nl": "Zelfde token als op de Home Assistant instellingenpagina."
+  },
+  "prov.generic_sensor_info": {
+    "context": "Info banner for the generic HA price sensor provider option. Contains <code> tags — rendered with the safe filter, keep tags intact.",
+    "example_nl": "Leest prijzen uit elke HA sensor met een <code>prices</code> attribuut met een lijst van <code>{timestamp, price}</code> vermeldingen."
+  },
+  "prov.required_format": {
+    "context": "Label introducing an example of the required sensor attribute format.",
+    "example_nl": "Vereist sensorformaat:"
+  },
+  "prov.timestamps_note": {
+    "context": "Note clarifying accepted timestamp formats for the generic sensor.",
+    "example_nl": "Timestamps mogen UTC of lokaal zijn, met of zonder offset."
+  },
+  "prov.price_attribute": {
+    "context": "Label for the name of the sensor attribute containing the price list.",
+    "example_nl": "Prijs attribuut"
+  },
+  "prov.price_attribute_hint": {
+    "context": "Help text under the price attribute name field.",
+    "example_nl": "Naam van het attribuut met de prijslijst"
+  },
+  "prov.price_incl_tax_label": {
+    "context": "Label for a yes/no dropdown: whether the sensor's prices already include tax.",
+    "example_nl": "Prijs inclusief BTW"
+  },
+  "prov.yes": {
+    "context": "Dropdown option: yes.",
+    "example_nl": "Ja"
+  },
+  "prov.no": {
+    "context": "Dropdown option: no.",
+    "example_nl": "Nee"
+  },
+  "prov.tibber_token": {
+    "context": "Label for the Tibber provider's API token field.",
+    "example_nl": "Tibber API-token"
+  },
+  "prov.tibber_token_hint": {
+    "context": "Help text with a link explaining where to obtain a Tibber API token. Contains an <a> tag — rendered with the safe filter, keep the tag and URL intact.",
+    "example_nl": "Haal uw token op via <a href=\"https://developer.tibber.com\" target=\"_blank\">developer.tibber.com</a>"
+  },
+  "prov.entsoe_token": {
+    "context": "Label for the ENTSO-E provider's API token field.",
+    "example_nl": "ENTSO-E API-token"
+  },
+  "prov.entsoe_token_hint": {
+    "context": "Help text with a link explaining where to register for ENTSO-E API access. Contains an <a> tag — rendered with the safe filter, keep the tag and URL intact.",
+    "example_nl": "Registreer op <a href=\"https://transparency.entsoe.eu\" target=\"_blank\">transparency.entsoe.eu</a>"
+  },
+  "prov.bidding_zone": {
+    "context": "Label for the ENTSO-E electricity market bidding zone/country selection.",
+    "example_nl": "Biedzone"
+  },
+  "rlog.subtitle": {
+    "context": "Subtitle of the report log page.",
+    "example_nl": "Systeemmeldingen en optimalisatiebeslissingen"
+  },
+  "rlog.filter": {
+    "context": "Label preceding the filter buttons (all/type/category) on the report log page.",
+    "example_nl": "Filter:"
+  },
+  "rlog.all": {
+    "context": "Filter button showing all report entries, with a count. {count} placeholder substituted with a number.",
+    "example_nl": "Alles ({count})"
+  },
+  "rlog.clear_filter": {
+    "context": "Button label to remove active type/category filters on the report log.",
+    "example_nl": "Wis filter"
+  },
+  "rlog.time": {
+    "context": "Table column header for the report timestamp.",
+    "example_nl": "Tijd"
+  },
+  "rlog.type": {
+    "context": "Table column header for the report type (info/warning/error/daily).",
+    "example_nl": "Type"
+  },
+  "rlog.category": {
+    "context": "Table column header for the report category (optimizer/collector/inverter/price/weather).",
+    "example_nl": "Categorie"
+  },
+  "rlog.message": {
+    "context": "Table column header for the report message text.",
+    "example_nl": "Bericht"
+  },
+  "rlog.type_error": {
+    "context": "Lowercase report type label shown in the log table row, for an error-type entry.",
+    "example_nl": "fout"
+  },
+  "rlog.type_warning": {
+    "context": "Lowercase report type label shown in the log table row, for a warning-type entry.",
+    "example_nl": "waarschuwing"
+  },
+  "rlog.type_daily": {
+    "context": "Lowercase report type label shown in the log table row, for a daily-report-type entry.",
+    "example_nl": "dagelijks"
+  },
+  "rlog.type_info": {
+    "context": "Lowercase report type label shown in the log table row, for an info-type entry.",
+    "example_nl": "info"
+  },
+  "rlog.page_of": {
+    "context": "Pagination status text. {page}, {total}, {count} placeholders substituted with numbers.",
+    "example_nl": "Pagina {page} van {total} ({count} regels)"
+  },
+  "rlog.previous": {
+    "context": "Pagination button: go to the previous page.",
+    "example_nl": "Vorige"
+  },
+  "rlog.next": {
+    "context": "Pagination button: go to the next page.",
+    "example_nl": "Volgende"
+  },
+  "rlog.no_entries": {
+    "context": "Message shown when the report log is empty (e.g. due to active filters).",
+    "example_nl": "Geen logregels gevonden."
+  },
+  "trn.subtitle": {
+    "context": "Subtitle of the translation management page (for the database-backed operational text layer, e.g. optimizer reason strings).",
+    "example_nl": "Bekijk en pas de operationele teksten aan per taal"
+  },
+  "trn.saved": {
+    "context": "Confirmation shown after saving a single translated text.",
+    "example_nl": "Vertaling opgeslagen"
+  },
+  "trn.ai_generated": {
+    "context": "Confirmation shown after AI-generating missing translations for a language. {count} and {language} placeholders substituted.",
+    "example_nl": "{count} vertalingen automatisch aangemaakt via AI voor '{language}'"
+  },
+  "trn.language_label": {
+    "context": "Label preceding the language selection buttons.",
+    "example_nl": "Taal:"
+  },
+  "trn.ai_fill": {
+    "context": "Button label to trigger AI translation of any missing texts for the selected language.",
+    "example_nl": "AI aanvullen"
+  },
+  "trn.ai_fill_disabled_title": {
+    "context": "Tooltip on the disabled AI-fill button, shown for the two seed languages that don't need AI generation.",
+    "example_nl": "nl en en zijn de basistalen"
+  },
+  "trn.entry_count": {
+    "context": "Summary count of total translation entries and how many are still missing for the active language.",
+    "example_nl": "{count} teksten — {missing} ontbrekend"
+  },
+  "trn.group_label": {
+    "context": "Label preceding the group/category filter buttons.",
+    "example_nl": "Groep:"
+  },
+  "trn.all": {
+    "context": "Filter button showing all groups, no filter applied.",
+    "example_nl": "Alles"
+  },
+  "trn.key_col": {
+    "context": "Table column header for the translation key identifier.",
+    "example_nl": "Sleutel"
+  },
+  "trn.dutch_base": {
+    "context": "Table column header for the Dutch reference text, which serves as the base language for operational strings.",
+    "example_nl": "Nederlands (basis)"
+  },
+  "trn.translation_missing": {
+    "context": "Placeholder text shown in an empty translation input field.",
+    "example_nl": "Vertaling ontbreekt..."
+  },
+  "trn.no_entries": {
+    "context": "Message shown when no translation entries match the active language/group filter.",
+    "example_nl": "Geen teksten gevonden voor deze combinatie."
+  },
+  "thresh.subtitle": {
+    "context": "Subtitle of the optimizer thresholds settings page.",
+    "example_nl": "Regels voor laad- en ontlaadkeuzes"
+  },
+  "thresh.price_thresholds": {
+    "context": "Card heading for price-based charge/discharge decision thresholds.",
+    "example_nl": "Prijsdrempelwaarden"
+  },
+  "thresh.price_info": {
+    "context": "Info banner explaining the purpose of the price threshold settings.",
+    "example_nl": "Deze waarden bepalen wanneer het financieel zinvol is de batterij te laden of te ontladen."
+  },
+  "thresh.min_discharge_price": {
+    "context": "Label for the minimum electricity price above which the battery is allowed to discharge to the grid.",
+    "example_nl": "Minimale prijs voor ontladen (€/kWh)"
+  },
+  "thresh.min_discharge_hint": {
+    "context": "Help text under the minimum discharge price field. Contains <br>/<em> — rendered with the safe filter, keep tags intact.",
+    "example_nl": "Ontlaad de batterij alleen als de stroomprijs gelijk is aan of hoger dan deze waarde.<br><em>Voorbeeld: 0.220 = 22 ct/kWh</em>"
+  },
+  "thresh.max_charge_price": {
+    "context": "Label for the maximum electricity price below which the battery is allowed to charge from the grid.",
+    "example_nl": "Maximale prijs voor laden vanaf net (€/kWh)"
+  },
+  "thresh.max_charge_hint": {
+    "context": "Help text under the maximum charge price field. Contains <br>/<em> — rendered with the safe filter, keep tags intact.",
+    "example_nl": "Laad alleen vanaf het net als de stroomprijs gelijk is aan of lager dan deze waarde.<br><em>Voorbeeld: 0.100 = 10 ct/kWh</em>"
+  },
+  "thresh.price_incl_tax": {
+    "context": "Checkbox label: whether the configured price thresholds are tax-inclusive.",
+    "example_nl": "Prijzen zijn inclusief belasting"
+  },
+  "thresh.auto_incl": {
+    "context": "Info banner shown when the provider dictates the tax-inclusion setting (incl. tax case). Contains {link} placeholder and <strong>/<a> tags — rendered with the safe filter.",
+    "example_nl": "Automatisch ingesteld op <strong>incl. BTW</strong> op basis van uw leverancier. Wijzig dit op de <a href=\"{link}\">Leveranciers-pagina</a>."
+  },
+  "thresh.auto_excl": {
+    "context": "Info banner shown when the provider dictates the tax-inclusion setting (excl. tax case). Contains {link} placeholder and <strong>/<a> tags — rendered with the safe filter.",
+    "example_nl": "Automatisch ingesteld op <strong>excl. BTW</strong> op basis van uw leverancier. Wijzig dit op de <a href=\"{link}\">Leveranciers-pagina</a>."
+  },
+  "thresh.must_match_provider": {
+    "context": "Help text shown when the tax-inclusion setting must be manually kept in sync with the Provider page.",
+    "example_nl": "Moet overeenkomen met de instelling op de Leveranciers-pagina."
+  },
+  "thresh.efficiency": {
+    "context": "Card heading for battery round-trip efficiency and hard price floor settings.",
+    "example_nl": "Batterijrendement"
+  },
+  "thresh.conversion_efficiency": {
+    "context": "Label for the battery's round-trip charge/discharge efficiency percentage.",
+    "example_nl": "Omzettingsrendement (%)"
+  },
+  "thresh.efficiency_hint": {
+    "context": "Help text under the conversion efficiency field. Contains <br>/<em> and an HTML entity — rendered with the safe filter, keep tags/entity intact.",
+    "example_nl": "Energie die overblijft na een volledige laad- en ontlaadcyclus.<br><em>75 = 25% verlies (100 kWh in &rarr; 75 kWh uit)</em>"
+  },
+  "thresh.hard_min_price": {
+    "context": "Label for an absolute price floor below which the battery never discharges, regardless of other settings.",
+    "example_nl": "Harde minimale ontlaadprijs excl. BTW (€/kWh)"
+  },
+  "thresh.hard_min_price_hint": {
+    "context": "Help text under the hard minimum discharge price field. Contains <br>/<em> — rendered with the safe filter, keep tags intact.",
+    "example_nl": "Batterij ontlaadt nooit als prijs hieronder ligt, ongeacht overige instellingen.<br><em>Standaard: 0.050 = 5 ct/kWh excl. BTW</em>"
+  },
+  "thresh.depreciation": {
+    "context": "Card heading for optional battery wear-cost settings.",
+    "example_nl": "Batterijafschrijving"
+  },
+  "thresh.depreciation_info": {
+    "context": "Info banner explaining the optional depreciation cost feature and its formula. Contains <br> — rendered with the safe filter, keep tag intact.",
+    "example_nl": "Optioneel. Voegt afschrijvingskosten per kWh toe aan optimizer-berekeningen.<br>Formule: kosten_per_kWh = aanschafprijs / (verwachte_cycli × bruikbare_capaciteit_kWh)"
+  },
+  "thresh.purchase_price": {
+    "context": "Label for the battery's original purchase price.",
+    "example_nl": "Aanschafprijs (€)"
+  },
+  "thresh.expected_cycles": {
+    "context": "Label for the battery's expected total number of charge cycles over its lifetime.",
+    "example_nl": "Verwachte laadcycli"
+  },
+  "thresh.expected_cycles_hint": {
+    "context": "Help text under the expected cycles field.",
+    "example_nl": "Typisch 3000-6000 voor lithium"
+  },
+  "thresh.soc_limits": {
+    "context": "Card heading for the optimizer's min/max SoC planning limits.",
+    "example_nl": "Laadtoestand-grenzen"
+  },
+  "thresh.min_soc": {
+    "context": "Label for the SoC floor the optimizer will never plan a discharge below.",
+    "example_nl": "Minimale laadtoestand (%)"
+  },
+  "thresh.min_soc_hint": {
+    "context": "Help text under the minimum SoC field.",
+    "example_nl": "De optimizer plant nooit een ontlading onder dit niveau."
+  },
+  "thresh.max_soc": {
+    "context": "Label for the SoC ceiling the optimizer will never plan a charge above.",
+    "example_nl": "Maximale laadtoestand (%)"
+  },
+  "thresh.max_soc_hint": {
+    "context": "Help text under the maximum SoC field.",
+    "example_nl": "De optimizer plant nooit een lading boven dit niveau."
+  },
+  "thresh.how_it_decides": {
+    "context": "Card heading for the reference table explaining the optimizer's basic decision logic.",
+    "example_nl": "Hoe de optimizer beslist"
+  },
+  "thresh.situation": {
+    "context": "Table column header in the decision-logic reference table.",
+    "example_nl": "Situatie"
+  },
+  "thresh.reason": {
+    "context": "Table column header in the decision-logic reference table.",
+    "example_nl": "Reden"
+  },
+  "thresh.situation_solar_surplus": {
+    "context": "Row in the decision-logic reference table: describes the solar-surplus charging situation.",
+    "example_nl": "Zonne-overschot + batterij niet vol"
+  },
+  "thresh.reason_free_solar": {
+    "context": "Row in the decision-logic reference table: the reason free solar surplus gets stored.",
+    "example_nl": "Gratis zonne-energie"
+  },
+  "thresh.situation_price_high": {
+    "context": "Row in the decision-logic reference table: describes the high-price discharge situation.",
+    "example_nl": "Prijs ≥ minimale ontlaadprijs"
+  },
+  "thresh.reason_high_price_sell": {
+    "context": "Row in the decision-logic reference table: the reason for discharging at a high price.",
+    "example_nl": "Hoge prijs — opgeslagen energie verkopen"
+  },
+  "thresh.situation_price_low": {
+    "context": "Row in the decision-logic reference table: describes the low-price grid-charging situation.",
+    "example_nl": "Prijs ≤ maximale laadprijs"
+  },
+  "thresh.reason_low_price_buy": {
+    "context": "Row in the decision-logic reference table: the reason for grid-charging at a low price.",
+    "example_nl": "Lage prijs — goedkope energie inkopen"
+  },
+  "thresh.situation_no_advantage": {
+    "context": "Row in the decision-logic reference table: describes the idle situation.",
+    "example_nl": "Geen duidelijk voordeel"
+  },
+  "thresh.action_idle": {
+    "context": "Row in the decision-logic reference table: the idle action label.",
+    "example_nl": "Inactief"
+  },
+  "thresh.reason_battery_rests": {
+    "context": "Row in the decision-logic reference table: the reason for the idle action.",
+    "example_nl": "Batterij rust"
+  },
+  "thresh.solar_threshold": {
+    "context": "Card heading for the solar-forecast-based grid-charge blocking threshold.",
+    "example_nl": "Zon-laaddrempel"
+  },
+  "thresh.solar_threshold_info": {
+    "context": "Info banner explaining the solar charge threshold setting.",
+    "example_nl": "Laden van het net wordt geblokkeerd wanneer verwachte zonopbrengst deze fractie van de bruikbare capaciteit overschrijdt."
+  },
+  "thresh.solar_threshold_label": {
+    "context": "Label for the solar charge threshold fraction input field.",
+    "example_nl": "Zon-laaddrempel (0,0 – 1,0)"
+  },
+  "thresh.solar_threshold_hint": {
+    "context": "Help text under the solar charge threshold field, with a worked example. Contains <br>/<em> — rendered with the safe filter, keep tags intact.",
+    "example_nl": "0,80 = blokkeer nettoladen als zon ≥ 80% van bruikbare capaciteit.<br><em>Voorbeeld: 15,55 kWh × 0,80 = 12,44 kWh verwachte zon → geen nettoladen</em>"
+  },
+  "thresh.offgrid_reserve": {
+    "context": "Card heading for the dynamic off-grid SoC floor settings (day/night thresholds).",
+    "example_nl": "Off-grid reserve"
+  },
+  "thresh.offgrid_active_info": {
+    "context": "Info banner shown when off-grid switching is enabled, explaining the dynamic floor takes over from the fixed minimum SoC.",
+    "example_nl": "Actief. De batterij-ondergrens schuift automatisch tussen de hoge (dag) en lage (nacht) waarde hieronder — de vaste \"Minimale laadtoestand\" hierboven wordt dan niet meer gebruikt als dagelijkse ondergrens."
+  },
+  "thresh.offgrid_inactive_info": {
+    "context": "Info banner shown when off-grid switching is disabled, explaining the fixed minimum SoC still applies. Contains {link} placeholder and <a> tag — rendered with the safe filter.",
+    "example_nl": "Niet actief — vink \"Off-grid schakeling\" aan op de <a href=\"{link}\">Systeem-pagina</a> om dit te gebruiken. Tot die tijd geldt gewoon de vaste \"Minimale laadtoestand\" hierboven, zoals nu."
+  },
+  "thresh.floor_day": {
+    "context": "Label for the daytime dynamic SoC floor percentage.",
+    "example_nl": "Ondergrens overdag (%)"
+  },
+  "thresh.floor_day_hint": {
+    "context": "Help text under the daytime floor field.",
+    "example_nl": "Vanaf zonsopkomst + 1 uur."
+  },
+  "thresh.floor_night": {
+    "context": "Label for the nighttime dynamic SoC floor percentage.",
+    "example_nl": "Ondergrens 's nachts (%)"
+  },
+  "thresh.floor_night_hint": {
+    "context": "Help text under the nighttime floor field.",
+    "example_nl": "Vanaf begin geleerd nachtverbruik + 1 uur."
+  },
+  "thresh.night_threshold": {
+    "context": "Label for the consumption threshold percentage below which a slot counts as 'night'.",
+    "example_nl": "Nachtdrempel (% van daggemiddelde)"
+  },
+  "thresh.night_threshold_hint": {
+    "context": "Help text under the night threshold percentage field.",
+    "example_nl": "Een kwartier-slot telt als \"nacht\" zodra het geleerde gemiddelde verbruik onder dit percentage van het daggemiddelde zakt."
+  },
+  "thresh.confirm_slots": {
+    "context": "Label for the number of consecutive slots required to confirm the start of night.",
+    "example_nl": "Bevestiging (aantal kwartier-slots)"
+  },
+  "thresh.confirm_slots_hint": {
+    "context": "Help text under the confirmation slots field.",
+    "example_nl": "Zoveel opeenvolgende slots moeten onder de nachtdrempel blijven voor het als \"begin nacht\" telt. 8 = 2 uur. Voorkomt dat een toevallige avonddip als nacht wordt gezien."
+  },
+  "nav.config_label": {
+    "context": "Small label under the app name in the sidebar, next to the version number.",
+    "example_nl": "Configuratie"
+  },
+  "colors.positive_short": {
+    "context": "Short single-word label for the positive-result color swatch in the preview row.",
+    "example_nl": "Positief"
+  },
+  "colors.negative_short": {
+    "context": "Short single-word label for the negative-result color swatch in the preview row.",
+    "example_nl": "Negatief"
+  },
+  "prov.entsoe_dayahead": {
+    "context": "Short descriptive suffix for the ENTSO-E provider dropdown option, clarifying it's the European day-ahead electricity market.",
+    "example_nl": "Europese day-ahead"
+  },
+  "prov.recommended": {
+    "context": "Short suffix word shown after a provider name in the dropdown to mark it as the recommended option.",
+    "example_nl": "aanbevolen"
+  },
+  "prov.generic_ha_sensor": {
+    "context": "Dropdown option label for using any custom Home Assistant sensor as the price source.",
+    "example_nl": "Generieke HA prijssensor"
+  },
+  "prov.not_available_yet": {
+    "context": "Short suffix shown after a provider name in the dropdown to mark it as not yet implemented/available.",
+    "example_nl": "nog niet beschikbaar"
+  },
+  "ent.subtitle": {
+    "context": "Subtitle of the HA entity mapping page.",
+    "example_nl": "Koppel Home Assistant-sensoren aan interne namen"
+  },
+  "ent.no_db_warning": {
+    "context": "Warning shown when there's no database connection, so entity mapping can't be fully used yet.",
+    "example_nl": "Geen databaseverbinding — de setup is nog niet compleet. Rond eerst de installatie af (zie Database) voordat u entiteiten koppelt; de lijst met bekende sensoren hieronder kan nu niet getoond worden."
+  },
+  "ent.sensors_not_loaded_warning": {
+    "context": "Warning shown when the internal_sensors.json file failed to load. Contains <code> tags — rendered with the safe filter, keep tags intact.",
+    "example_nl": "De lijst met bekende sensoren (<code>config/internal_sensors.json</code>) kon niet geladen worden — controleer of dat bestand aanwezig en geldig is. U kunt hieronder nog wel handmatig een interne naam en entity-ID invoeren."
+  },
+  "ent.add_entity": {
+    "context": "Card heading for the form to map a new HA entity to an internal name.",
+    "example_nl": "Entiteit toevoegen"
+  },
+  "ent.add_entity_intro": {
+    "context": "Intro text explaining the internal name dropdown/custom entry.",
+    "example_nl": "Selecteer een bekende interne naam uit de lijst, of typ een eigen naam."
+  },
+  "ent.internal_name": {
+    "context": "Label for the internal sensor name field/column (e.g. battery_soc).",
+    "example_nl": "Interne naam"
+  },
+  "ent.choose": {
+    "context": "Placeholder option text in the internal name dropdown.",
+    "example_nl": "— kies —"
+  },
+  "ent.all_mapped": {
+    "context": "Success message shown when there are no more unmapped known sensors to choose from.",
+    "example_nl": "Alle relevante sensoren zijn gekoppeld"
+  },
+  "ent.custom_name_placeholder": {
+    "context": "Placeholder text in the custom internal name input field.",
+    "example_nl": "of typ eigen naam"
+  },
+  "ent.unit": {
+    "context": "Label/column header for a sensor's measurement unit (e.g. kW, %).",
+    "example_nl": "Eenheid"
+  },
+  "ent.description": {
+    "context": "Label/column header for a sensor's description.",
+    "example_nl": "Omschrijving"
+  },
+  "ent.description_placeholder": {
+    "context": "Placeholder text in the description input field.",
+    "example_nl": "Wat meet deze sensor?"
+  },
+  "ent.add_button": {
+    "context": "Submit button label to add a new entity mapping.",
+    "example_nl": "Toevoegen"
+  },
+  "ent.test_first": {
+    "context": "Hint text next to the disabled add button, prompting the user to validate the entity first.",
+    "example_nl": "Test de entiteit eerst"
+  },
+  "ent.mapped_entities": {
+    "context": "Card heading for the table of already-mapped entities.",
+    "example_nl": "Gekoppelde entiteiten"
+  },
+  "ent.required": {
+    "context": "Small badge label shown next to an internal name that is a required sensor.",
+    "example_nl": "verplicht"
+  },
+  "ent.entity_id_col": {
+    "context": "Table column header for the Home Assistant entity ID.",
+    "example_nl": "Entity ID"
+  },
+  "ent.remove": {
+    "context": "Button label to remove an entity mapping.",
+    "example_nl": "Verwijder"
+  },
+  "ent.confirm_remove": {
+    "context": "Confirmation dialog text shown before removing an entity mapping. {name} placeholder substituted with the internal name.",
+    "example_nl": "Koppeling voor {name} verwijderen?"
+  },
+  "ent.required_cannot_remove": {
+    "context": "Text shown instead of a remove button for required (non-deletable) entity mappings.",
+    "example_nl": "verplicht — kan niet verwijderd worden"
+  },
+  "ent.none_mapped": {
+    "context": "Message shown when no entities have been mapped yet.",
+    "example_nl": "Nog geen entiteiten gekoppeld. Voeg er hierboven een toe."
+  },
+  "ent.js_enter_entity_id": {
+    "context": "Validation message shown when trying to test an empty entity ID field (JavaScript).",
+    "example_nl": "Vul eerst een entiteit-ID in"
+  },
+  "ent.js_checking": {
+    "context": "Status message shown while validating an entity ID (JavaScript).",
+    "example_nl": "Controleren..."
+  },
+  "ent.js_request_failed": {
+    "context": "Prefix (with a cross mark) shown before a technical error when entity validation fails (JavaScript).",
+    "example_nl": "✗ Verzoek mislukt: "
+  },
+  "sch.subtitle": {
+    "context": "Subtitle of the Times (collection interval / schedule time) settings page.",
+    "example_nl": "Intervalinstellingen en dagelijkse tijden"
+  },
+  "sch.collection_intervals": {
+    "context": "Card heading for sensor/weather polling interval settings.",
+    "example_nl": "Dataverzamelingsintervallen"
+  },
+  "sch.ha_sensor_interval": {
+    "context": "Label for how often Home Assistant sensors are polled.",
+    "example_nl": "HA sensorinterval (seconden)"
+  },
+  "sch.ha_sensor_interval_hint": {
+    "context": "Help text under the HA sensor interval field.",
+    "example_nl": "Hoe vaak HA-sensoren worden uitgelezen. Standaard 300 = elke 5 min."
+  },
+  "sch.weather_interval": {
+    "context": "Label for how often the weather forecast is refreshed.",
+    "example_nl": "Weerinterval (seconden)"
+  },
+  "sch.weather_interval_hint": {
+    "context": "Help text under the weather interval field.",
+    "example_nl": "Hoe vaak de weersvoorspelling wordt vernieuwd. Standaard 3600 = per uur."
+  },
+  "sch.price_fetch_times": {
+    "context": "Card heading for electricity price fetch scheduling settings.",
+    "example_nl": "Ophaal-tijden energieprijzen"
+  },
+  "sch.price_fetch_info": {
+    "context": "Info banner explaining that price publication times vary by provider.",
+    "example_nl": "Day-ahead prijzen worden door leveranciers op verschillende tijden gepubliceerd. Controleer bij uw leverancier op welk tijdstip de prijzen van morgen beschikbaar komen en stel de onderstaande tijden daarop af."
+  },
+  "sch.fetch_today": {
+    "context": "Label for the time-of-day the current day's prices are fetched.",
+    "example_nl": "Huidige dag ophalen om"
+  },
+  "sch.fetch_tomorrow": {
+    "context": "Label for the time-of-day tomorrow's prices are fetched.",
+    "example_nl": "Volgende dag ophalen om"
+  },
+  "sch.fetch_tomorrow_hint": {
+    "context": "Help text under the tomorrow-fetch-time field.",
+    "example_nl": "Stel in na het publicatietijdstip van uw leverancier."
+  },
+  "sch.max_retries": {
+    "context": "Label for the maximum number of retry attempts when fetching prices fails.",
+    "example_nl": "Max. pogingen"
+  },
+  "sch.max_retries_hint": {
+    "context": "Help text under the max retries field.",
+    "example_nl": "Aantal nieuwe pogingen als prijzen niet beschikbaar zijn."
+  },
+  "sch.retry_interval": {
+    "context": "Label for the wait time between retry attempts.",
+    "example_nl": "Interval tussen pogingen (minuten)"
+  },
+  "sch.retry_interval_hint": {
+    "context": "Help text under the retry interval field.",
+    "example_nl": "Wachttijd tussen nieuwe pogingen."
+  },
+  "sch.optimizer_reporting": {
+    "context": "Card heading for optimizer run time and reporting settings.",
+    "example_nl": "Optimizer & rapportage"
+  },
+  "sch.optimizer_must_run_after": {
+    "context": "Info banner explaining the optimizer run time must come after the price fetch time.",
+    "example_nl": "De optimizer moet draaien nadat de prijzen van morgen zijn opgehaald."
+  },
+  "sch.optimizer_start_time": {
+    "context": "Label for the daily time the optimizer runs.",
+    "example_nl": "Optimizer-starttijd"
+  },
+  "sch.optimizer_start_hint": {
+    "context": "Help text under the optimizer start time field.",
+    "example_nl": "Moet na de prijs-ophaaltijd liggen."
+  },
+  "sch.daily_report_time": {
+    "context": "Label for the daily time a summary report is generated.",
+    "example_nl": "Dagrapport-tijd"
+  },
+  "sch.profile_update_time": {
+    "context": "Label for the daily time historical usage/solar/price profiles are recalculated.",
+    "example_nl": "Profielupdate-tijd"
+  },
+  "sch.profile_update_hint": {
+    "context": "Help text under the profile update time field.",
+    "example_nl": "Tijdstip voor herberekening van historische verbruiks-, zon- en prijsprofielen. Standaard 03:00."
+  },
+  "sch.evening_planning_time": {
+    "context": "Label for the daily time tomorrow's day balance is calculated.",
+    "example_nl": "Avondplanning-tijd"
+  },
+  "sch.evening_planning_hint": {
+    "context": "Help text under the evening planning time field.",
+    "example_nl": "Tijdstip voor berekening dagbalans voor morgen. Standaard 21:00."
+  },
+  "sch.dashboard_refresh": {
+    "context": "Label for how often the dashboard live data auto-refreshes.",
+    "example_nl": "Dashboard-verversingsinterval (seconden)"
+  },
+  "sch.dashboard_refresh_hint": {
+    "context": "Help text under the dashboard refresh interval field. Contains <br>/<em> — rendered with the safe filter, keep tags intact.",
+    "example_nl": "Hoe vaak het dashboard live data vernieuwt. Standaard 300 = elke 5 min.<br><em>Let op: sneller verversen verhoogt systeembelasting</em>"
+  },
+  "sch.rerun_on_price": {
+    "context": "Checkbox label: automatically re-run the optimizer whenever new prices arrive.",
+    "example_nl": "Optimizer opnieuw uitvoeren bij nieuwe prijzen"
+  },
+  "sch.notify_warning": {
+    "context": "Checkbox label: send a Home Assistant notification for warning-level reports.",
+    "example_nl": "HA-melding bij waarschuwingen"
+  },
+  "sch.notify_error": {
+    "context": "Checkbox label: send a Home Assistant notification for error-level reports.",
+    "example_nl": "HA-melding bij fouten"
+  },
+  "dash.subtitle": {
+    "context": "Subtitle of the dashboard page.",
+    "example_nl": "Live energie-overzicht — 48 uur"
+  },
+  "dash.refresh_button": {
+    "context": "Manual refresh button label on the dashboard.",
+    "example_nl": "Vernieuwen"
+  },
+  "dash.price_now": {
+    "context": "Live tile label: current electricity price.",
+    "example_nl": "Prijs nu"
+  },
+  "dash.solar_energy": {
+    "context": "Live tile label: current solar power production.",
+    "example_nl": "Zonne-energie"
+  },
+  "dash.grid_import_tile": {
+    "context": "Live tile label: current grid import power.",
+    "example_nl": "Netafname"
+  },
+  "dash.grid_export_tile": {
+    "context": "Live tile label: current grid export power.",
+    "example_nl": "Teruglevering"
+  },
+  "dash.today": {
+    "context": "Heading/label for today's summary card, and day-divider row in the schedule table.",
+    "example_nl": "Vandaag"
+  },
+  "dash.tomorrow": {
+    "context": "Day-divider row label in the schedule table for tomorrow's entries.",
+    "example_nl": "Morgen"
+  },
+  "dash.tomorrow_arrow": {
+    "context": "Short x-axis tick label marking the day transition point on the 48-hour charts.",
+    "example_nl": "→ morgen"
+  },
+  "dash.chart1_title": {
+    "context": "Heading for the first (forecast) chart.",
+    "example_nl": "Grafiek 1 — Verwachting 48 uur"
+  },
+  "dash.chart1_desc": {
+    "context": "Description line under the forecast chart heading.",
+    "example_nl": "Verwacht zon, verbruik en acties"
+  },
+  "dash.chart_hint_now": {
+    "context": "Hint text under chart 1.",
+    "example_nl": "| Verticale lijn = nu | Klik op de legenda om een reeks te verbergen/tonen"
+  },
+  "dash.chart2_title": {
+    "context": "Heading for the second (measured) chart.",
+    "example_nl": "Grafiek 2 — Gemeten waarden"
+  },
+  "dash.chart2_desc": {
+    "context": "Description line under the measured chart heading.",
+    "example_nl": "Werkelijke metingen — toekomstige uren = 0"
+  },
+  "dash.chart_hint_click": {
+    "context": "Hint text under chart 2.",
+    "example_nl": "| Klik op de legenda om een reeks te verbergen/tonen"
+  },
+  "dash.chart3_title": {
+    "context": "Heading for the third (price) chart.",
+    "example_nl": "Grafiek 3 — Energieprijs 48 uur"
+  },
+  "dash.chart3_desc": {
+    "context": "Description line under the price chart heading.",
+    "example_nl": "Prijs per uur in € — negatief = opbrengst"
+  },
+  "dash.schedule_title": {
+    "context": "Heading for the schedule table card.",
+    "example_nl": "Optimizer schema — 48 uur"
+  },
+  "dash.no_schedule": {
+    "context": "Message shown when the schedule table has no data.",
+    "example_nl": "Geen schema beschikbaar."
+  },
+  "dash.col_time": {
+    "context": "Schedule table column header: time of day.",
+    "example_nl": "Tijdstip"
+  },
+  "dash.col_action": {
+    "context": "Schedule table column header: the battery action.",
+    "example_nl": "Actie"
+  },
+  "dash.col_power": {
+    "context": "Schedule table column header: power in kW.",
+    "example_nl": "Vermogen"
+  },
+  "dash.col_price_col": {
+    "context": "Schedule table column header: electricity price.",
+    "example_nl": "Prijs"
+  },
+  "dash.col_solar_col": {
+    "context": "Schedule table column header: solar production.",
+    "example_nl": "Zon"
+  },
+  "dash.col_cost": {
+    "context": "Schedule table column header: net cost/revenue for the slot.",
+    "example_nl": "Kosten"
+  },
+  "dash.charge_from_solar": {
+    "context": "Schedule table action label: battery charging entirely from solar surplus.",
+    "example_nl": "Laden van zon"
+  },
+  "dash.charge_from_grid": {
+    "context": "Schedule table action label: battery charging from the grid.",
+    "example_nl": "Laden van het net"
+  },
+  "dash.discharge_to_grid": {
+    "context": "Schedule table action label: battery discharging power to the grid.",
+    "example_nl": "Ontladen naar het net"
+  },
+  "dash.self_consume": {
+    "context": "Schedule table action label: solar power used directly by the household.",
+    "example_nl": "Zelf verbruik"
+  },
+  "dash.grid_consumption_action": {
+    "context": "Schedule table action label: household drawing power directly from the grid during an idle slot.",
+    "example_nl": "Verbruik van het net"
+  },
+  "dash.rest": {
+    "context": "Schedule table / chart legend action label: the battery is doing nothing.",
+    "example_nl": "Rust"
+  },
+  "dash.status_refreshing": {
+    "context": "Status bar text shown while dashboard data is being fetched.",
+    "example_nl": "Vernieuwen..."
+  },
+  "dash.status_error": {
+    "context": "Status bar error prefix.",
+    "example_nl": "Fout: "
+  },
+  "dash.status_updated_at": {
+    "context": "Status bar prefix shown after a successful data refresh.",
+    "example_nl": "Bijgewerkt om "
+  },
+  "dash.legend_solar": {
+    "context": "Chart legend/dataset label for solar production.",
+    "example_nl": "Zon"
+  },
+  "dash.legend_own_consumption": {
+    "context": "Chart legend/dataset label for household self-consumption.",
+    "example_nl": "Eigen verbruik"
+  },
+  "dash.legend_charge_grid": {
+    "context": "Chart 1 legend/dataset label for the grid-charging bar series.",
+    "example_nl": "Laden van het net"
+  },
+  "dash.legend_discharge_grid": {
+    "context": "Chart legend/dataset label for the grid-discharging bar series.",
+    "example_nl": "Ontladen naar het net"
+  },
+  "dash.legend_net_charge": {
+    "context": "Chart 1 legend/dataset label for the total charging line series.",
+    "example_nl": "Netto laden"
+  },
+  "dash.legend_soc": {
+    "context": "Chart legend/dataset label for the battery state-of-charge line.",
+    "example_nl": "Batterij SoC"
+  },
+  "dash.legend_price": {
+    "context": "Chart 3 legend/dataset label for the price bar series.",
+    "example_nl": "Prijs"
+  },
+  "hist.subtitle": {
+    "context": "Subtitle of the history page.",
+    "example_nl": "Bekijk historische data per dag"
+  },
+  "hist.prev_day": {
+    "context": "Button label to navigate to the previous day.",
+    "example_nl": "Vorige dag"
+  },
+  "hist.next_day": {
+    "context": "Button label to navigate to the next day.",
+    "example_nl": "Volgende dag"
+  },
+  "hist.sum_solar": {
+    "context": "Summary tile label: total solar yield for the day.",
+    "example_nl": "Zon totaal"
+  },
+  "hist.sum_avg_price": {
+    "context": "Summary tile label: average electricity price for the day.",
+    "example_nl": "Gem. prijs"
+  },
+  "hist.saving": {
+    "context": "Summary tile label: total saving/revenue for the day.",
+    "example_nl": "Besparing"
+  },
+  "hist.sum_cost": {
+    "context": "Summary tile label: total grid-charging cost for the day.",
+    "example_nl": "Laadkosten"
+  },
+  "hist.sum_net": {
+    "context": "Summary tile label: net result (saving minus cost) for the day.",
+    "example_nl": "Netto"
+  },
+  "hist.no_data": {
+    "context": "Message shown when there is no data for the selected date.",
+    "example_nl": "Geen data beschikbaar voor deze datum."
+  },
+  "hist.chart1_title": {
+    "context": "Heading for the expected-schedule chart.",
+    "example_nl": "Verwacht schema"
+  },
+  "hist.chart1_desc": {
+    "context": "Description line under the schedule chart heading.",
+    "example_nl": "Optimizer-beslissingen voor deze dag"
+  },
+  "hist.measured_values": {
+    "context": "Heading for the measured-values chart.",
+    "example_nl": "Gemeten waarden"
+  },
+  "hist.energy_prices": {
+    "context": "Heading for the energy prices chart.",
+    "example_nl": "Energieprijzen"
+  },
+  "hist.table_title": {
+    "context": "Heading for the detailed hourly schedule table.",
+    "example_nl": "Uur-voor-uur schema"
+  },
+  "hist.col_time": {
+    "context": "Schedule table column header: hour of the day.",
+    "example_nl": "Tijd"
+  },
+  "hist.col_soc": {
+    "context": "Schedule table column header: battery state of charge.",
+    "example_nl": "SoC"
+  },
+  "hist.day_total": {
+    "context": "Label prefix on the day-total summary row at the bottom of the schedule table.",
+    "example_nl": "Dagtotaal"
   }
 }

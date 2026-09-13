@@ -2,8 +2,18 @@
 <!-- name:         base.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/base.html -->
-<!-- part version: p_v0.5 -->
-<!-- altered:      2026-07-05 -->
+<!-- part version: p_v0.6 -->
+<!-- altered:      2026-09-09 -->
+<!--
+p_v0.6: navigatie omgezet naar t() — alle sectiekoppen en linklabels.
+Onderdeel van backlog-punt 9/10. lang="nl" op de <html>-tag is bewust
+niet dynamisch gemaakt in deze slag (zou de actieve taal nodig hebben
+vóórdat inject_globals() draait) — apart punt indien gewenst.
+p_v0.6: navigation converted to t() — all section headers and link
+labels. Part of backlog item 9/10. lang="nl" on the <html> tag is
+deliberately not made dynamic in this pass (would need the active
+language before inject_globals() runs) — separate item if desired.
+-->
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
@@ -112,7 +122,7 @@
     <div class="nav-brand">
       <div class="nav-brand-text">
         HA Energy Optimizer
-        <span>Configuratie <span class="version-tag">v{{ addon_version }}</span></span>
+        <span>{{ t('nav.config_label') }} <span class="version-tag">v{{ addon_version }}</span></span>
       </div>
       <button class="nav-toggle" onclick="document.getElementById('main-nav').classList.toggle('nav-open')">
         <span class="mdi mdi-menu"></span>
@@ -121,81 +131,81 @@
 
     <div class="nav-links">
       <a href="{{ nav_url('dashboard') }}" class="nav-dashboard {% if request.endpoint == 'dashboard' %}active{% endif %}">
-        <span class="mdi mdi-view-dashboard"></span> Dashboard
+        <span class="mdi mdi-view-dashboard"></span> {{ t('nav.dashboard') }}
       </a>
 
       <div class="nav-section" onclick="toggleGroup(this)">
-        <span>Installatie</span>
+        <span>{{ t('nav.installation') }}</span>
         <span class="mdi mdi-chevron-down"></span>
       </div>
       <div class="nav-group">
         <a href="{{ nav_url('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>
-          <span class="mdi mdi-clipboard-list-outline"></span> Installatieoverzicht
+          <span class="mdi mdi-clipboard-list-outline"></span> {{ t('nav.overview') }}
         </a>
         <a href="{{ nav_url('system') }}" {% if request.endpoint == 'system' %}class="active"{% endif %}>
-          <span class="mdi mdi-map-marker-outline"></span> Systeem &amp; locatie
+          <span class="mdi mdi-map-marker-outline"></span> {{ t('nav.system') }}
         </a>
         <a href="{{ nav_url('database') }}" {% if request.endpoint == 'database' %}class="active"{% endif %}>
-          <span class="mdi mdi-database-outline"></span> Database
+          <span class="mdi mdi-database-outline"></span> {{ t('nav.database') }}
         </a>
         <a href="{{ nav_url('homeassistant') }}" {% if request.endpoint == 'homeassistant' %}class="active"{% endif %}>
           <span class="mdi mdi-home-assistant"></span> Home Assistant
         </a>
         {% if not system_config or system_config.has_battery %}
         <a href="{{ nav_url('inverter') }}" {% if request.endpoint == 'inverter' %}class="active"{% endif %}>
-          <span class="mdi mdi-battery-charging-80"></span> Inverter &amp; batterij
+          <span class="mdi mdi-battery-charging-80"></span> {{ t('nav.inverter_battery') }}
         </a>
         {% endif %}
         <a href="{{ nav_url('provider') }}" {% if request.endpoint == 'provider' %}class="active"{% endif %}>
-          <span class="mdi mdi-transmission-tower"></span> Energieleverancier
+          <span class="mdi mdi-transmission-tower"></span> {{ t('nav.provider') }}
         </a>
         <a href="{{ nav_url('entities') }}" {% if request.endpoint == 'entities' %}class="active"{% endif %}>
-          <span class="mdi mdi-link-variant"></span> HA entiteiten
+          <span class="mdi mdi-link-variant"></span> {{ t('nav.entities') }}
         </a>
       </div>
 
       <div class="nav-section" onclick="toggleGroup(this)">
-        <span>Optimizer</span>
+        <span>{{ t('nav.optimizer_section') }}</span>
         <span class="mdi mdi-chevron-down"></span>
       </div>
       <div class="nav-group">
         <a href="{{ nav_url('schedule') }}" {% if request.endpoint == 'schedule' %}class="active"{% endif %}>
-          <span class="mdi mdi-clock-outline"></span> Tijden
+          <span class="mdi mdi-clock-outline"></span> {{ t('nav.times') }}
         </a>
         <a href="{{ nav_url('optimizer') }}" {% if request.endpoint == 'optimizer' %}class="active"{% endif %}>
-          <span class="mdi mdi-tune-variant"></span> Drempelwaarden
+          <span class="mdi mdi-tune-variant"></span> {{ t('nav.thresholds') }}
         </a>
         <a href="{{ nav_url('prices') }}" {% if request.endpoint == 'prices' %}class="active"{% endif %}>
-          <span class="mdi mdi-currency-eur"></span> Prijzen
+          <span class="mdi mdi-currency-eur"></span> {{ t('nav.prices') }}
         </a>
       </div>
 
       <div class="nav-section" onclick="toggleGroup(this)">
-        <span>Rapporten</span>
+        <span>{{ t('nav.reports') }}</span>
         <span class="mdi mdi-chevron-down"></span>
       </div>
       <div class="nav-group">
         <a href="{{ nav_url('reportlog') }}" {% if request.endpoint == 'reportlog' %}class="active"{% endif %}>
-          <span class="mdi mdi-text-box-outline"></span> Rapportage log
+          <span class="mdi mdi-text-box-outline"></span> {{ t('nav.reportlog') }}
         </a>
         <a href="{{ nav_url('history') }}" {% if request.endpoint == 'history' %}class="active"{% endif %}>
-          <span class="mdi mdi-history"></span> Geschiedenis
+          <span class="mdi mdi-history"></span> {{ t('nav.history') }}
         </a>
         <a href="{{ nav_url('energy_costs') }}" {% if request.endpoint == 'energy_costs' %}class="active"{% endif %}>
-          <span class="mdi mdi-chart-line"></span> Energie kosten
+          <span class="mdi mdi-chart-line"></span> {{ t('nav.energy_costs') }}
         </a>
       </div>
 
       <div class="nav-section" onclick="toggleGroup(this)">
-        <span>Persoonlijk</span>
+        <span>{{ t('nav.personal') }}</span>
         <span class="mdi mdi-chevron-down"></span>
       </div>
       <div class="nav-group">
         <a href="{{ nav_url('colors') }}" {% if request.endpoint == 'colors' %}class="active"{% endif %}>
-          <span class="mdi mdi-palette-outline"></span> Kleuren
+          <span class="mdi mdi-palette-outline"></span> {{ t('nav.colors') }}
         </a>
         <a href="{{ nav_url('translations') }}" {% if request.endpoint == 'translations' %}class="active"{% endif %}>
-          <span class="mdi mdi-translate"></span> Vertalingen
+          <span class="mdi mdi-translate"></span> {{ t('nav.translations') }}
         </a>
       </div>
     </div>
