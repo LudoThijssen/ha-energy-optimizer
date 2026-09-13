@@ -2,10 +2,10 @@
 // name:          es.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/es.json
-// part version:  p_v0.4
-// altered:       2026-09-09
+// part version:  p_v0.5
+// altered:       2026-09-13
 //
-// p_v0.4: zie en.json voor changelog.
+// p_v0.5: trn.placeholder_mismatch toegevoegd, zie en.json voor changelog.
 // p_v0.4: see en.json for changelog.
 //
 {
@@ -363,6 +363,7 @@
   "trn.dutch_base": "Neerlandés (base)",
   "trn.translation_missing": "Falta traducción...",
   "trn.no_entries": "No se encontraron textos para esta combinación.",
+  "trn.placeholder_mismatch": "Error al guardar: los marcadores de posición (entre {}) no coinciden con el texto original.",
   "thresh.subtitle": "Reglas para las decisiones de carga y descarga",
   "thresh.price_thresholds": "Umbrales de precio",
   "thresh.price_info": "Estos valores determinan cuándo es financieramente rentable cargar o descargar la batería.",

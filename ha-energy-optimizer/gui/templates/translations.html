@@ -1,4 +1,28 @@
 {% extends "base.html" %}
+<!-- part version: p_v0.6 -->
+<!-- altered:      2026-09-13 -->
+<!--
+p_v0.6: Placeholder-bescherming. Het vrije tekstveld per vertaling is
+vervangen door een contenteditable-veld waarin format-placeholders
+(bv. {price:.4f}) als niet-bewerkbare "chips" worden getoond (via
+contenteditable="false" binnen het bewerkbare veld — browsers behandelen
+zo'n span al van nature als één geheel: niet los te betypen, wel als
+geheel te knippen/plakken om te verplaatsen). Bij opslaan wordt de content
+teruggeserialiseerd naar platte tekst in een verborgen invoerveld; app.py
+p_v0.28 valideert server-side nogmaals dat de placeholder-verzameling
+exact overeenkomt met de NL-referentietekst. Segmenten (afwisselend tekst/
+placeholder) komen van app.py's _split_into_segments().
+p_v0.6: Placeholder protection. The free text field per translation has
+been replaced with a contenteditable field where format placeholders
+(e.g. {price:.4f}) are shown as non-editable "chips" (via
+contenteditable="false" inside the editable field — browsers natively
+treat such a span as one unit: can't be typed into piecemeal, but can be
+cut/pasted as a whole to move it). On save, the content is serialized
+back to plain text into a hidden input; app.py p_v0.28 validates
+server-side again that the placeholder set exactly matches the NL
+reference text. Segments (alternating text/placeholder) come from
+app.py's _split_into_segments().
+-->
 <!-- name:         translations.html -->
 <!-- part of:      ha-energy-optimizer -->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/translations.html -->
@@ -19,11 +43,45 @@ intended: two layers, see translator.py p_v0.7.
 {% block title %}Vertalingen — HA Energy Optimizer{% endblock %}
 {% block content %}
 
+<style>
+.ph-chip {
+  display: inline-block;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  border-radius: 4px;
+  padding: 0 4px;
+  margin: 0 1px;
+  font-family: monospace;
+  font-size: 12px;
+  cursor: default;
+  user-select: all;
+  white-space: nowrap;
+}
+.translate-editor {
+  flex: 1;
+  font-size: 13px;
+  min-height: 1.6em;
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  outline: none;
+}
+.translate-editor.missing {
+  border-color: #f59e0b;
+}
+</style>
+
 <h1><span class="mdi mdi-translate"></span> {{ t('nav.translations') }}</h1>
 <p class="subtitle">{{ t('trn.subtitle') }}</p>
 
 {% if saved %}
 <div class="alert alert-success"><span class="mdi mdi-check"></span> {{ t('trn.saved') }}</div>
+{% endif %}
+
+{% if error == 'placeholder_mismatch' %}
+<div class="alert alert-error"><span class="mdi mdi-alert"></span> {{ t('trn.placeholder_mismatch') }}</div>
 {% endif %}
 
 {% if generated %}
@@ -93,13 +151,15 @@ intended: two layers, see translator.py p_v0.7.
         <td><code style="font-size:12px;">{{ e.key }}</code></td>
         <td style="font-size:12px; color:#6b7280;">{{ e.nl_text }}</td>
         <td>
-          <form method="POST" style="display:flex; gap:6px; align-items:center;">
+          <form method="POST" class="translate-form" style="display:flex; gap:6px; align-items:center;">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="language" value="{{ active_language }}">
             <input type="hidden" name="key" value="{{ e.key }}">
-            <input type="text" name="text" value="{{ e.translated or '' }}"
-                   style="font-size:13px; {% if not e.translated %}border-color:#f59e0b;{% endif %}"
-                   placeholder="{{ t('trn.translation_missing') }}">
+            <input type="hidden" name="text" class="translate-hidden-text">
+            <div class="translate-editor{% if not e.translated %} missing{% endif %}"
+                 contenteditable="true"
+                 data-empty-placeholder="{{ t('trn.translation_missing') }}"
+                 >{% for seg in e.segments %}{% if seg.type == 'placeholder' %}<span class="ph-chip" contenteditable="false">{{ seg.value }}</span>{% else %}{{ seg.value }}{% endif %}{% endfor %}</div>
             <button type="submit" class="btn btn-primary btn-sm">
               <span class="mdi mdi-content-save-outline"></span>
             </button>
@@ -122,5 +182,34 @@ intended: two layers, see translator.py p_v0.7.
   </p>
   {% endif %}
 </div>
+
+<script>
+// p_v0.6: serialiseer het beschermde chip-invoerveld naar platte tekst
+// vlak vóór het versturen van het formulier. Chip-inhoud (node.textContent
+// van .ph-chip) komt altijd exact overeen met wat de server rendeerde,
+// omdat contenteditable="false" voorkomt dat de gebruiker daarbinnen kan
+// typen — de server valideert dit desondanks nogmaals (app.py p_v0.28).
+//
+// p_v0.6: serialize the protected chip input field to plain text right
+// before submitting the form. Chip content (node.textContent of
+// .ph-chip) always matches exactly what the server rendered, because
+// contenteditable="false" prevents the user from typing inside it — the
+// server validates this again regardless (app.py p_v0.28).
+document.querySelectorAll('.translate-form').forEach(function (form) {
+  form.addEventListener('submit', function () {
+    var editor = form.querySelector('.translate-editor');
+    var hidden = form.querySelector('.translate-hidden-text');
+    var result = '';
+    editor.childNodes.forEach(function (node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        result += node.textContent;
+      }
+    });
+    hidden.value = result;
+  });
+});
+</script>
 
 {% endblock %}

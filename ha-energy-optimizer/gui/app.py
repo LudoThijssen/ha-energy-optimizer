@@ -2,8 +2,46 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.27
-# altered:       2026-09-09
+# part version:  p_v0.28
+# altered:       2026-09-13
+#
+# p_v0.28: Vertalingenpagina (/translations) beschermt placeholders nu
+# structureel i.p.v. alleen visueel. Aanleiding: RS-reason-strings bevatten
+# Python-format-placeholders (bv. {price:.4f}) die een vertaler per ongeluk
+# kon verminken (typo, weggehaalde `}`, enz.) — dat crasht pas later in
+# decision_engine.py, niet bij het opslaan. Nieuw:
+# - _extract_placeholders() / _split_into_segments(): NL-referentietekst en
+#   bestaande vertaling worden in de GET-route opgesplitst in tekst- en
+#   placeholder-segmenten voor de front-end (translations.html), die de
+#   placeholders als niet-bewerkbare, wel verplaatsbare "chips" toont.
+# - POST action=save valideert nu server-side dat de verzameling
+#   placeholders in de ingezonden tekst exact overeenkomt met de
+#   NL-referentie (defense-in-depth, onafhankelijk van de front-end-JS) —
+#   bij mismatch wordt niet opgeslagen en komt er een foutmelding terug.
+# - Bijvangst: de nl_texts-query in deze route bouwde het group-filter met
+#   kale string-interpolatie (`LIKE '{active_group}%'`) i.p.v. een
+#   parameter, terwijl de vertaalde-teksten-query ernaast dat wel correct
+#   deed — SQL-injection-risico via de ?group= querystring. Nu ook
+#   geparametriseerd, zelfde patroon als de vertaalde-teksten-query.
+#
+# p_v0.28: The translations page (/translations) now protects placeholders
+# structurally instead of only visually. Reason: RS reason strings contain
+# Python format placeholders (e.g. {price:.4f}) that a translator could
+# accidentally mangle (typo, dropped `}`, etc.) — that only crashes later
+# in decision_engine.py, not at save time. New:
+# - _extract_placeholders() / _split_into_segments(): the NL reference text
+#   and existing translation are split in the GET route into text/
+#   placeholder segments for the front-end (translations.html), which
+#   renders placeholders as non-editable, movable "chips".
+# - POST action=save now validates server-side that the set of
+#   placeholders in the submitted text exactly matches the NL reference
+#   (defense-in-depth, independent of the front-end JS) — on mismatch the
+#   save is rejected and an error is returned instead.
+# - Incidental find: this route's nl_texts query built the group filter
+#   with bare string interpolation (`LIKE '{active_group}%'`) instead of a
+#   parameter, while the adjacent translated-texts query did do this
+#   correctly — a SQL-injection risk via the ?group= querystring. Now
+#   parameterized too, same pattern as the translated-texts query.
 #
 # p_v0.27: zelfde regex-bugfix als translations/translator.py p_v0.7 —
 # _load_internal_sensors() stripte met `//.*` (zonder regelverankering)
@@ -124,6 +162,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json
 import json as _json
 import os
+import re
 import threading
 from pathlib import Path
 import sys
@@ -1420,6 +1459,59 @@ def dashboard():
                            colors=colors)
 
 
+_PLACEHOLDER_RE = re.compile(r'\{[^{}]+\}')
+
+
+def _extract_placeholders(text: str) -> list[str]:
+    """
+    Haalt alle format-placeholders uit een tekst, bv. ['{price:.4f}', '{reason}'].
+    Extracts all format placeholders from a text, e.g. ['{price:.4f}', '{reason}'].
+    """
+    if not text:
+        return []
+    return _PLACEHOLDER_RE.findall(text)
+
+
+def _split_into_segments(text: str, placeholders: list[str]) -> list[dict]:
+    """
+    Splitst tekst in afwisselend tekst- en placeholder-segmenten, voor
+    weergave als beschermd invoerveld (translations.html). Placeholders
+    die niet in de tekst gevonden worden (bv. een oude/onvolledige
+    vertaling) worden alsnog aan het eind toegevoegd, zodat het invoerveld
+    altijd elke vereiste placeholder bevat.
+
+    Splits text into alternating text/placeholder segments, for display as
+    a protected input field (translations.html). Placeholders not found in
+    the text (e.g. an old/incomplete translation) are still appended at
+    the end, so the input field always contains every required
+    placeholder.
+    """
+    text = text or ""
+    segments = []
+    pos = 0
+    search_from = 0
+    positions = []
+    for ph in placeholders:
+        idx = text.find(ph, search_from)
+        positions.append(idx if idx != -1 else None)
+        if idx != -1:
+            search_from = idx + len(ph)
+
+    missing = []
+    for ph, idx in zip(placeholders, positions):
+        if idx is None:
+            missing.append(ph)
+            continue
+        segments.append({"type": "text", "value": text[pos:idx]})
+        segments.append({"type": "placeholder", "value": ph})
+        pos = idx + len(ph)
+    segments.append({"type": "text", "value": text[pos:]})
+    for ph in missing:
+        segments.append({"type": "placeholder", "value": ph})
+        segments.append({"type": "text", "value": ""})
+    return segments
+
+
 @app.route("/translations", methods=["GET", "POST"])
 def translations():
     """Vertalingenbeheer — bekijk en pas operationele teksten aan per taal."""
@@ -1448,14 +1540,42 @@ def translations():
         if action == "save":
             key  = request.form.get("key", "").strip()
             text = request.form.get("text", "").strip()
+            error = None
             if key and text:
+                # Server-side placeholder-check — onafhankelijk van de
+                # front-end-JS die dit normaal al voorkomt (defense in
+                # depth). Vergelijkt tegen de NL-referentietekst van
+                # dezelfde key.
+                # Server-side placeholder check — independent of the
+                # front-end JS that normally already prevents this
+                # (defense in depth). Compares against the NL reference
+                # text for the same key.
                 with db.cursor() as cur:
                     cur.execute(
-                        "REPLACE INTO translation_strings (string_key, language, text) "
-                        "VALUES (%s, %s, %s)",
-                        (key, lang, text)
+                        "SELECT text FROM translation_strings "
+                        "WHERE string_key=%s AND language='nl'",
+                        (key,)
                     )
-                saved = True
+                    nl_row = cur.fetchone()
+                nl_reference = nl_row["text"] if nl_row else None
+
+                if nl_reference is not None:
+                    expected = sorted(_extract_placeholders(nl_reference))
+                    actual   = sorted(_extract_placeholders(text))
+                    if expected != actual:
+                        error = "placeholder_mismatch"
+
+                if not error:
+                    with db.cursor() as cur:
+                        cur.execute(
+                            "REPLACE INTO translation_strings (string_key, language, text) "
+                            "VALUES (%s, %s, %s)",
+                            (key, lang, text)
+                        )
+                    saved = True
+
+            if error:
+                return redirect(_url("translations") + f"?lang={lang}&error={error}")
 
         elif action == "generate" and lang not in ("nl", "en"):
             try:
@@ -1477,10 +1597,16 @@ def translations():
         # Laad alle NL teksten als basis
         with db.cursor() as cur:
             query = "SELECT string_key, text FROM translation_strings WHERE language = 'nl'"
+            nl_params = []
             if active_group:
-                query += f" AND string_key LIKE '{active_group}%'"
+                # p_v0.28: was kale string-interpolatie (SQL-injection-risico
+                # via ?group=), nu geparametriseerd zoals de query hieronder.
+                # p_v0.28: was bare string interpolation (SQL injection risk
+                # via ?group=), now parameterized like the query below.
+                query += " AND string_key LIKE %s"
+                nl_params.append(f"{active_group}%")
             query += " ORDER BY string_key"
-            cur.execute(query)
+            cur.execute(query, nl_params)
             nl_texts = {r["string_key"]: r["text"] for r in cur.fetchall()}
 
         # Laad vertalingen voor actieve taal
@@ -1495,10 +1621,12 @@ def translations():
 
         for key, nl_text in nl_texts.items():
             t = translated.get(key)
+            placeholders = _extract_placeholders(nl_text)
             entries.append({
                 "key":        key,
                 "nl_text":    nl_text,
                 "translated": t,
+                "segments":   _split_into_segments(t or "", placeholders),
             })
             entry_count += 1
             if not t:
@@ -1514,6 +1642,7 @@ def translations():
                            entry_count=entry_count,
                            missing_count=missing_count,
                            saved=request.args.get("saved"),
+                           error=request.args.get("error"),
                            generated=generated)
 
 

@@ -2,10 +2,10 @@
 // name:          fr.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/fr.json
-// part version:  p_v0.4
-// altered:       2026-09-09
+// part version:  p_v0.5
+// altered:       2026-09-13
 //
-// p_v0.4: zie en.json voor changelog.
+// p_v0.5: trn.placeholder_mismatch toegevoegd, zie en.json voor changelog.
 // p_v0.4: see en.json for changelog.
 //
 {
@@ -363,6 +363,7 @@
   "trn.dutch_base": "Néerlandais (base)",
   "trn.translation_missing": "Traduction manquante...",
   "trn.no_entries": "Aucun texte trouvé pour cette combinaison.",
+  "trn.placeholder_mismatch": "Échec de l'enregistrement : les paramètres (entre {}) ne correspondent pas au texte original.",
   "thresh.subtitle": "Règles pour les décisions de charge et décharge",
   "thresh.price_thresholds": "Seuils de prix",
   "thresh.price_info": "Ces valeurs déterminent quand il est financièrement avantageux de charger ou décharger la batterie.",

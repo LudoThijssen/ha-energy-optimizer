@@ -2,10 +2,10 @@
 // name:          de.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/de.json
-// part version:  p_v0.4
-// altered:       2026-09-09
+// part version:  p_v0.5
+// altered:       2026-09-13
 //
-// p_v0.4: zie en.json voor changelog.
+// p_v0.5: trn.placeholder_mismatch toegevoegd, zie en.json voor changelog.
 // p_v0.4: see en.json for changelog.
 //
 {
@@ -363,6 +363,7 @@
   "trn.dutch_base": "Niederländisch (Basis)",
   "trn.translation_missing": "Übersetzung fehlt...",
   "trn.no_entries": "Keine Texte für diese Kombination gefunden.",
+  "trn.placeholder_mismatch": "Speichern fehlgeschlagen: Die Platzhalter (in {}) stimmen nicht mit dem Originaltext überein.",
   "thresh.subtitle": "Regeln für Lade- und Entladeentscheidungen",
   "thresh.price_thresholds": "Preisschwellenwerte",
   "thresh.price_info": "Diese Werte bestimmen, wann es finanziell sinnvoll ist, die Batterie zu laden oder zu entladen.",

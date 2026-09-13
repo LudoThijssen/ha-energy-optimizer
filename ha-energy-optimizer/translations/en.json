@@ -2,8 +2,12 @@
 // name:          en.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/en.json
-// part version:  p_v0.4
-// altered:       2026-09-09
+// part version:  p_v0.5
+// altered:       2026-09-13
+//
+// p_v0.5: trn.placeholder_mismatch added — error message on the
+// translations page for a placeholder mismatch (app.py p_v0.28,
+// translations.html p_v0.6).
 //
 // p_v0.4: nog eens 233 sleutels toegevoegd — de rest van backlog-punt
 // 9/10: base.html (navigatie), colors.html, database.html, index.html,
@@ -369,6 +373,7 @@
   "trn.dutch_base": "Dutch (base)",
   "trn.translation_missing": "Translation missing...",
   "trn.no_entries": "No texts found for this combination.",
+  "trn.placeholder_mismatch": "Save failed: the placeholders (in {}) don't match the original text.",
   "thresh.subtitle": "Rules for charge and discharge decisions",
   "thresh.price_thresholds": "Price thresholds",
   "thresh.price_info": "These values determine when it's financially worthwhile to charge or discharge the battery.",
