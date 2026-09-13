@@ -2,8 +2,51 @@
 # name:          setup.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/setup.py
-# part version:  p_v0.11
-# altered:       2026-07-30
+# part version:  p_v0.13
+# altered:       2026-09-13
+#
+# p_v0.13: Logging toegevoegd aan _apply() — elke migratiepoging (toegepast/
+# overgeslagen/fout) is nu zichtbaar in het add-on log via de standaard
+# 'database.setup'-logger. Reden: na het uitrollen van p_v0.12 bleef
+# solar_reserve_strategy ontbreken zonder ENIGE foutmelding in het log,
+# ook na een verse Docker-rebuild vanaf GitHub — zonder logging was niet
+# vast te stellen of migratie 22 wel/niet geprobeerd werd. Dit maakt het
+# probleem voortaan zichtbaar i.p.v. dat we op aannames moeten gokken.
+#
+# p_v0.13: Logging added to _apply() — every migration attempt (applied/
+# skipped/failed) is now visible in the add-on log via the standard
+# 'database.setup' logger. Reason: after rolling out p_v0.12,
+# solar_reserve_strategy kept missing with NO error in the log at all,
+# even after a fresh Docker rebuild from GitHub — without logging there
+# was no way to establish whether migration 22 was even attempted. This
+# makes the problem visible going forward instead of guessing.
+#
+# p_v0.12: 22 toegevoegd aan ALL_VERSIONS en de stapsgewijze route
+# (solar_reserve_strategy op system_config, zie decision_engine.py p_v0.14).
+# 21 is BEWUST NIET toegevoegd aan de stapsgewijze route: die kolom
+# (grid_consume_kw op optimizer_schedule) bleek al aanwezig op bestaande
+# installaties via een eerdere handmatige toepassing van
+# 000_consolidated.sql, terwijl _migrations geen rij voor versie 21 had.
+# _apply(db, 21, ...) zou daardoor een Duplicate column-fout geven. 21 is
+# wel opgenomen in ALL_VERSIONS, zodat een verse installatie 'm correct
+# als toegepast registreert.
+# Root cause van deze sessie: 21 en 22 werden als bestand aangemaakt maar
+# nooit aan setup.py toegevoegd, waardoor bestaande installaties de
+# migratie nooit draaiden (ProgrammingError: Unknown column
+# 'solar_reserve_strategy').
+#
+# p_v0.12: added 22 to ALL_VERSIONS and the step-by-step route
+# (solar_reserve_strategy on system_config, see decision_engine.py p_v0.14).
+# 21 is DELIBERATELY NOT added to the step-by-step route: that column
+# (grid_consume_kw on optimizer_schedule) turned out to already be present
+# on existing installations via an earlier manual application of
+# 000_consolidated.sql, while _migrations had no row for version 21.
+# _apply(db, 21, ...) would therefore raise a Duplicate column error. 21 is
+# still included in ALL_VERSIONS so a fresh install registers it correctly
+# as applied.
+# Root cause this session: 21 and 22 were created as files but never added
+# to setup.py, so existing installations never ran the migration
+# (ProgrammingError: Unknown column 'solar_reserve_strategy').
 #
 # p_v0.11: 20 toegevoegd (off-grid uitvaldetectie-instellingen, zie
 # collectors/offgrid_monitor.py, decision_engine.py p_v0.12).
@@ -35,8 +78,11 @@
 # definitions — that larger cleanup of database + migrations together is
 # planned for v0.14.
 #
+import logging
 from pathlib import Path
 from .connection import DatabaseConnection
+
+logger = logging.getLogger(__name__)
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
@@ -44,7 +90,7 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 # hoort hier bewust niet bij — zie onderstaande toelichting).
 # All regular migration versions (007 is a one-time data correction and
 # is deliberately excluded here — see note below).
-ALL_VERSIONS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+ALL_VERSIONS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
 
 
 def run_migrations(db: DatabaseConnection) -> None:
@@ -98,6 +144,15 @@ def run_migrations(db: DatabaseConnection) -> None:
         _apply(db, 18, MIGRATIONS_DIR / "018_price_sell_column.sql")
         _apply(db, 19, MIGRATIONS_DIR / "019_offgrid_dynamic_reserve.sql")
         _apply(db, 20, MIGRATIONS_DIR / "020_offgrid_detection.sql")
+        # 21 is bewust NIET hier toegevoegd — grid_consume_kw bleek al
+        # aanwezig op bestaande installaties (zie header p_v0.12), dus
+        # _apply zou hier een Duplicate column-fout geven. Wel opgenomen
+        # in ALL_VERSIONS voor verse installaties.
+        # 21 is deliberately NOT added here — grid_consume_kw turned out
+        # to already be present on existing installations (see header
+        # p_v0.12), so _apply would raise a Duplicate column error here.
+        # It IS included in ALL_VERSIONS for fresh installations.
+        _apply(db, 22, MIGRATIONS_DIR / "022_solar_reserve_strategy.sql")
 
     # Vul vertalingstabel met standaardteksten (INSERT IGNORE — overschrijft geen aanpassingen)
     # Fill translation table with default texts (INSERT IGNORE — does not overwrite customisations)
@@ -130,8 +185,19 @@ def _apply(db: DatabaseConnection, version: int, sql_file: Path) -> None:
     with db.cursor() as cur:
         cur.execute("SELECT version FROM _migrations WHERE version=%s", (version,))
         if cur.fetchone():
+            logger.info(f"Migratie {version} ({sql_file.name}) al toegepast, overgeslagen "
+                        f"/ migration {version} ({sql_file.name}) already applied, skipped")
             return
-    with db.cursor() as cur:
-        cur.execute(sql_file.read_text())
-    with db.cursor() as cur:
-        cur.execute("INSERT INTO _migrations (version) VALUES (%s)", (version,))
+    logger.info(f"Migratie {version} ({sql_file.name}) wordt toegepast "
+                f"/ applying migration {version} ({sql_file.name})")
+    try:
+        with db.cursor() as cur:
+            cur.execute(sql_file.read_text())
+        with db.cursor() as cur:
+            cur.execute("INSERT INTO _migrations (version) VALUES (%s)", (version,))
+        logger.info(f"Migratie {version} succesvol toegepast en geregistreerd "
+                    f"/ migration {version} applied and registered successfully")
+    except Exception:
+        logger.exception(f"Migratie {version} ({sql_file.name}) is MISLUKT "
+                          f"/ migration {version} ({sql_file.name}) FAILED")
+        raise

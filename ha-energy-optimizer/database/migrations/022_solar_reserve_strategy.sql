@@ -2,8 +2,25 @@
 -- name:          022_solar_reserve_strategy.sql
 -- part of:       ha-energy-optimizer
 -- location:      /ha-energy-optimizer/ha-energy-optimizer/database/migrations/022_solar_reserve_strategy.sql
--- part version:  p_v0.1
--- altered:       2026-09-09
+-- part version:  p_v0.2
+-- altered:       2026-09-13
+--
+-- p_v0.2: ADD COLUMN IF NOT EXISTS i.p.v. ADD COLUMN — idempotent gemaakt
+-- naar het patroon van migratie 018, zodat het script probleemloos
+-- herhaald kan worden (bv. bij handmatige toepassing of een eerdere
+-- gedeeltelijke/mislukte poging) zonder een Duplicate column-fout.
+-- Aanleiding: migraties 21/22 bleken als bestand aangemaakt maar nooit in
+-- setup.py opgenomen (zie setup.py p_v0.12), waardoor onduidelijk was of
+-- en hoe vaak dit script al geprobeerd was op bestaande installaties.
+--
+-- p_v0.2: ADD COLUMN IF NOT EXISTS instead of ADD COLUMN — made
+-- idempotent following the pattern of migration 018, so the script can
+-- safely be re-run (e.g. after manual application or an earlier
+-- partial/failed attempt) without a Duplicate column error.
+-- Background: migrations 21/22 turned out to be created as files but
+-- never registered in setup.py (see setup.py p_v0.12), making it unclear
+-- whether and how often this script had already been attempted on
+-- existing installations.
 --
 -- p_v0.1: solar_reserve_strategy toegevoegd aan system_config. Instelling
 -- (Systeempagina) om te kiezen hoe de optimizer omgaat met batterijruimte
@@ -34,6 +51,6 @@
 --
 
 ALTER TABLE `system_config`
-    ADD COLUMN `solar_reserve_strategy` ENUM('block', 'throttle') NOT NULL DEFAULT 'throttle'
+    ADD COLUMN IF NOT EXISTS `solar_reserve_strategy` ENUM('block', 'throttle') NOT NULL DEFAULT 'throttle'
         COMMENT 'Strategie voor batterijruimte-reservering vóór negatief exportprijsvenster: block (A) of throttle (B) / Strategy for reserving battery capacity ahead of a negative export price window: block (A) or throttle (B)'
         AFTER `has_offgrid_switch`;
