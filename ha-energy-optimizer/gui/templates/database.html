@@ -2,6 +2,20 @@
 <!-- name:         database.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/database.html -->
+<!-- part version: p_v0.7 -->
+<!-- altered:      2026-09-14 -->
+<!--
+p_v0.7: Bugfix — de downloadknop gebruikte url_for('database_backup')
+rechtstreeks, wat het HA-ingress-padprefix mist (deze app draait achter
+de ingress-proxy). Gaf een 404 bij het downloaden van een back-up.
+Gecorrigeerd naar nav_url(), de bestaande template-helper die het
+ingress-pad wél meeneemt (zie app.py::inject_globals(), _url()).
+p_v0.7: Bugfix — the download button used url_for('database_backup')
+directly, which misses the HA ingress path prefix (this app runs behind
+the ingress proxy). Caused a 404 when downloading a backup. Corrected to
+nav_url(), the existing template helper that does account for the
+ingress path (see app.py::inject_globals(), _url()).
+-->
 <!-- part version: p_v0.6 -->
 <!-- altered:      2026-09-14 -->
 <!--
@@ -80,7 +94,7 @@ p_v0.5: fully converted to t(), including JS strings via
   <p class="hint">{{ t('db.backup_hint') }}</p>
 
   <div class="btn-row">
-    <a href="{{ url_for('database_backup') }}" class="btn btn-secondary">
+    <a href="{{ nav_url('database_backup') }}" class="btn btn-secondary">
       <span class="mdi mdi-download-outline"></span> {{ t('db.backup_download') }}
     </a>
   </div>

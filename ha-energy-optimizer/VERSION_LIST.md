@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v6.2
+# part version:  p_v6.3
 # altered:       2026-09-15
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v6.2 | 2026-09-15 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v6.3 | 2026-09-15 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -19,7 +19,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.5 | 2026-07-30 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.4 | 2026-07-28 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v6.2 | 2026-09-15 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v6.3 | 2026-09-15 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
@@ -53,7 +53,7 @@
 | base.html | /ha-energy-optimizer/gui/templates/base.html | p_v0.6 | 2026-09-09 |
 | colors.html | /ha-energy-optimizer/gui/templates/colors.html | p_v0.8 | 2026-09-09 |
 | dashboard.html | /ha-energy-optimizer/gui/templates/dashboard.html | p_v1.8 | 2026-09-09 |
-| database.html | /ha-energy-optimizer/gui/templates/database.html | p_v0.6 | 2026-09-14 |
+| database.html | /ha-energy-optimizer/gui/templates/database.html | p_v0.7 | 2026-09-14 |
 | energy_costs.html | /ha-energy-optimizer/gui/templates/energy_costs.html | p_v0.5 | 2026-07-24 |
 | entities.html | /ha-energy-optimizer/gui/templates/entities.html | p_v0.6 | 2026-09-09 |
 | history.html | /ha-energy-optimizer/gui/templates/history.html | p_v1.0 | 2026-09-09 |
