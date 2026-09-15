@@ -2,8 +2,22 @@
 # name:          connection.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/connection.py
-# part version:  p_v0.3
-# altered:       2026-06-21
+# part version:  p_v0.4
+# altered:       2026-09-15
+#
+# p_v0.4: cursor() forceert nu een reconnect op de onderliggende connectie
+# als er tijdens het gebruik een fout optreedt, vóórdat de connectie
+# teruggegeven wordt aan de pool. Zie de docstring bij cursor() voor de
+# volledige toelichting — root cause van herhaalde "NoneType object is
+# not subscriptable" / "MySQL Connection not available"-fouten bij
+# ConsumptionLearner/SolarLearner.predict().
+#
+# p_v0.4: cursor() now forces a reconnect on the underlying connection if
+# an error occurs while it's in use, before returning the connection to
+# the pool. See the cursor() docstring for the full explanation — root
+# cause of repeated "NoneType object is not subscriptable" / "MySQL
+# Connection not available" errors in
+# ConsumptionLearner/SolarLearner.predict().
 #
 # MySQL connection pool — works with local HA MariaDB and external databases.
 # MySQL-verbindingspool — werkt met lokale HA MariaDB en externe databases.
@@ -81,13 +95,40 @@ class DatabaseConnection:
         Connections are pinged and reconnected if stale (e.g. closed by
         MariaDB's wait_timeout while idle in the pool).
 
+        p_v0.4: als er tijdens het gebruik van de cursor een fout optreedt
+        (bv. de mysql-connector sql_mode-bug bij het allereerste gebruik
+        van een verse pool-connectie), wordt de connectie vóór teruggave
+        aan de pool geforceerd opnieuw verbonden (reconnect). Zonder dit
+        kwam een connectie die middenin een mislukte query zat — met
+        pool_reset_session=False blijft de sessie tussen leningen namelijk
+        bewust ongereset (voor de tijdzone-instelling) — in diezelfde
+        beschadigde staat terug in de pool, en faalde de volgende lener
+        die toevallig dezelfde connectie trof opnieuw. Zichtbaar geworden
+        bij ConsumptionLearner/SolarLearner.predict(), die honderden keren
+        na elkaar een cursor lenen tijdens de rolling-horizon-opbouw in
+        optimizer/engine.py.
+
         Geeft een cursor terug uit de pool.
         De sessietijdzone wordt ingesteld via init_command op elke nieuwe verbinding.
         Verbindingen worden gepingd en hersteld indien verouderd (bijv. gesloten
         door MariaDB's wait_timeout terwijl ze idle in de pool stonden).
+
+        p_v0.4: if an error occurs while the cursor is in use (e.g. the
+        mysql-connector sql_mode bug on the very first use of a fresh pool
+        connection), the connection is forced to reconnect before being
+        returned to the pool. Without this, a connection that was mid-
+        query when it failed — since pool_reset_session=False deliberately
+        leaves the session unreset between borrows (for the timezone
+        setting) — would go back into the pool in that same damaged state,
+        and the next borrower unlucky enough to get the same connection
+        would fail again too. This became visible via
+        ConsumptionLearner/SolarLearner.predict(), which borrow a cursor
+        hundreds of times in a row while building the rolling horizon in
+        optimizer/engine.py.
         """
         conn = None
         cur  = None
+        had_error = False
         try:
             try:
                 conn = self._pool.get_connection()
@@ -112,12 +153,25 @@ class DatabaseConnection:
 
             cur = conn.cursor(dictionary=dictionary)
             yield cur
+        except Exception:
+            had_error = True
+            raise
         finally:
             try:
                 if cur:
                     cur.close()
             except Exception:
                 pass
+            if conn is not None and had_error:
+                try:
+                    conn.reconnect(attempts=1, delay=0)
+                except Exception:
+                    logger.warning(
+                        "Kon beschadigde connectie niet herstellen na fout — "
+                        "wordt alsnog teruggegeven aan de pool / "
+                        "Could not repair damaged connection after error — "
+                        "returning to pool anyway"
+                    )
             try:
                 if conn:
                     conn.close()
