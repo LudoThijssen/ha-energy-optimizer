@@ -2,8 +2,16 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.28
-# altered:       2026-09-13
+# part version:  p_v0.29
+# altered:       2026-09-14
+#
+# p_v0.29: Back-up/restore toegevoegd (/database/backup, /database/
+# restore) — zie database/backup.py voor het ontwerp (altijd-veilig
+# aanvul-script, "vervangen" alleen als aparte stap in de app).
+#
+# p_v0.29: Backup/restore added (/database/backup, /database/restore) —
+# see database/backup.py for the design (always-safe add-only script,
+# "replace" only as a separate step within the app).
 #
 # p_v0.28: Vertalingenpagina (/translations) beschermt placeholders nu
 # structureel i.p.v. alleen visueel. Aanleiding: RS-reason-strings bevatten
@@ -164,6 +172,7 @@ import json as _json
 import os
 import re
 import threading
+from datetime import datetime
 from pathlib import Path
 import sys
 
@@ -793,6 +802,77 @@ def test_database():
         return jsonify({"ok": True, "message": "Verbinding geslaagd"})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)})
+
+
+@app.route("/database/backup", methods=["GET"])
+def database_backup():
+    """
+    Genereert en downloadt een back-up-SQL-bestand — altijd veilig om te
+    draaien (alleen aanvullen, zie database/backup.py).
+
+    Generates and downloads a backup SQL file — always safe to run
+    (add-only, see database/backup.py).
+    """
+    from flask import Response
+    from database.backup import generate_backup_sql
+
+    db = _get_db()
+    if not db:
+        return "Geen databaseverbinding / No database connection", 500
+
+    try:
+        sql_text = generate_backup_sql(db, app_version=_ADDON_VERSION)
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).exception("Back-up genereren mislukt / backup generation failed")
+        return f"Back-up genereren mislukt / Backup generation failed: {e}", 500
+
+    filename = f"ha-energy-optimizer-backup-{datetime.now().strftime('%Y-%m-%d_%H%M')}.sql"
+    return Response(
+        sql_text,
+        mimetype="application/sql",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@app.route("/database/restore", methods=["POST"])
+def database_restore():
+    """
+    Verwerkt een geüpload back-up-bestand. mode='replace' leegt eerst
+    alle tabellen; mode='append' (standaard) voegt alleen ontbrekende
+    rijen toe. Rapporteert per tabel of het lukte.
+
+    Processes an uploaded backup file. mode='replace' empties all tables
+    first; mode='append' (default) only adds missing rows. Reports
+    success per table.
+    """
+    from database.backup import restore_from_sql
+
+    db = _get_db()
+    if not db:
+        return jsonify({"ok": False, "message": "Geen databaseverbinding / No database connection"}), 500
+
+    uploaded = request.files.get("backup_file")
+    if not uploaded or not uploaded.filename:
+        return jsonify({"ok": False, "message": "Geen bestand geselecteerd / No file selected"}), 400
+
+    mode = request.form.get("mode", "append")
+    replace = (mode == "replace")
+
+    try:
+        sql_text = uploaded.read().decode("utf-8")
+    except Exception as e:
+        return jsonify({"ok": False, "message": f"Bestand kon niet gelezen worden / Could not read file: {e}"}), 400
+
+    try:
+        results = restore_from_sql(db, sql_text, replace=replace)
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).exception("Restore mislukt / restore failed")
+        return jsonify({"ok": False, "message": str(e)}), 500
+
+    all_ok = all(r["ok"] for r in results)
+    return jsonify({"ok": all_ok, "results": results})
 
 
 @app.route("/homeassistant", methods=["GET", "POST"])

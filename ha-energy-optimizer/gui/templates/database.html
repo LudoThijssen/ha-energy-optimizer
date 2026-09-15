@@ -2,6 +2,16 @@
 <!-- name:         database.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/database.html -->
+<!-- part version: p_v0.6 -->
+<!-- altered:      2026-09-14 -->
+<!--
+p_v0.6: Back-up & herstel-sectie toegevoegd — downloadknop voor een
+altijd-veilig aanvul-script, en een upload met keuze "aanvullen" /
+"vervangen". Zie app.py p_v0.29 en database/backup.py p_v0.1.
+p_v0.6: Backup & restore section added — download button for an
+always-safe add-only script, and an upload with a choice of "append" /
+"replace". See app.py p_v0.29 and database/backup.py p_v0.1.
+-->
 <!-- part version: p_v0.5 -->
 <!-- altered:      2026-09-09 -->
 <!--
@@ -65,9 +75,54 @@ p_v0.5: fully converted to t(), including JS strings via
   </div>
 </form>
 
+<div class="card">
+  <h2><span class="mdi mdi-backup-restore"></span> {{ t('db.backup_title') }}</h2>
+  <p class="hint">{{ t('db.backup_hint') }}</p>
+
+  <div class="btn-row">
+    <a href="{{ url_for('database_backup') }}" class="btn btn-secondary">
+      <span class="mdi mdi-download-outline"></span> {{ t('db.backup_download') }}
+    </a>
+  </div>
+
+  <h3 style="margin-top:24px;">{{ t('db.restore_title') }}</h3>
+  <p class="hint">{{ t('db.restore_hint') }}</p>
+
+  <div class="field">
+    <label>{{ t('db.restore_file_label') }}</label>
+    <input type="file" id="restore-file" accept=".sql">
+  </div>
+
+  <div class="field">
+    <label>
+      <input type="radio" name="restore-mode" value="append" checked>
+      {{ t('db.restore_mode_append') }}
+    </label>
+    <br>
+    <label>
+      <input type="radio" name="restore-mode" value="replace">
+      {{ t('db.restore_mode_replace') }}
+    </label>
+  </div>
+
+  <div class="btn-row">
+    <button type="button" class="btn btn-primary" onclick="runRestore()">
+      <span class="mdi mdi-upload-outline"></span> {{ t('db.restore_run') }}
+    </button>
+  </div>
+
+  <div id="restore-result" style="margin-top:12px;"></div>
+</div>
+
 <script>
 const MSG_TESTING = {{ t('ha.testing')|tojson }};
 const MSG_REQUEST_FAILED = {{ t('ha.request_failed')|tojson }};
+const MSG_RESTORE_NO_FILE = {{ t('db.restore_no_file')|tojson }};
+const MSG_RESTORE_RUNNING = {{ t('db.restore_running')|tojson }};
+const MSG_RESTORE_OK = {{ t('db.restore_row_ok')|tojson }};
+const MSG_RESTORE_FAILED = {{ t('db.restore_row_failed')|tojson }};
+const MSG_RESTORE_SKIPPED = {{ t('db.restore_row_skipped')|tojson }};
+const MSG_RESTORE_CONFIRM_REPLACE = {{ t('db.restore_confirm_replace')|tojson }};
 
 async function testConnection() {
   const result = document.getElementById("test-result");
@@ -91,6 +146,64 @@ async function testConnection() {
     const data = await resp.json();
     result.textContent = data.message;
     result.style.color = data.ok ? "#16a34a" : "#dc2626";
+  } catch (e) {
+    result.textContent = MSG_REQUEST_FAILED + e.message;
+    result.style.color = "#dc2626";
+  }
+}
+
+async function runRestore() {
+  const fileInput = document.getElementById("restore-file");
+  const result = document.getElementById("restore-result");
+  const mode = document.querySelector('input[name="restore-mode"]:checked').value;
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    result.textContent = MSG_RESTORE_NO_FILE;
+    result.style.color = "#dc2626";
+    return;
+  }
+
+  if (mode === "replace" && !confirm(MSG_RESTORE_CONFIRM_REPLACE)) {
+    return;
+  }
+
+  result.textContent = MSG_RESTORE_RUNNING;
+  result.style.color = "#6b7280";
+
+  const formData = new FormData();
+  formData.append("backup_file", fileInput.files[0]);
+  formData.append("mode", mode);
+
+  try {
+    const resp = await fetch(apiUrl("/database/restore"), {
+      method: "POST",
+      body: formData,
+    });
+    const data = await resp.json();
+
+    if (!data.results) {
+      result.textContent = data.message || MSG_REQUEST_FAILED;
+      result.style.color = "#dc2626";
+      return;
+    }
+
+    let html = "<table style='width:100%; font-size:13px;'>";
+    data.results.forEach(function (r) {
+      let icon, color, label;
+      if (r.ok && r.note) {
+        icon = "mdi-minus-circle-outline"; color = "#9ca3af"; label = MSG_RESTORE_SKIPPED;
+      } else if (r.ok) {
+        icon = "mdi-check-circle-outline"; color = "#16a34a"; label = MSG_RESTORE_OK;
+      } else {
+        icon = "mdi-alert-circle-outline"; color = "#dc2626"; label = MSG_RESTORE_FAILED;
+      }
+      html += `<tr>
+        <td style="color:${color};"><span class="mdi ${icon}"></span> ${r.table}</td>
+        <td style="color:${color};">${label}${r.error ? ": " + r.error : ""}</td>
+      </tr>`;
+    });
+    html += "</table>";
+    result.innerHTML = html;
   } catch (e) {
     result.textContent = MSG_REQUEST_FAILED + e.message;
     result.style.color = "#dc2626";

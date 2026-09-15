@@ -2,10 +2,10 @@
 // name:          es.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/es.json
-// part version:  p_v0.6
-// altered:       2026-09-13
+// part version:  p_v0.7
+// altered:       2026-09-14
 //
-// p_v0.6: trn.chip_move_hint toegevoegd, zie en.json voor changelog.
+// p_v0.7: 15 claves añadidas, ver en.json para el registro de cambios.
 // p_v0.4: see en.json for changelog.
 //
 {
@@ -207,6 +207,21 @@
   "db.username": "Nombre de usuario",
   "db.password": "Contraseña",
   "db.test_connection": "Probar conexión",
+  "db.backup_title": "Copia de seguridad y restauración",
+  "db.backup_hint": "Descarga un archivo SQL con todos tus datos. Siempre seguro de ejecutar — solo añade lo que falta, nunca sobrescribe nada. También se puede ejecutar de forma independiente en phpMyAdmin.",
+  "db.backup_download": "Descargar copia de seguridad",
+  "db.restore_title": "Restaurar",
+  "db.restore_hint": "Restaura un archivo de copia de seguridad descargado previamente, o importa la copia de seguridad de otra persona.",
+  "db.restore_file_label": "Archivo de copia de seguridad (.sql)",
+  "db.restore_mode_append": "Añadir — solo agregar datos faltantes, los datos existentes permanecen intactos",
+  "db.restore_mode_replace": "Reemplazar — vaciar todo primero, luego cargar el archivo",
+  "db.restore_run": "Ejecutar restauración",
+  "db.restore_no_file": "Selecciona primero un archivo.",
+  "db.restore_running": "Restaurando…",
+  "db.restore_row_ok": "Correcto",
+  "db.restore_row_failed": "Fallido",
+  "db.restore_row_skipped": "Omitido (vacío o no está en el archivo)",
+  "db.restore_confirm_replace": "¿Estás seguro? Esto vaciará TODAS las tablas antes de cargar el archivo. Esto no se puede deshacer.",
   "idx.overview_subtitle": "Resumen de instalación",
   "idx.quick_actions": "Acciones rápidas",
   "idx.run_optimizer_now": "Ejecutar optimizador ahora",

@@ -2,8 +2,11 @@
 // name:          en.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/en.json
-// part version:  p_v0.6
-// altered:       2026-09-13
+// part version:  p_v0.7
+// altered:       2026-09-14
+//
+// p_v0.7: 15 keys added for the backup/restore section on the database
+// page (database.html p_v0.6, app.py p_v0.29).
 //
 // p_v0.6: trn.chip_move_hint added — short instruction above the
 // translations table about the click-to-pick-up/place mechanism for
@@ -221,6 +224,21 @@
   "db.username": "Username",
   "db.password": "Password",
   "db.test_connection": "Test connection",
+  "db.backup_title": "Backup & restore",
+  "db.backup_hint": "Downloads a SQL file with all your data. Always safe to run — only adds what's missing, never overwrites anything. Can also be run standalone in phpMyAdmin.",
+  "db.backup_download": "Download backup",
+  "db.restore_title": "Restore",
+  "db.restore_hint": "Restore a previously downloaded backup file, or import someone else's backup.",
+  "db.restore_file_label": "Backup file (.sql)",
+  "db.restore_mode_append": "Append — only add missing data, existing data is left untouched",
+  "db.restore_mode_replace": "Replace — empty everything first, then load the file",
+  "db.restore_run": "Run restore",
+  "db.restore_no_file": "Please choose a file first.",
+  "db.restore_running": "Restoring…",
+  "db.restore_row_ok": "Succeeded",
+  "db.restore_row_failed": "Failed",
+  "db.restore_row_skipped": "Skipped (empty or not in file)",
+  "db.restore_confirm_replace": "Are you sure? This will empty ALL tables before loading the file. This cannot be undone.",
   "idx.overview_subtitle": "Installation overview",
   "idx.quick_actions": "Quick actions",
   "idx.run_optimizer_now": "Run optimizer now",

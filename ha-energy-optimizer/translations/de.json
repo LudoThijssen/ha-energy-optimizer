@@ -2,10 +2,10 @@
 // name:          de.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/de.json
-// part version:  p_v0.6
-// altered:       2026-09-13
+// part version:  p_v0.7
+// altered:       2026-09-14
 //
-// p_v0.6: trn.chip_move_hint toegevoegd, zie en.json voor changelog.
+// p_v0.7: 15 Schlüssel hinzugefügt, siehe en.json für Changelog.
 // p_v0.4: see en.json for changelog.
 //
 {
@@ -207,6 +207,21 @@
   "db.username": "Benutzername",
   "db.password": "Passwort",
   "db.test_connection": "Verbindung testen",
+  "db.backup_title": "Sicherung & Wiederherstellung",
+  "db.backup_hint": "Lädt eine SQL-Datei mit all deinen Daten herunter. Immer sicher auszuführen — fügt nur Fehlendes hinzu, überschreibt nie etwas. Kann auch eigenständig in phpMyAdmin ausgeführt werden.",
+  "db.backup_download": "Sicherung herunterladen",
+  "db.restore_title": "Wiederherstellen",
+  "db.restore_hint": "Eine zuvor heruntergeladene Sicherungsdatei wiederherstellen oder die Sicherung von jemand anderem importieren.",
+  "db.restore_file_label": "Sicherungsdatei (.sql)",
+  "db.restore_mode_append": "Ergänzen — nur fehlende Daten hinzufügen, bestehende Daten bleiben unverändert",
+  "db.restore_mode_replace": "Ersetzen — zuerst alles leeren, dann die Datei laden",
+  "db.restore_run": "Wiederherstellung ausführen",
+  "db.restore_no_file": "Bitte zuerst eine Datei auswählen.",
+  "db.restore_running": "Wiederherstellung läuft…",
+  "db.restore_row_ok": "Erfolgreich",
+  "db.restore_row_failed": "Fehlgeschlagen",
+  "db.restore_row_skipped": "Übersprungen (leer oder nicht in Datei)",
+  "db.restore_confirm_replace": "Bist du sicher? Dadurch werden zuerst ALLE Tabellen geleert, bevor die Datei geladen wird. Dies kann nicht rückgängig gemacht werden.",
   "idx.overview_subtitle": "Installationsübersicht",
   "idx.quick_actions": "Schnellaktionen",
   "idx.run_optimizer_now": "Optimierer jetzt ausführen",

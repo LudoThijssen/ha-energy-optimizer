@@ -2,8 +2,11 @@
 // name:          nl.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/nl.json
-// part version:  p_v0.6
-// altered:       2026-09-13
+// part version:  p_v0.7
+// altered:       2026-09-14
+//
+// p_v0.7: 15 sleutels toegevoegd voor de back-up/restore-sectie op de
+// databasepagina (database.html p_v0.6, app.py p_v0.29).
 //
 // p_v0.6: trn.chip_move_hint toegevoegd — korte uitleg boven de
 // vertalingentabel over het klik-om-op-te-pakken/plaatsen-mechanisme
@@ -215,6 +218,21 @@
   "db.username": "Gebruikersnaam",
   "db.password": "Wachtwoord",
   "db.test_connection": "Test verbinding",
+  "db.backup_title": "Back-up & herstel",
+  "db.backup_hint": "Downloadt een SQL-bestand met al je data. Altijd veilig om te draaien — voegt alleen toe wat nog ontbreekt, overschrijft nooit iets. Kan ook los in phpMyAdmin gedraaid worden.",
+  "db.backup_download": "Back-up downloaden",
+  "db.restore_title": "Terugzetten",
+  "db.restore_hint": "Zet een eerder gedownload back-upbestand terug, of importeer de back-up van iemand anders.",
+  "db.restore_file_label": "Back-upbestand (.sql)",
+  "db.restore_mode_append": "Aanvullen — alleen ontbrekende data toevoegen, bestaande data blijft ongemoeid",
+  "db.restore_mode_replace": "Vervangen — eerst alles leegmaken, dan het bestand inladen",
+  "db.restore_run": "Terugzetten uitvoeren",
+  "db.restore_no_file": "Kies eerst een bestand.",
+  "db.restore_running": "Bezig met terugzetten…",
+  "db.restore_row_ok": "Gelukt",
+  "db.restore_row_failed": "Mislukt",
+  "db.restore_row_skipped": "Overgeslagen (leeg of niet in bestand)",
+  "db.restore_confirm_replace": "Weet je het zeker? Dit maakt eerst ALLE tabellen leeg voordat het bestand wordt ingeladen. Dit kan niet ongedaan gemaakt worden.",
   "idx.overview_subtitle": "Installatieoverzicht",
   "idx.quick_actions": "Snelle acties",
   "idx.run_optimizer_now": "Optimizer nu uitvoeren",

@@ -2,10 +2,10 @@
 // name:          fr.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/fr.json
-// part version:  p_v0.6
-// altered:       2026-09-13
+// part version:  p_v0.7
+// altered:       2026-09-14
 //
-// p_v0.6: trn.chip_move_hint toegevoegd, zie en.json voor changelog.
+// p_v0.7: 15 clés ajoutées, voir en.json pour le changelog.
 // p_v0.4: see en.json for changelog.
 //
 {
@@ -207,6 +207,21 @@
   "db.username": "Nom d'utilisateur",
   "db.password": "Mot de passe",
   "db.test_connection": "Tester la connexion",
+  "db.backup_title": "Sauvegarde et restauration",
+  "db.backup_hint": "Télécharge un fichier SQL avec toutes vos données. Toujours sûr à exécuter — ajoute uniquement ce qui manque, n'écrase jamais rien. Peut aussi être exécuté seul dans phpMyAdmin.",
+  "db.backup_download": "Télécharger la sauvegarde",
+  "db.restore_title": "Restaurer",
+  "db.restore_hint": "Restaure un fichier de sauvegarde téléchargé précédemment, ou importe la sauvegarde de quelqu'un d'autre.",
+  "db.restore_file_label": "Fichier de sauvegarde (.sql)",
+  "db.restore_mode_append": "Compléter — ajouter uniquement les données manquantes, les données existantes restent intactes",
+  "db.restore_mode_replace": "Remplacer — tout vider d'abord, puis charger le fichier",
+  "db.restore_run": "Exécuter la restauration",
+  "db.restore_no_file": "Veuillez d'abord choisir un fichier.",
+  "db.restore_running": "Restauration en cours…",
+  "db.restore_row_ok": "Réussi",
+  "db.restore_row_failed": "Échoué",
+  "db.restore_row_skipped": "Ignoré (vide ou absent du fichier)",
+  "db.restore_confirm_replace": "Êtes-vous sûr ? Cela videra D'ABORD TOUTES les tables avant de charger le fichier. Cette action est irréversible.",
   "idx.overview_subtitle": "Aperçu de l'installation",
   "idx.quick_actions": "Actions rapides",
   "idx.run_optimizer_now": "Exécuter l'optimiseur maintenant",
