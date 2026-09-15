@@ -2,8 +2,20 @@
 # name:          connection.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/connection.py
-# part version:  p_v0.4
+# part version:  p_v0.5
 # altered:       2026-09-15
+#
+# p_v0.5: _warm_up_pool() toegevoegd — direct na het aanmaken van de pool
+# wordt elke connectie één keer gebruikt, zodat de mysql-connector
+# sql_mode-fetch-fout (p_v0.4) al bij het opstarten wegwerkt i.p.v. bij
+# de eerste echte collector-query. Puur voor een schoon log — de fout was
+# met p_v0.4 al onschadelijk, dit voorkomt alleen dat 'm nog zichtbaar is.
+#
+# p_v0.5: _warm_up_pool() added — right after the pool is created, every
+# connection is used once, so the mysql-connector sql_mode-fetch bug
+# (p_v0.4) is worked through during startup instead of on a collector's
+# first real query. Purely for a clean log — the error was already
+# harmless as of p_v0.4, this just stops it from being visible at all.
 #
 # p_v0.4: cursor() forceert nu een reconnect op de onderliggende connectie
 # als er tijdens het gebruik een fout optreedt, vóórdat de connectie
@@ -32,6 +44,8 @@ import zoneinfo
 
 logger = logging.getLogger(__name__)
 
+_POOL_SIZE = 10  # Increased from 5 / Verhoogd van 5
+
 
 class DatabaseConnection:
     def __init__(self, config: DatabaseConfig):
@@ -42,7 +56,7 @@ class DatabaseConnection:
 
         self._pool = pooling.MySQLConnectionPool(
             pool_name="energy_pool",
-            pool_size=10,           # Increased from 5 / Verhoogd van 5
+            pool_size=_POOL_SIZE,
             pool_reset_session=False,  # True would reset SET time_zone — keep False / True wist SET time_zone — False houden
             host=config.host,
             port=config.port,
@@ -58,6 +72,55 @@ class DatabaseConnection:
         logger.info(
             f"Database pool created — {config.host}:{config.port}/{config.name} "
             f"(timezone: {tz_name}, offset: {self._tz_offset})"
+        )
+        self._warm_up_pool()
+
+    def _warm_up_pool(self) -> None:
+        """
+        Warmt alle pool-connecties direct na aanmaak op door er een kleine
+        dict-parameter-query op te draaien. Voorkomt de eenmalige
+        mysql-connector sql_mode-fetch-fout (zie cursor() p_v0.4) bij de
+        allereerste echte query van een collector na opstarten — dat
+        foutje was al onschadelijk (afgevangen door run_safe()), maar
+        rommel in het log verstoort het zoeken naar echte problemen.
+
+        Sequentieel lenen-en-teruggeven, precies _POOL_SIZE keer: de pool
+        geeft zijn vooraf aangemaakte connecties in FIFO-volgorde uit, dus
+        dit raakt elke onderliggende connectie exact één keer, zonder dat
+        er iets over hun interne volgorde aangenomen hoeft te worden
+        anders dan "eerst geleend, eerst teruggegeven, eerst weer
+        uitgegeven".
+
+        Warms up all pool connections right after creation by running a
+        small dict-parameter query on each. Prevents the one-time
+        mysql-connector sql_mode-fetch bug (see cursor() p_v0.4) on a
+        collector's very first real query after startup — that glitch was
+        already harmless (caught by run_safe()), but log clutter makes it
+        harder to spot real problems.
+
+        Sequential borrow-and-return, exactly _POOL_SIZE times: the pool
+        hands out its pre-created connections in FIFO order, so this
+        touches every underlying connection exactly once, without
+        assuming anything about their internal order beyond "first
+        borrowed, first returned, first handed out again".
+        """
+        warmed = 0
+        for _ in range(_POOL_SIZE):
+            try:
+                with self.cursor() as cur:
+                    cur.execute("SELECT %(one)s AS one", {"one": 1})
+                    cur.fetchone()
+                warmed += 1
+            except Exception:
+                logger.warning(
+                    "Kon een pool-connectie niet opwarmen (niet kritiek, "
+                    "wordt later alsnog automatisch hersteld) / "
+                    "Could not warm up a pool connection (non-critical, "
+                    "will still self-heal automatically later)"
+                )
+        logger.info(
+            f"Pool opgewarmd — {warmed}/{_POOL_SIZE} connecties klaar / "
+            f"pool warmed up — {warmed}/{_POOL_SIZE} connections ready"
         )
 
     @staticmethod

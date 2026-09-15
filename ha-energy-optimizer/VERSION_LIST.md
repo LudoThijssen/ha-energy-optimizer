@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v6.7
+# part version:  p_v6.8
 # altered:       2026-09-15
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v6.7 | 2026-09-15 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v6.8 | 2026-09-15 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -19,7 +19,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.5 | 2026-07-30 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.4 | 2026-07-28 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v6.7 | 2026-09-15 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v6.8 | 2026-09-15 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
@@ -40,7 +40,7 @@
 # ha-energy-optimizer/database
 | __init__.py | /ha-energy-optimizer/database/__init__.py | p_v0.3 | 2026-06-21 |
 | backup.py | /ha-energy-optimizer/database/backup.py | p_v0.1 | 2026-09-14 |
-| connection.py | /ha-energy-optimizer/database/connection.py | p_v0.4 | 2026-09-15 |
+| connection.py | /ha-energy-optimizer/database/connection.py | p_v0.5 | 2026-09-15 |
 | models.py | /ha-energy-optimizer/database/models.py | p_v0.7 | 2026-08-11 |
 | repository.py | /ha-energy-optimizer/database/repository.py | p_v0.10 | 2026-08-12 |
 | schema.sql | /ha-energy-optimizer/database/schema.sql | p_v1.1 | 2026-09-13 |
