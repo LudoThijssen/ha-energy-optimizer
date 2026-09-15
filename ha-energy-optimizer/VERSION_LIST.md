@@ -2,14 +2,14 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v6.0
-# altered:       2026-09-13
+# part version:  p_v6.1
+# altered:       2026-09-15
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v6.0 | 2026-09-13 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v6.1 | 2026-09-15 |
 | README.md | /README.md | v0.2.13-alpha | 2026-06-26 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
 # ha-energy-optimizer
@@ -19,7 +19,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.5 | 2026-07-30 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.4 | 2026-07-28 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v6.0 | 2026-09-13 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v6.1 | 2026-09-15 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |
@@ -39,42 +39,21 @@
 | validators.py | /ha-energy-optimizer/config/validators.py | p_v0.3 | 2026-06-21 |
 # ha-energy-optimizer/database
 | __init__.py | /ha-energy-optimizer/database/__init__.py | p_v0.3 | 2026-06-21 |
+| backup.py | /ha-energy-optimizer/database/backup.py | p_v0.1 | 2026-09-14 |
 | connection.py | /ha-energy-optimizer/database/connection.py | p_v0.3 | 2026-06-21 |
 | models.py | /ha-energy-optimizer/database/models.py | p_v0.7 | 2026-08-11 |
 | repository.py | /ha-energy-optimizer/database/repository.py | p_v0.10 | 2026-08-12 |
 | setup.py | /ha-energy-optimizer/database/setup.py | p_v0.13 | 2026-09-13 |
 # ha-energy-optimizer/database/migrations
-| 000_consolidated.sql | /ha-energy-optimizer/database/migrations/000_consolidated.sql | p_v0.6 | 2026-09-09 |
-| 001_initial.sql | /ha-energy-optimizer/database/migrations/001_initial.sql | p_v0.4 | 2026-07-16 |
-| 002_add_indexes.sql | /ha-energy-optimizer/database/migrations/002_add_indexes.sql | p_v0.3 | 2026-06-21 |
-| 003_strategy_fields.sql | /ha-energy-optimizer/database/migrations/003_strategy_fields.sql | p_v0.4 | 2026-07-16 |
-| 004_extended_strategy_fields.sql | /ha-energy-optimizer/database/migrations/004_extended_strategy_fields.sql | p_v0.3 | 2026-06-21 |
-| 005_profile_tables.sql | /ha-energy-optimizer/database/migrations/005_profile_tables.sql | p_v0.3 | 2026-06-21 |
-| 006_solar_charge_threshold.sql | /ha-energy-optimizer/database/migrations/006_solar_charge_threshold.sql | p_v0.3 | 2026-06-21 |
-| 008_dashboard_colors.sql | /ha-energy-optimizer/database/migrations/008_dashboard_colors.sql | p_v0.3 | 2026-06-21 |
-| 009_expected_cost.sql | /ha-energy-optimizer/database/migrations/009_expected_cost.sql | p_v0.3 | 2026-06-21 |
-| 010_energy_prices_config.sql | /ha-energy-optimizer/database/migrations/010_energy_prices_config.sql | p_v0.3 | 2026-06-21 |
-| 011_solar_learning.sql | /ha-energy-optimizer/database/migrations/011_solar_learning.sql | p_v0.4 | 2026-06-26 |
-| 012_consumption_learning.sql | /ha-energy-optimizer/database/migrations/012_consumption_learning.sql | p_v0.4 | 2026-06-26 |
-| 013_translation_strings.sql | /ha-energy-optimizer/database/migrations/013_translation_strings.sql | p_v0.4 | 2026-07-01 |
-| 014_reason_key.sql | /ha-energy-optimizer/database/migrations/014_reason_key.sql | p_v0.4 | 2026-07-01 |
-| 015_quarter_hour_slots.sql | /ha-energy-optimizer/database/migrations/015_quarter_hour_slots.sql | p_v0.1 | 2026-07-22 |
-| 016_grid_solar_charge_split.sql | /ha-energy-optimizer/database/migrations/016_grid_solar_charge_split.sql | p_v0.1 | 2026-07-24 |
-| 017_drop_price_profile.sql | /ha-energy-optimizer/database/migrations/017_drop_price_profile.sql | p_v0.1 | 2026-07-25 |
-| 018_price_sell_column.sql | /ha-energy-optimizer/database/migrations/018_price_sell_column.sql | p_v0.1 | 2026-07-26 |
-| 019_offgrid_dynamic_reserve.sql | /ha-energy-optimizer/database/migrations/019_offgrid_dynamic_reserve.sql | p_v0.1 | 2026-07-30 |
-| 020_offgrid_detection.sql | /ha-energy-optimizer/database/migrations/020_offgrid_detection.sql | p_v0.1 | 2026-07-30 |
-| 021_grid_consume_field.sql | /ha-energy-optimizer/database/migrations/021_grid_consume_field.sql | p_v0.1 | 2026-08-11 |
-| 022_solar_reserve_strategy.sql | /ha-energy-optimizer/database/migrations/022_solar_reserve_strategy.sql | p_v0.2 | 2026-09-13 |
-| README.md | /ha-energy-optimizer/database/migrations/README.md | p_v2.0 | 2026-07-16 |
+| schema.sql | /ha-energy-optimizer/database/migrations/schema.sql | p_v1.1 | 2026-09-13 |
 # ha-energy-optimizer/gui
 | __init__.py | /ha-energy-optimizer/gui/__init__.py | p_v0.3 | 2026-06-21 |
-| app.py | /ha-energy-optimizer/gui/app.py | p_v0.28 | 2026-09-13 |
+| app.py | /ha-energy-optimizer/gui/app.py | p_v0.29 | 2026-09-14 |
 # ha-energy-optimizer/gui/templates
 | base.html | /ha-energy-optimizer/gui/templates/base.html | p_v0.6 | 2026-09-09 |
 | colors.html | /ha-energy-optimizer/gui/templates/colors.html | p_v0.8 | 2026-09-09 |
 | dashboard.html | /ha-energy-optimizer/gui/templates/dashboard.html | p_v1.8 | 2026-09-09 |
-| database.html | /ha-energy-optimizer/gui/templates/database.html | p_v0.5 | 2026-09-09 |
+| database.html | /ha-energy-optimizer/gui/templates/database.html | p_v0.6 | 2026-09-14 |
 | energy_costs.html | /ha-energy-optimizer/gui/templates/energy_costs.html | p_v0.5 | 2026-07-24 |
 | entities.html | /ha-energy-optimizer/gui/templates/entities.html | p_v0.6 | 2026-09-09 |
 | history.html | /ha-energy-optimizer/gui/templates/history.html | p_v1.0 | 2026-09-09 |
@@ -121,10 +100,10 @@
 | scheduler.py | /ha-energy-optimizer/scheduler/scheduler.py | p_v0.4 | 2026-07-28 |
 # ha-energy-optimizer/translations
 | _context.json | /ha-energy-optimizer/translations/_context.json | p_v0.4 | 2026-09-09 |
-| de.json | /ha-energy-optimizer/translations/de.json | p_v0.6 | 2026-09-13 |
-| en.json | /ha-energy-optimizer/translations/en.json | p_v0.6 | 2026-09-13 |
-| es.json | /ha-energy-optimizer/translations/es.json | p_v0.6 | 2026-09-13 |
-| fr.json | /ha-energy-optimizer/translations/fr.json | p_v0.6 | 2026-09-13 |
-| nl.json | /ha-energy-optimizer/translations/nl.json | p_v0.6 | 2026-09-13 |
+| de.json | /ha-energy-optimizer/translations/de.json | p_v0.7 | 2026-09-14 |
+| en.json | /ha-energy-optimizer/translations/en.json | p_v0.7 | 2026-09-14 |
+| es.json | /ha-energy-optimizer/translations/es.json | p_v0.7 | 2026-09-14 |
+| fr.json | /ha-energy-optimizer/translations/fr.json | p_v0.7 | 2026-09-14 |
+| nl.json | /ha-energy-optimizer/translations/nl.json | p_v0.7 | 2026-09-14 |
 | seed_translations.py | /ha-energy-optimizer/translations/seed_translations.py | p_v0.4 | 2026-07-01 |
 | translator.py | /ha-energy-optimizer/translations/translator.py | p_v0.7 | 2026-09-09 |
