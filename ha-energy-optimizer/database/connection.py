@@ -2,8 +2,19 @@
 # name:          connection.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/connection.py
-# part version:  p_v0.5
+# part version:  p_v0.6
 # altered:       2026-09-15
+#
+# p_v0.6: cursor() gebruikt nu _acquire_ready_cursor() — een retry die
+# ook het aanmaken van de cursor zelf beschermt (niet alleen ping()),
+# zie de docstring daar. Reageert op een restfout na p_v0.4/p_v0.5:
+# "MySQL Connection not available" die enkele keren nog opdook ondanks
+# geslaagde ping().
+#
+# p_v0.6: cursor() now uses _acquire_ready_cursor() — a retry that also
+# protects cursor creation itself (not just ping()), see its docstring.
+# Addresses a residual issue after p_v0.4/p_v0.5: "MySQL Connection not
+# available" still occasionally appearing despite a successful ping().
 #
 # p_v0.5: _warm_up_pool() toegevoegd — direct na het aanmaken van de pool
 # wordt elke connectie één keer gebruikt, zodat de mysql-connector
@@ -150,6 +161,59 @@ class DatabaseConnection:
             )
             return "+00:00"
 
+    def _acquire_ready_cursor(self, dictionary: bool, attempts: int = 2):
+        """
+        Leent een connectie uit de pool en maakt er een werkende cursor op
+        aan, met tot _attempts_ pogingen op een verse connectie als het
+        niet meteen lukt.
+
+        p_v0.6: uitgebreid — ping() kan soms slagen terwijl de connectie
+        vlak daarna alsnog "MySQL Connection not available" geeft bij het
+        aanmaken van de cursor (gezien bij ConsumptionLearner.predict(),
+        na de p_v0.4/p_v0.5-fixes al zeldzaam geworden, hier verder
+        dichtgetimmerd). Bij zo'n mislukking wordt de connectie
+        weggegooid en een geheel verse geprobeerd, i.p.v. de fout meteen
+        aan de aanroeper door te geven.
+
+        Borrows a connection from the pool and creates a working cursor
+        on it, with up to _attempts_ tries on a fresh connection if it
+        doesn't work right away.
+
+        p_v0.6: extended — ping() can sometimes succeed while the
+        connection still reports "MySQL Connection not available" right
+        after when creating the cursor (seen with
+        ConsumptionLearner.predict(), already rare after the p_v0.4/p_v0.5
+        fixes, further hardened here). On such a failure the connection is
+        discarded and a completely fresh one is tried, instead of
+        immediately surfacing the error to the caller.
+        """
+        last_err = None
+        for attempt in range(1, attempts + 1):
+            try:
+                conn = self._pool.get_connection()
+            except mysql.connector.errors.PoolError:
+                import time
+                time.sleep(0.5)
+                conn = self._pool.get_connection()
+
+            try:
+                conn.ping(reconnect=True, attempts=2, delay=0.5)
+                cur = conn.cursor(dictionary=dictionary)
+                return conn, cur
+            except mysql.connector.errors.Error as e:
+                last_err = e
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                if attempt < attempts:
+                    logger.warning(
+                        f"Connectie niet bruikbaar (poging {attempt}/{attempts}), "
+                        f"probeer een verse / connection not usable (attempt "
+                        f"{attempt}/{attempts}), trying a fresh one: {e}"
+                    )
+        raise last_err
+
     @contextmanager
     def cursor(self, dictionary=True):
         """
@@ -193,28 +257,7 @@ class DatabaseConnection:
         cur  = None
         had_error = False
         try:
-            try:
-                conn = self._pool.get_connection()
-            except mysql.connector.errors.PoolError:
-                import time
-                time.sleep(0.5)
-                conn = self._pool.get_connection()
-
-            # Detect and recover from stale connections
-            # Verouderde verbindingen detecteren en herstellen
-            try:
-                conn.ping(reconnect=True, attempts=2, delay=0.5)
-            except mysql.connector.errors.Error:
-                # Connection beyond recovery — release and get a fresh one
-                # Verbinding niet meer te herstellen — vrijgeven en nieuwe ophalen
-                try:
-                    conn.close()
-                except Exception:
-                    pass
-                conn = self._pool.get_connection()
-                conn.ping(reconnect=True, attempts=2, delay=0.5)
-
-            cur = conn.cursor(dictionary=dictionary)
+            conn, cur = self._acquire_ready_cursor(dictionary=dictionary)
             yield cur
         except Exception:
             had_error = True
