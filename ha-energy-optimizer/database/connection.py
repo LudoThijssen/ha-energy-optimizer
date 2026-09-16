@@ -2,8 +2,23 @@
 # name:          connection.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/connection.py
-# part version:  p_v0.6
-# altered:       2026-09-15
+# part version:  p_v0.7
+# altered:       2026-09-16
+#
+# p_v0.7: het log-niveau van het zelfherstel-bericht in
+# _acquire_ready_cursor() verlaagd van WARNING naar INFO. Dit is geen
+# onopgeloste fout — de eerste poging faalt af en toe (MariaDB
+# wait_timeout-race), de tweede poging herstelt het zonder dat de
+# aanroeper er iets van merkt. Op WARNING-niveau zag dit eruit als een
+# nog openstaand probleem terwijl het zelfherstel juist naar behoren
+# werkte.
+#
+# p_v0.7: lowered the self-healing message in _acquire_ready_cursor()
+# from WARNING to INFO. This isn't an unresolved error — the first
+# attempt occasionally fails (MariaDB wait_timeout race), the second
+# attempt recovers without the caller noticing. At WARNING level this
+# looked like an outstanding problem when the self-healing was actually
+# working as intended.
 #
 # p_v0.6: cursor() gebruikt nu _acquire_ready_cursor() — een retry die
 # ook het aanmaken van de cursor zelf beschermt (niet alleen ping()),
@@ -207,7 +222,7 @@ class DatabaseConnection:
                 except Exception:
                     pass
                 if attempt < attempts:
-                    logger.warning(
+                    logger.info(
                         f"Connectie niet bruikbaar (poging {attempt}/{attempts}), "
                         f"probeer een verse / connection not usable (attempt "
                         f"{attempt}/{attempts}), trying a fresh one: {e}"
