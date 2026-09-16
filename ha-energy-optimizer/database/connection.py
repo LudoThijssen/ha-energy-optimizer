@@ -2,8 +2,22 @@
 # name:          connection.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/connection.py
-# part version:  p_v0.7
+# part version:  p_v0.8
 # altered:       2026-09-16
+#
+# p_v0.8: 0,3s wachttijd toegevoegd vóór de tweede poging in
+# _acquire_ready_cursor(), consistent met de bestaande 0,5s-pauze bij een
+# PoolError elders in dit bestand. Geen garantie dat dit de onderliggende
+# MariaDB-wait_timeout-race voorkomt (een verse connectie lost dat al op
+# zonder wachttijd nodig te hebben), maar een korte adempauze voor een
+# tweede poging is sowieso goede gewoonte i.p.v. meteen opnieuw te slaan.
+#
+# p_v0.8: added a 0.3s delay before the second attempt in
+# _acquire_ready_cursor(), consistent with the existing 0.5s pause on a
+# PoolError elsewhere in this file. No guarantee this prevents the
+# underlying MariaDB wait_timeout race (a fresh connection already
+# resolves that without needing a delay), but a short breather before a
+# second attempt is good practice regardless of immediately retrying.
 #
 # p_v0.7: het log-niveau van het zelfherstel-bericht in
 # _acquire_ready_cursor() verlaagd van WARNING naar INFO. Dit is geen
@@ -227,6 +241,8 @@ class DatabaseConnection:
                         f"probeer een verse / connection not usable (attempt "
                         f"{attempt}/{attempts}), trying a fresh one: {e}"
                     )
+                    import time
+                    time.sleep(0.3)
         raise last_err
 
     @contextmanager
