@@ -1,22 +1,25 @@
 # HA Energy Optimizer
-# name:          README.md
-# part of:       ha-energy-optimizer
-# location:      /README.md
-# version:       v0.2.13-alpha
-# altered:       2026-09-16
-#
-# p_v0.2.13-alpha (deze wijziging): ingekort tot wat nodig is vóór/tijdens
-# installatie (wat de app doet, vereisten, installatie-instructies).
-# Alles over instellingen, mogelijkheden en probleemoplossing verhuisd
-# naar USER_MANUAL.md — dat bestaat nu ook, was eerder een lege plek in
-# de documentatie.
-#
-# p_v0.2.13-alpha (this change): trimmed down to what's needed before/
-# during installation (what the app does, requirements, installation
-# instructions). Everything about settings, features and troubleshooting
-# moved to USER_MANUAL.md — which now exists, previously a gap in the
-# documentation.
-#
+
+<!--
+name:          README.md
+part of:       ha-energy-optimizer
+location:      /README.md
+version:       v0.2.13-alpha
+altered:       2026-09-16
+
+p_v0.2.13-alpha (deze wijziging): ingekort tot wat nodig is vóór/tijdens
+installatie (wat de app doet, vereisten, installatie-instructies).
+Alles over instellingen, mogelijkheden en probleemoplossing verhuisd
+naar USER_MANUAL.md — dat bestaat nu ook, was eerder een lege plek in
+de documentatie.
+
+p_v0.2.13-alpha (this change): trimmed down to what's needed before/
+during installation (what the app does, requirements, installation
+instructions). Everything about settings, features and troubleshooting
+moved to USER_MANUAL.md — which now exists, previously a gap in the
+documentation.
+-->
+
 > ⚠️ **Alpha version / Alfa versie — v0.2.13-alpha** 
 >
 > This add-on is in early development and not yet ready for production use.

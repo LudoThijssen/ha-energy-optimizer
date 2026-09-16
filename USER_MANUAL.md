@@ -1,27 +1,30 @@
 # HA Energy Optimizer — User Manual / Gebruikershandleiding
-# name:          USER_MANUAL.md
-# part of:       ha-energy-optimizer
-# location:      /USER_MANUAL.md
-# part version:  p_v0.1
-# altered:       2026-09-16
-#
-# p_v0.1: NIEUW. Vult een gat in de documentatie — README.md verwijst hier
-# al naar (sinds dezelfde wijziging), maar het bestand bestond nog niet.
-# Inhoud gebaseerd op wat deze sessie met zekerheid is vastgesteld
-# (schema.sql-kolomcommentaren, zelfgebouwde back-up/restore- en
-# vertaalfunctionaliteit, log-berichten geïntroduceerd deze sessie,
-# base.html voor de exacte navigatiestructuur). Instellingenpagina's
-# waarvan de sjabloon-broncode niet is gezien, zijn expliciet als
-# "nog aan te vullen" gemarkeerd i.p.v. dat er details verzonnen zijn.
-#
-# p_v0.1: NEW. Fills a documentation gap — README.md already points here
-# (as of the same change), but the file didn't exist yet. Content based
-# on what was established with certainty this session (schema.sql column
-# comments, self-built backup/restore and translation functionality, log
-# messages introduced this session, base.html for the exact navigation
-# structure). Settings pages whose template source wasn't seen are
-# explicitly marked "still to be completed" instead of inventing detail.
-#
+
+<!--
+name:          USER_MANUAL.md
+part of:       ha-energy-optimizer
+location:      /USER_MANUAL.md
+part version:  p_v0.1
+altered:       2026-09-16
+
+p_v0.1: NIEUW. Vult een gat in de documentatie — README.md verwijst hier
+al naar (sinds dezelfde wijziging), maar het bestand bestond nog niet.
+Inhoud gebaseerd op wat deze sessie met zekerheid is vastgesteld
+(schema.sql-kolomcommentaren, zelfgebouwde back-up/restore- en
+vertaalfunctionaliteit, log-berichten geïntroduceerd deze sessie,
+base.html voor de exacte navigatiestructuur). Instellingenpagina's
+waarvan de sjabloon-broncode niet is gezien, zijn expliciet als
+"nog aan te vullen" gemarkeerd i.p.v. dat er details verzonnen zijn.
+
+p_v0.1: NEW. Fills a documentation gap — README.md already points here
+(as of the same change), but the file didn't exist yet. Content based
+on what was established with certainty this session (schema.sql column
+comments, self-built backup/restore and translation functionality, log
+messages introduced this session, base.html for the exact navigation
+structure). Settings pages whose template source wasn't seen are
+explicitly marked "still to be completed" instead of inventing detail.
+-->
+
 
 > ⚠️ **Alpha version / Alfa versie** — zie [README.md](README.md) voor de
 > volledige alfa-kanttekening. Test grondig voordat u hierop vertrouwt.
