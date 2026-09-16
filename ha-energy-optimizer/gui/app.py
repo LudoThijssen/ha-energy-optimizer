@@ -2,10 +2,20 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.29
-# altered:       2026-09-14
+# part version:  p_v0.30
+# altered:       2026-09-16
 #
-# p_v0.29: Back-up/restore toegevoegd (/database/backup, /database/
+# p_v0.30: _get_db() is nu een singleton — zie de docstring daar. Root
+# cause van incidentele "MySQL Connection not available"-fouten die
+# database/connection.py p_v0.4-0.6 al opving maar niet wegnam: elke
+# GUI-aanvraag bouwde een volledig nieuwe pool van 10 connecties op.
+#
+# p_v0.30: _get_db() is now a singleton — see its docstring. Root cause
+# of the occasional "MySQL Connection not available" errors that
+# database/connection.py p_v0.4-0.6 already caught but didn't eliminate:
+# every GUI request built a brand new pool of 10 connections.
+#
+# p_v0.29: Backup/restore toegevoegd (/database/backup, /database/
 # restore) — zie database/backup.py voor het ontwerp (altijd-veilig
 # aanvul-script, "vervangen" alleen als aparte stap in de app).
 #
@@ -229,12 +239,58 @@ def _get_tr():
     return _FallbackTr()
 
 
+_db_singleton: "DatabaseConnection | None" = None
+_db_singleton_lock = threading.Lock()
+
+
 def _get_db():
-    try:
-        config = AppConfig.load()
-        return DatabaseConnection(config.database)
-    except Exception:
-        return None
+    """
+    p_v0.30: nu een singleton i.p.v. bij elke aanroep een compleet nieuwe
+    DatabaseConnection (en dus een nieuwe pool van 10 connecties) op te
+    bouwen. _get_db() wordt op 24 plekken in deze route-handlers
+    aangeroepen — elke GUI-paginaklik zette dus 10 nieuwe MariaDB-
+    connecties op, naast de 10 die de hoofd-asyncio-lus al permanent
+    openhoudt. Dat verklaarde de incidentele "MySQL Connection not
+    available"-momenten bij gelijktijdig GUI-gebruik en een lopende
+    optimizer-cyclus (zie database/connection.py p_v0.4-0.6, die het
+    symptoom al opving maar niet de onderliggende connectiedruk).
+    Bij een mislukte eerste poging wordt NIETS gecachet, zodat een
+    volgende aanroep het gewoon opnieuw probeert (bv. als de database bij
+    het opstarten van de GUI nog niet bereikbaar was).
+    LET OP: instellingen op de Database-pagina (host/poort/gebruiker/
+    wachtwoord) worden nu pas na een herstart van de add-on opgepikt door
+    de GUI, i.p.v. bij de eerstvolgende paginaklik — consistent met hoe
+    de hoofd-asyncio-lus dit al deed (die laadt config ook maar één keer,
+    bij opstarten).
+
+    p_v0.30: now a singleton instead of building a completely new
+    DatabaseConnection (and thus a new pool of 10 connections) on every
+    call. _get_db() is called in 24 places across these route handlers —
+    so every GUI page click was opening 10 new MariaDB connections, on
+    top of the 10 the main asyncio loop already keeps open permanently.
+    That explained the occasional "MySQL Connection not available"
+    moments during simultaneous GUI use and a running optimizer cycle
+    (see database/connection.py p_v0.4-0.6, which already caught the
+    symptom but not the underlying connection pressure).
+    On a failed first attempt, NOTHING is cached, so a later call simply
+    tries again (e.g. if the database wasn't reachable yet when the GUI
+    started).
+    NOTE: settings on the Database page (host/port/user/password) are now
+    only picked up by the GUI after an add-on restart, instead of on the
+    next page click — consistent with how the main asyncio loop already
+    behaved (it also only loads config once, at startup).
+    """
+    global _db_singleton
+    if _db_singleton is not None:
+        return _db_singleton
+    with _db_singleton_lock:
+        if _db_singleton is None:
+            try:
+                config = AppConfig.load()
+                _db_singleton = DatabaseConnection(config.database)
+            except Exception:
+                return None
+    return _db_singleton
 
 
 def _load_internal_sensors() -> tuple[list, bool]:
