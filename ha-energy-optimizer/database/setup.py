@@ -2,8 +2,20 @@
 # name:          setup.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/setup.py
-# part version:  p_v0.14
-# altered:       2026-09-13
+# part version:  p_v0.15
+# altered:       2026-09-17
+#
+# p_v0.15: run_migrations() gebruikt nu cur.execute(..., multi=True) met
+# expliciete iteratie over de deelresultaten, i.p.v. een kale execute()
+# op de volledige scripttekst. Zie de docstring bij run_migrations()
+# voor de aanleiding (race op een traag testsysteem: "succesvol
+# toegepast" gelogd terwijl een tabel nog niet echt bestond).
+#
+# p_v0.15: run_migrations() now uses cur.execute(..., multi=True) with
+# explicit iteration over the partial results, instead of a plain
+# execute() on the full script text. See run_migrations()'s docstring
+# for the background (a race on a slow test system: "applied
+# successfully" logged while a table didn't actually exist yet).
 #
 # p_v0.14: GROTE VEREENVOUDIGING — het hele stelsel van genummerde
 # migraties (ALL_VERSIONS, _apply(), _is_fresh_install(), de _migrations-
@@ -79,15 +91,42 @@ def run_migrations(db: DatabaseConnection) -> None:
     eindstaat van het database-schema beschrijft. Veilig om bij elke
     opstart te draaien, op elke installatie (vers of bestaand).
 
+    p_v0.15: cur.execute(..., multi=True) i.p.v. een kale execute() op de
+    volledige (240-statements-)tekst. Zonder multi=True is er geen harde
+    garantie dat de driver écht op voltooiing van elk afzonderlijk
+    statement wacht voordat execute() teruggeeft — op een trager
+    testsysteem gaf dit één keer een race: "Schema succesvol toegepast"
+    verscheen in het log, maar de eerstvolgende query
+    (translation_strings vullen) faalde met "Table ... doesn't exist"
+    omdat de CREATE TABLE ervoor kennelijk nog niet volledig was
+    doorgevoerd. Bij een tweede, losse pogingen (herstart) ging het
+    zonder problemen. multi=True + expliciet door de deelresultaten
+    itereren dwingt af dat elk statement daadwerkelijk voltooid is
+    voordat de functie verdergaat.
+
     Runs schema.sql — a single idempotent file describing the desired
     end state of the database schema. Safe to run on every startup, on
     any installation (fresh or existing).
+
+    p_v0.15: cur.execute(..., multi=True) instead of a plain execute() on
+    the full (240-statement) text. Without multi=True there's no hard
+    guarantee the driver actually waits for each individual statement to
+    finish before execute() returns — on a slower test system this once
+    produced a race: "Schema applied successfully" appeared in the log,
+    but the very next query (populating translation_strings) failed with
+    "Table ... doesn't exist" because the CREATE TABLE before it hadn't
+    apparently fully landed yet. A second, separate attempt (restart)
+    worked fine. multi=True plus explicitly iterating the partial results
+    forces each statement to actually complete before the function
+    continues.
     """
     logger.info(f"Schema wordt toegepast vanuit {SCHEMA_FILE.name} "
                 f"/ applying schema from {SCHEMA_FILE.name}")
     try:
+        schema_sql = SCHEMA_FILE.read_text()
         with db.cursor() as cur:
-            cur.execute(SCHEMA_FILE.read_text())
+            for _ in cur.execute(schema_sql, multi=True):
+                pass  # doorlopen dwingt voltooiing van elk statement af / iterating forces each statement to complete
         logger.info("Schema succesvol toegepast / schema applied successfully")
     except Exception:
         logger.exception("Toepassen van schema.sql is MISLUKT "

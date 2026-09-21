@@ -1,8 +1,29 @@
 # name:          strategy.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/optimizer/strategy.py
-# part version:  p_v0.5
-# altered:       2026-07-25
+# part version:  p_v0.6
+# altered:       2026-09-17
+#
+# p_v0.6: Inspringfout in build_strategy_from_db() gerepareerd. De check
+# "if prov and prov.get('driver_config'):" bestond al, maar de regels
+# erna (_drv_cfg = prov["driver_config"] e.v.) stonden er niet onder
+# ingesprongen — ze draaiden dus altijd, ook als er geen actieve
+# provider geconfigureerd was. Op een verse installatie zonder provider
+# gaf dit een kale TypeError ('NoneType' object is not subscriptable)
+# die de hele rolling-horizon-run liet crashen. Nu: bij geen (of
+# onvolledige) providerconfiguratie blijft de al bestaande standaard
+# vat_pct (21.0) gewoon staan, met een duidelijke waarschuwing in het
+# log i.p.v. een crash.
+#
+# p_v0.6: Fixed an indentation bug in build_strategy_from_db(). The check
+# "if prov and prov.get('driver_config'):" already existed, but the
+# lines after it (_drv_cfg = prov["driver_config"] etc.) weren't indented
+# under it — so they always ran, even with no active provider
+# configured. On a fresh installation without a provider this raised a
+# bare TypeError ('NoneType' object is not subscriptable) that crashed
+# the entire rolling-horizon run. Now: with no (or incomplete) provider
+# configuration, the already-existing default vat_pct (21.0) is simply
+# kept, with a clear warning in the log instead of a crash.
 #
 # Decision rules for home battery optimization with a dynamic electricity contract.
 # Beslisregels voor thuisbatterij-optimalisatie met een dynamisch stroomcontract.
@@ -863,13 +884,22 @@ def build_strategy_from_db(db) -> tuple["Strategy", "DayPriceStats | None", "Sol
     price_incl_tax = bool(cfg.get("price_incl_tax", True))
     if prov and prov.get("driver_config"):
         import json as _json
-    _drv_cfg = prov["driver_config"]
-    if isinstance(_drv_cfg, str):
-        try:
-            _drv_cfg = _json.loads(_drv_cfg)
-        except Exception:
-            _drv_cfg = {}
-    vat_pct = Decimal(str(_drv_cfg.get("vat_pct", 21.0)))
+        _drv_cfg = prov["driver_config"]
+        if isinstance(_drv_cfg, str):
+            try:
+                _drv_cfg = _json.loads(_drv_cfg)
+            except Exception:
+                _drv_cfg = {}
+        vat_pct = Decimal(str(_drv_cfg.get("vat_pct", 21.0)))
+    else:
+        logger.warning(
+            "Geen actieve elektriciteitsprovider geconfigureerd op de "
+            "Provider-pagina — standaard BTW-percentage (21%) wordt "
+            "gebruikt totdat dit is ingesteld. / "
+            "No active electricity provider configured on the Provider "
+            "page — using the default VAT percentage (21%) until this "
+            "is set."
+        )
 
     # Depreciation per kWh / Afschrijving per kWh
     dep_per_kwh = Decimal("0")
