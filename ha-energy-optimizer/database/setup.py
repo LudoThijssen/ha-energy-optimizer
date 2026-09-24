@@ -2,8 +2,21 @@
 # name:          setup.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/database/setup.py
-# part version:  p_v0.15
-# altered:       2026-09-17
+# part version:  p_v0.16
+# altered:       2026-09-22
+#
+# p_v0.16: p_v0.15's execute(..., multi=True) vervangen door een eigen
+# statement-splitter (_split_sql_statements()) + losse execute()-
+# aanroepen per statement — zie de docstring bij run_migrations() voor
+# de aanleiding (multi=True crashte op het testsysteem: driverversie
+# ondersteunde die parameter niet).
+#
+# p_v0.16: replaced p_v0.15's execute(..., multi=True) with a custom
+# statement splitter (_split_sql_statements()) + separate execute()
+# calls per statement — see run_migrations()'s docstring for the
+# background (multi=True crashed on the test system: the driver version
+# didn't support that parameter). Also added a defensive skip for any
+# statement that turns out empty after stripping -- comment lines.
 #
 # p_v0.15: run_migrations() gebruikt nu cur.execute(..., multi=True) met
 # expliciete iteratie over de deelresultaten, i.p.v. een kale execute()
@@ -77,6 +90,7 @@
 # assume this won't recur.
 #
 import logging
+import re
 from pathlib import Path
 from .connection import DatabaseConnection
 
@@ -85,49 +99,117 @@ logger = logging.getLogger(__name__)
 SCHEMA_FILE = Path(__file__).parent / "schema.sql"
 
 
+def _split_sql_statements(sql_text: str) -> list[str]:
+    """
+    Splitst een SQL-scripttekst in losse statements, op top-level
+    puntkomma's (buiten quoted strings). Nodig omdat cur.execute()
+    slechts één statement per aanroep verwerkt — een kale execute() op
+    de volledige tekst gaf geen garantie dat elk statement daadwerkelijk
+    voltooid was voordat de aanroep terugkeerde (zie p_v0.16-changelog).
+    De eerder geprobeerde execute(..., multi=True) bleek niet
+    driverversie-onafhankelijk (TypeError: unexpected keyword argument
+    'multi' op de daadwerkelijk geïnstalleerde mysql-connector-python-
+    versie) — deze aanpak gebruikt alleen de altijd-beschikbare kale
+    execute() per statement.
+
+    Splits a SQL script text into individual statements, on top-level
+    semicolons (outside quoted strings). Needed because cur.execute()
+    only handles one statement per call — a plain execute() on the full
+    text gave no guarantee each statement had actually completed before
+    the call returned (see the p_v0.16 changelog). The previously tried
+    execute(..., multi=True) turned out not to be driver-version-
+    independent (TypeError: unexpected keyword argument 'multi' on the
+    actually installed mysql-connector-python version) — this approach
+    only uses the always-available plain execute() per statement.
+    """
+    statements = []
+    current = []
+    in_string = False
+    i = 0
+    n = len(sql_text)
+    while i < n:
+        ch = sql_text[i]
+        if in_string:
+            current.append(ch)
+            if ch == "'":
+                if i + 1 < n and sql_text[i + 1] == "'":
+                    current.append(sql_text[i + 1])
+                    i += 1
+                else:
+                    in_string = False
+            i += 1
+            continue
+        if ch == "'":
+            in_string = True
+            current.append(ch)
+            i += 1
+            continue
+        if ch == ";":
+            stmt = "".join(current).strip()
+            if stmt:
+                statements.append(stmt)
+            current = []
+            i += 1
+            continue
+        current.append(ch)
+        i += 1
+    tail = "".join(current).strip()
+    if tail:
+        statements.append(tail)
+    return statements
+
+
 def run_migrations(db: DatabaseConnection) -> None:
     """
     Voert schema.sql uit — één idempotent bestand dat de gewenste
     eindstaat van het database-schema beschrijft. Veilig om bij elke
     opstart te draaien, op elke installatie (vers of bestaand).
 
-    p_v0.15: cur.execute(..., multi=True) i.p.v. een kale execute() op de
-    volledige (240-statements-)tekst. Zonder multi=True is er geen harde
-    garantie dat de driver écht op voltooiing van elk afzonderlijk
-    statement wacht voordat execute() teruggeeft — op een trager
-    testsysteem gaf dit één keer een race: "Schema succesvol toegepast"
-    verscheen in het log, maar de eerstvolgende query
-    (translation_strings vullen) faalde met "Table ... doesn't exist"
-    omdat de CREATE TABLE ervoor kennelijk nog niet volledig was
-    doorgevoerd. Bij een tweede, losse pogingen (herstart) ging het
-    zonder problemen. multi=True + expliciet door de deelresultaten
-    itereren dwingt af dat elk statement daadwerkelijk voltooid is
-    voordat de functie verdergaat.
+    p_v0.16: schema.sql wordt nu zelf in losse statements gesplitst
+    (_split_sql_statements()) en één voor één met gewone execute()-
+    aanroepen uitgevoerd, i.p.v. de hele tekst in één keer. Vervangt
+    p_v0.15's execute(..., multi=True), dat op het testsysteem crashte
+    met "TypeError: MySQLCursor.execute() got an unexpected keyword
+    argument 'multi'" — die parameter bleek niet betrouwbaar aanwezig
+    over mysql-connector-python-versies heen. Deze aanpak geeft dezelfde
+    garantie (elk statement voltooid vóór het volgende start) zonder
+    van een driverversie-specifieke flag afhankelijk te zijn.
 
     Runs schema.sql — a single idempotent file describing the desired
     end state of the database schema. Safe to run on every startup, on
     any installation (fresh or existing).
 
-    p_v0.15: cur.execute(..., multi=True) instead of a plain execute() on
-    the full (240-statement) text. Without multi=True there's no hard
-    guarantee the driver actually waits for each individual statement to
-    finish before execute() returns — on a slower test system this once
-    produced a race: "Schema applied successfully" appeared in the log,
-    but the very next query (populating translation_strings) failed with
-    "Table ... doesn't exist" because the CREATE TABLE before it hadn't
-    apparently fully landed yet. A second, separate attempt (restart)
-    worked fine. multi=True plus explicitly iterating the partial results
-    forces each statement to actually complete before the function
-    continues.
+    p_v0.16: schema.sql is now split into individual statements itself
+    (_split_sql_statements()) and run one by one with plain execute()
+    calls, instead of the whole text at once. Replaces p_v0.15's
+    execute(..., multi=True), which crashed on the test system with
+    "TypeError: MySQLCursor.execute() got an unexpected keyword argument
+    'multi'" — that parameter turned out not to be reliably present
+    across mysql-connector-python versions. This approach gives the same
+    guarantee (each statement completes before the next starts) without
+    depending on a driver-version-specific flag.
     """
     logger.info(f"Schema wordt toegepast vanuit {SCHEMA_FILE.name} "
                 f"/ applying schema from {SCHEMA_FILE.name}")
     try:
         schema_sql = SCHEMA_FILE.read_text()
+        statements = _split_sql_statements(schema_sql)
         with db.cursor() as cur:
-            for _ in cur.execute(schema_sql, multi=True):
-                pass  # doorlopen dwingt voltooiing van elk statement af / iterating forces each statement to complete
-        logger.info("Schema succesvol toegepast / schema applied successfully")
+            for stmt in statements:
+                # Defensief vangnet: sla statements over die na het
+                # verwijderen van --commentaarregels leeg blijken te zijn
+                # (voorkomt een execute() op pure commentaartekst, mocht
+                # een commentaarregel ooit per ongeluk een ; bevatten).
+                # Defensive safety net: skip statements that turn out
+                # empty once --comment lines are stripped (prevents an
+                # execute() on pure comment text, should a comment line
+                # ever accidentally contain a ;).
+                code_only = re.sub(r'(?m)^\s*--.*$', '', stmt).strip()
+                if not code_only:
+                    continue
+                cur.execute(stmt)
+        logger.info(f"Schema succesvol toegepast ({len(statements)} statements) "
+                    f"/ schema applied successfully ({len(statements)} statements)")
     except Exception:
         logger.exception("Toepassen van schema.sql is MISLUKT "
                           "/ applying schema.sql FAILED")
