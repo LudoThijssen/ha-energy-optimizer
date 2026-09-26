@@ -4,8 +4,27 @@
 name:          USER_MANUAL.md
 part of:       ha-energy-optimizer
 location:      /USER_MANUAL.md
-part version:  p_v0.1
-altered:       2026-09-16
+part version:  p_v0.2
+altered:       2026-09-23
+
+p_v0.2: Nieuwe subsectie "Add-on verwijderen" toegevoegd onder
+Probleemoplossing — legt uit dat Home Assistant's eigen
+"verwijder configuratie/data"-schakelaar in het uninstall-pop-upvenster
+de MariaDB-database NIET verwijdert (een platformbeperking: die
+schakelaar is Supervisor's generieke remove_config, met alleen toegang
+tot de eigen lokale bestanden van de add-on-container, niet tot de
+losse MariaDB-add-on). Database verwijderen moet bewust en handmatig
+via phpMyAdmin — met opzet geen knop in de app, om te voorkomen dat een
+database ooit per ongeluk wordt weggegooid.
+
+p_v0.2: New "Uninstalling" subsection added under Troubleshooting —
+explains that Home Assistant's own "remove config/data" toggle in the
+uninstall popup does NOT remove the MariaDB database (a platform
+limitation: that toggle is Supervisor's generic remove_config, with
+access only to the add-on container's own local files, not to the
+separate MariaDB add-on). Removing the database must be done
+deliberately and manually via phpMyAdmin — intentionally not a button
+in the app, to prevent a database ever being accidentally thrown away.
 
 p_v0.1: NIEUW. Vult een gat in de documentatie — README.md verwijst hier
 al naar (sinds dezelfde wijziging), maar het bestand bestond nog niet.
@@ -281,6 +300,61 @@ vaste UI-teksten.
   op GitHub, om zeker te weten dat de nieuwe versie is meegekomen.
   After such a rebuild, check the changed file's version header on
   GitHub to confirm the new version made it through.
+
+### Add-on verwijderen — de database gaat NIET automatisch mee / Uninstalling — the database is NOT removed automatically
+
+⚠️ **De schakelaar "ook configuratie/data verwijderen" in het
+pop-upvenster van Home Assistant (bij de ⋮-knop → Verwijderen op de
+add-on-infopagina) verwijdert de MariaDB-database NIET.** Dit is een
+bewuste beperking van het platform, geen fout in deze add-on: die
+schakelaar is een generiek Home Assistant Supervisor-onderdeel
+(`remove_config`) dat alleen de **eigen lokale bestanden van de
+add-on-container** opruimt (zoals `options.json`). MariaDB draait als
+een volledig aparte add-on met een eigen, gescheiden dataopslag —
+Supervisor's verwijder-dialoog heeft daar geen toegang toe en kan die
+database dus principieel nooit meenemen, hoe die schakelaar ook staat.
+
+⚠️ **The "also remove config/data" toggle in Home Assistant's popup
+(via the ⋮ button → Uninstall on the add-on info page) does NOT remove
+the MariaDB database.** This is a deliberate platform limitation, not a
+bug in this add-on: that toggle is a generic Home Assistant Supervisor
+feature (`remove_config`) that only cleans up the **add-on container's
+own local files** (like `options.json`). MariaDB runs as a fully
+separate add-on with its own, separate data storage — Supervisor's
+uninstall dialog has no access to it and can never include it, no matter
+how that toggle is set.
+
+**Om de database daadwerkelijk te verwijderen** (bijvoorbeeld bij een
+volledige, schone herinstallatie): doe dit **bewust en handmatig** via
+phpMyAdmin (of een andere MariaDB-beheertool), vóórdat of nadat je de
+add-on in Home Assistant verwijdert:
+
+```sql
+DROP DATABASE `energy`;
+DROP USER 'energy'@'%';
+```
+
+(Pas de namen aan als je andere waarden gebruikt dan de standaard —
+zie de Database-pagina voor de exacte, actuele waarden.)
+
+**To actually remove the database** (e.g. for a full, clean reinstall):
+do this **deliberately and manually** via phpMyAdmin (or another MariaDB
+management tool), before or after removing the add-on in Home Assistant:
+
+```sql
+DROP DATABASE `energy`;
+DROP USER 'energy'@'%';
+```
+
+(Adjust the names if you use different values than the defaults — see
+the Database page for the exact, current values.)
+
+Dit is met opzet een handmatige stap, geen knop in de app — zo kan een
+database nooit per ongeluk weggegooid worden via een schakelaar die
+daar eigenlijk niet voor bedoeld is.
+This is deliberately a manual step, not a button in the app — this way
+a database can never be accidentally thrown away via a toggle that
+wasn't actually meant for that.
 
 ---
 

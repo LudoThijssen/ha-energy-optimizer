@@ -2,17 +2,17 @@
 # name:          VERSION_LIST.md
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/VERSION_LIST.md
-# part version:  p_v7.5
-# altered:       2026-09-24
+# part version:  p_v7.6
+# altered:       2026-09-26
 
 | Bestand | Pad in repository | Versie | Datum |
 | :--- | :--- | :--- | :--- |
 | .gitattributes | /.gitattributes | p_v0.1 | 2026-06-26 |
 | .gitignore | /.gitignore | p_v0.1 | 2026-06-26 |
-| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v7.5 | 2026-09-24 |
-| README.md | /README.md | v0.2.13-alpha | 2026-09-16 |
+| make_VERSIONS_LIST.py | /ha-energy-optimizer/make_VERSIONS_LIST.py | p_v7.6 | 2026-09-26 |
+| README.md | /README.md | v0.2.13-alpha | 2026-09-23 |
 | repository.yaml | /repository.yaml | p_v0.1 | 2026-06-26 |
-| USER_MANUAL.md | /ha-energy-optimizer/USER_MANUAL.md | p_v0.1 | 2026-09-16 |
+| USER_MANUAL.md | /ha-energy-optimizer/USER_MANUAL.md | p_v0.2 | 2026-09-23 |
 # ha-energy-optimizer
 | build.yaml | /ha-energy-optimizer/build.yaml | p_v0.3 | 2026-06-21 |
 | config.yaml | /ha-energy-optimizer/config.yaml | v0.2.13 | 2026-06-21 |
@@ -20,7 +20,7 @@
 | main.py | /ha-energy-optimizer/main.py | p_v0.5 | 2026-07-30 |
 | requirements.txt | /ha-energy-optimizer/requirements.txt | p_v0.4 | 2026-07-28 |
 | uninstall.py | /ha-energy-optimizer/uninstall.py | p_v0.3 | 2026-06-21 |
-| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v7.5 | 2026-09-24 |
+| VERSION_LIST.md | /ha-energy-optimizer/VERSION_LIST.md | p_v7.6 | 2026-09-26 |
 # ha-energy-optimizer/collectors
 | __init__.py | /ha-energy-optimizer/collectors/__init__.py | p_v0.3 | 2026-06-21 |
 | base.py | /ha-energy-optimizer/collectors/base.py | p_v0.3 | 2026-06-21 |

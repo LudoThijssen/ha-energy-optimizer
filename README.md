@@ -5,15 +5,28 @@ name:          README.md
 part of:       ha-energy-optimizer
 location:      /README.md
 version:       v0.2.13-alpha
-altered:       2026-09-16
+altered:       2026-09-23
 
-p_v0.2.13-alpha (deze wijziging): ingekort tot wat nodig is vóór/tijdens
+p_v0.2.13-alpha (deze wijziging): nieuwe sectie "Database aanmaken"
+toegevoegd met daadwerkelijke SQL-stappen (CREATE DATABASE/USER/GRANT)
+— geldt voor zowel de automatische als de handmatige installatiemethode,
+dus hoort in README.md zelf, niet pas in het nog niet bestaande
+MANUAL_INSTALL.md. Bevat de verwijzing naar het verwijderen van de
+database op precies het moment dat je 'm aanmaakt.
+
+p_v0.2.13-alpha (this change): added a "Create the database" section
+with actual SQL steps (CREATE DATABASE/USER/GRANT) — applies to both the
+automatic and manual installation methods, so belongs in README.md
+itself, not in the not-yet-existing MANUAL_INSTALL.md. Includes the
+pointer to removing the database at exactly the moment you create it.
+
+p_v0.2.13-alpha (vorige wijziging): ingekort tot wat nodig is vóór/tijdens
 installatie (wat de app doet, vereisten, installatie-instructies).
 Alles over instellingen, mogelijkheden en probleemoplossing verhuisd
 naar USER_MANUAL.md — dat bestaat nu ook, was eerder een lege plek in
 de documentatie.
 
-p_v0.2.13-alpha (this change): trimmed down to what's needed before/
+p_v0.2.13-alpha (previous change): trimmed down to what's needed before/
 during installation (what the app does, requirements, installation
 instructions). Everything about settings, features and troubleshooting
 moved to USER_MANUAL.md — which now exists, previously a gap in the
@@ -89,6 +102,54 @@ Zie [MANUAL_INSTALL.md](MANUAL_INSTALL.md) voor stapsgewijze instructies.
 - MySQL database — local or on NAS / lokaal of op NAS
 - A long-lived access token from Home Assistant
 - Inverter/battery with Modbus TCP support (other protocols planned)
+
+---
+
+## Database aanmaken (verplicht, vóór installatie) / Create the database (required, before installing)
+
+Zowel bij de automatische als de handmatige installatiemethode moet er
+vooraf een **lege** database met een eigen gebruiker en wachtwoord
+bestaan — de add-on maakt zelf alle tabellen aan bij de eerste opstart,
+maar kan geen database of gebruiker aanmaken.
+
+For both the automatic and manual installation methods, an **empty**
+database with its own user and password must exist beforehand — the
+add-on creates all tables itself on first startup, but cannot create the
+database or user.
+
+Via phpMyAdmin (of een andere MariaDB-beheertool):
+Via phpMyAdmin (or another MariaDB management tool):
+
+```sql
+CREATE DATABASE `energy` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'energy'@'%' IDENTIFIED BY 'kies-een-sterk-wachtwoord';
+GRANT ALL PRIVILEGES ON `energy`.* TO 'energy'@'%';
+FLUSH PRIVILEGES;
+```
+
+(Namen `energy`/`energy` zijn de standaardwaarden op de Database-pagina
+van de add-on — andere namen mogen ook, zolang je ze straks consistent
+invult.)
+(The names `energy`/`energy` are the defaults on the add-on's Database
+page — other names are fine too, as long as you fill them in
+consistently afterward.)
+
+Deze gegevens (host, poort, databasenaam, gebruikersnaam, wachtwoord)
+vul je na installatie in op de **Database**-pagina van de
+webinterface — zie [USER_MANUAL.md](USER_MANUAL.md#database) voor die
+pagina.
+You enter these details (host, port, database name, username, password)
+on the add-on's **Database** page after installation — see
+[USER_MANUAL.md](USER_MANUAL.md#database) for that page.
+
+📖 **Bewaar dit moment goed: de database later verwijderen is een
+handmatige stap, niet automatisch via Home Assistant's verwijderfunctie
+— zie [USER_MANUAL.md](USER_MANUAL.md#add-on-verwijderen--de-database-gaat-niet-automatisch-mee--uninstalling--the-database-is-not-removed-automatically)
+zodat je alvast weet waar je straks moet zijn.**
+📖 **Keep this moment in mind: removing the database later is a manual
+step, not automatic via Home Assistant's uninstall — see
+[USER_MANUAL.md](USER_MANUAL.md#add-on-verwijderen--de-database-gaat-niet-automatisch-mee--uninstalling--the-database-is-not-removed-automatically)
+so you already know where to look when the time comes.**
 
 ---
 
