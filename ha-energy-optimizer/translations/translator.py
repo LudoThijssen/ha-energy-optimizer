@@ -2,8 +2,24 @@
 # name:          translator.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/translations/translator.py
-# part version:  p_v0.7
-# altered:       2026-09-09
+# part version:  p_v0.8
+# altered:       2026-09-24
+#
+# p_v0.8: Verouderd model-ID "claude-sonnet-4-6" op beide AI-vertaal-
+# plekken (UI-laag en operationele laag) vervangen door "claude-sonnet-5"
+# — root cause van "AI vertalen werkt niet voor DE/FR/ES": de fout werd
+# stil weggevangen (logger.error, geen melding naar de gebruiker), dus
+# leek het alsof er niets gebeurde. Ook: volledige taalnamen (LANGUAGE_
+# NAMES/_language_name()) i.p.v. kale ISO-codes in de AI-prompt zelf —
+# "naar de" is dubbelzinniger dan nodig.
+#
+# p_v0.8: Replaced the outdated model ID "claude-sonnet-4-6" in both
+# AI-translation spots (UI layer and operational layer) with
+# "claude-sonnet-5" — root cause of "AI translate doesn't work for
+# DE/FR/ES": the error was silently swallowed (logger.error, no message
+# to the user), so it looked like nothing happened. Also: full language
+# names (LANGUAGE_NAMES/_language_name()) instead of bare ISO codes in
+# the AI prompt itself — "to de" is more ambiguous than necessary.
 #
 # p_v0.7: kritieke bugfix in _read_json_stripped() — de regex `//.*`
 # stripte niet alleen commentaarregels, maar ook alles ná een `//` die
@@ -61,6 +77,22 @@ logger = logging.getLogger(__name__)
 
 TRANSLATIONS_DIR = Path(__file__).parent
 MASTER_FILE      = TRANSLATIONS_DIR / "en.json"
+
+# p_v0.8: volledige taalnamen voor in AI-vertaalprompts i.p.v. kale
+# ISO-codes ("naar de" is dubbelzinniger dan nodig — "naar German" niet).
+# Onbekende code: valt terug op de code zelf, prompt blijft werken.
+# p_v0.8: full language names for use in AI-translation prompts instead
+# of bare ISO codes ("to de" is more ambiguous than necessary — "to
+# German" isn't). Unknown code: falls back to the code itself, prompt
+# still works.
+LANGUAGE_NAMES = {
+    "nl": "Dutch", "en": "English", "de": "German",
+    "fr": "French", "es": "Spanish",
+}
+
+
+def _language_name(code: str) -> str:
+    return LANGUAGE_NAMES.get(code, code)
 CONTEXT_FILE     = TRANSLATIONS_DIR / "_context.json"
 
 _cache: dict[str, dict] = {}
@@ -146,7 +178,7 @@ def _generate_with_ai(language: str) -> dict | None:
                 line += f"  // Context: {ctx}"
             lines.append(line)
 
-        prompt = f"""Translate the following UI strings from English to {language}.
+        prompt = f"""Translate the following UI strings from English to {_language_name(language)}.
 
 IMPORTANT RULES:
 - Return ONLY a valid JSON object, no explanation, no markdown backticks
@@ -161,7 +193,7 @@ Strings to translate:
 
         client = anthropic.Anthropic()
         message = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -277,7 +309,16 @@ class OperationalTranslator:
         Translate all Dutch texts to a new language via AI.
         Only saves keys that don't yet exist for that language.
 
-        Returns: aantal vertaalde keys / number of translated keys
+        Returns:
+            > 0  aantal vertaalde keys / number of translated keys
+              0  niets te doen, alles was al vertaald / nothing to do, already complete
+             -1  AI-aanroep is mislukt / the AI call failed
+        p_v0.8: -1 toegevoegd om "niets te doen" (0, geen fout) te
+        onderscheiden van "AI-aanroep mislukt" (voorheen ook 0, zag er
+        identiek uit voor de aanroeper — zie app.py's generate-route).
+        p_v0.8: added -1 to distinguish "nothing to do" (0, not an
+        error) from "AI call failed" (previously also 0, looked
+        identical to the caller — see app.py's generate route).
         """
         try:
             with self._db.cursor() as cur:
@@ -297,7 +338,7 @@ class OperationalTranslator:
             # Vertaal via Anthropic API
             translated = self._ai_translate_operational(to_translate, target_language)
             if not translated:
-                return 0
+                return -1
 
             # Sla op in database
             inserted = 0
@@ -315,7 +356,7 @@ class OperationalTranslator:
 
         except Exception as e:
             logger.error(f"[translator] Vertaling naar '{target_language}' mislukt: {e}")
-            return 0
+            return -1
 
     def _ai_translate_operational(
         self, texts: dict[str, str], target_language: str
@@ -326,7 +367,7 @@ class OperationalTranslator:
             import json as _json
 
             lines = [f'"{k}": "{v}"' for k, v in texts.items()]
-            prompt = f"""Translate the following operational strings from Dutch to {target_language}.
+            prompt = f"""Translate the following operational strings from Dutch to {_language_name(target_language)}.
 
 IMPORTANT RULES:
 - Return ONLY a valid JSON object, no explanation, no markdown backticks
@@ -345,7 +386,7 @@ Strings to translate:
 
             client = anthropic.Anthropic()
             message = client.messages.create(
-                model="claude-sonnet-4-6",
+                model="claude-sonnet-5",
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}],
             )

@@ -1,4 +1,19 @@
 {% extends "base.html" %}
+<!-- part version: p_v0.8 -->
+<!-- altered:      2026-09-24 -->
+<!--
+p_v0.8: Zichtbare foutmelding toegevoegd voor een mislukte AI-vertaling
+(nieuwe trn.ai_translate_failed-alert), i.p.v. de knop stil niets te
+laten doen. Zie app.py p_v0.31/translator.py p_v0.8 — de eigenlijke
+oorzaak (verouderd model-ID) is daar gefixt; dit toont voortaan ook
+toekomstige AI-vertaalfouten zichtbaar in de GUI i.p.v. alleen in het
+log.
+p_v0.8: Added a visible error message for a failed AI translation (new
+trn.ai_translate_failed alert), instead of the button silently doing
+nothing. See app.py p_v0.31/translator.py p_v0.8 — the actual cause
+(outdated model ID) is fixed there; this now also surfaces future
+AI-translation failures visibly in the GUI instead of only in the log.
+-->
 <!-- part version: p_v0.7 -->
 <!-- altered:      2026-09-13 -->
 <!--
@@ -116,6 +131,8 @@ intended: two layers, see translator.py p_v0.7.
 
 {% if error == 'placeholder_mismatch' %}
 <div class="alert alert-error"><span class="mdi mdi-alert"></span> {{ t('trn.placeholder_mismatch') }}</div>
+{% elif error == 'ai_translate_failed' %}
+<div class="alert alert-error"><span class="mdi mdi-alert"></span> {{ t('trn.ai_translate_failed') }}</div>
 {% endif %}
 
 {% if generated %}

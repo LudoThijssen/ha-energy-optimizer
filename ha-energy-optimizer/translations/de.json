@@ -2,8 +2,10 @@
 // name:          de.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/de.json
-// part version:  p_v0.7
-// altered:       2026-09-14
+// part version:  p_v0.8
+// altered:       2026-09-24
+//
+// p_v0.8: trn.ai_translate_failed toegevoegd, zie en.json voor changelog.
 //
 // p_v0.7: 15 Schlüssel hinzugefügt, siehe en.json für Changelog.
 // p_v0.4: see en.json for changelog.
@@ -368,6 +370,7 @@
   "trn.subtitle": "Betriebstexte pro Sprache anzeigen und bearbeiten",
   "trn.saved": "Übersetzung gespeichert",
   "trn.ai_generated": "{count} Übersetzungen automatisch per KI für \"{language}\" erstellt",
+  "trn.ai_translate_failed": "KI-Übersetzung fehlgeschlagen. Überprüfen Sie die Internetverbindung des Add-ons und versuchen Sie es erneut.",
   "trn.language_label": "Sprache:",
   "trn.ai_fill": "KI ergänzen",
   "trn.ai_fill_disabled_title": "nl und en sind die Basissprachen",

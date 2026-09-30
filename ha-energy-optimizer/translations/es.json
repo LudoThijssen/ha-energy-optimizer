@@ -2,8 +2,10 @@
 // name:          es.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/es.json
-// part version:  p_v0.7
-// altered:       2026-09-14
+// part version:  p_v0.8
+// altered:       2026-09-24
+//
+// p_v0.8: trn.ai_translate_failed añadido, ver en.json para el registro de cambios.
 //
 // p_v0.7: 15 claves añadidas, ver en.json para el registro de cambios.
 // p_v0.4: see en.json for changelog.
@@ -368,6 +370,7 @@
   "trn.subtitle": "Ver y editar los textos operativos por idioma",
   "trn.saved": "Traducción guardada",
   "trn.ai_generated": "{count} traducciones creadas automáticamente mediante IA para «{language}»",
+  "trn.ai_translate_failed": "Error en la traducción con IA. Comprueba la conexión a internet del complemento e inténtalo de nuevo.",
   "trn.language_label": "Idioma:",
   "trn.ai_fill": "Completar con IA",
   "trn.ai_fill_disabled_title": "nl y en son los idiomas base",

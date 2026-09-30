@@ -2,8 +2,26 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.30
-# altered:       2026-09-16
+# part version:  p_v0.31
+# altered:       2026-09-24
+#
+# p_v0.31: Reden-teksten (Overzicht en Geschiedenis) worden nu bij het
+# TONEN vertaald in de GUI-taal via reason_key/reason_params
+# (_make_reason_translator/_localize_reason), i.p.v. de tekst te tonen
+# die bij het plannen is opgeslagen. Oorzaak van "reden blijft altijd
+# Engels": de GUI leest de taal uit options.json, de optimizer schrijft de
+# reden met system_config.language uit de database — twee bronnen die
+# niet automatisch gelijk lopen. Valt terug op de opgeslagen tekst bij
+# ontbrekende sleutel/vertaling.
+#
+# p_v0.31: Reason texts (Overview and History) are now translated at
+# DISPLAY time into the GUI language via reason_key/reason_params
+# (_make_reason_translator/_localize_reason), instead of showing the text
+# stored at planning time. Cause of "reason always stays English": the
+# GUI reads the language from options.json, the optimizer writes the
+# reason using system_config.language from the database — two sources
+# that don't automatically stay in sync. Falls back to the stored text
+# when the key/translation is missing.
 #
 # p_v0.30: _get_db() is nu een singleton — zie de docstring daar. Root
 # cause van incidentele "MySQL Connection not available"-fouten die
@@ -293,6 +311,56 @@ def _get_db():
     return _db_singleton
 
 
+def _make_reason_translator(db):
+    """
+    p_v0.31: OperationalTranslator in de GUI-taal (options.json), zodat
+    reden-teksten bij het TONEN vertaald worden i.p.v. de tekst te tonen
+    die bij het plannen is opgeslagen. Twee bronnen voor de taal
+    bestonden naast elkaar: de GUI gebruikt options.json, terwijl de
+    optimizer bij het plannen system_config.language uit de database
+    gebruikt — zodra die verschillen, bleef de opgeslagen reden in de
+    "verkeerde" taal staan.
+
+    p_v0.31: OperationalTranslator in the GUI language (options.json), so
+    reason texts are translated when DISPLAYED instead of showing the
+    text stored at planning time. Two language sources existed side by
+    side: the GUI uses options.json, while the optimizer at planning time
+    uses system_config.language from the database — as soon as those
+    differ, the stored reason stayed in the "wrong" language.
+    """
+    if not db:
+        return None
+    try:
+        from translations.translator import OperationalTranslator
+        return OperationalTranslator(db, _load_options().get("language", "nl"))
+    except Exception:
+        return None
+
+
+def _localize_reason(tr, key, params, stored) -> str:
+    """
+    Vertaal reason_key + reason_params in de GUI-taal; valt terug op de
+    opgeslagen tekst als er geen sleutel is of de vertaling ontbreekt.
+    Translate reason_key + reason_params into the GUI language; falls
+    back to the stored text if there is no key or the translation is
+    missing.
+    """
+    stored = stored or ""
+    if not tr or not key:
+        return stored
+    try:
+        if isinstance(params, (str, bytes)):
+            params = _json.loads(params)
+        text = tr.get(key, params or {})
+        # Een onbekende sleutel geeft de sleutel zelf terug — dan is de
+        # opgeslagen tekst beter.
+        # An unknown key returns the key itself — then the stored text
+        # is better.
+        return stored if (not text or text == key) else text
+    except Exception:
+        return stored
+
+
 def _load_internal_sensors() -> tuple[list, bool]:
     """
     Laad en parse config/internal_sensors.json.
@@ -462,7 +530,7 @@ def index():
 
                 cur.execute("""
                     SELECT schedule_for, action, target_power_kw,
-                           expected_saving, reason
+                           expected_saving, reason, reason_key, reason_params
                     FROM optimizer_schedule
                     WHERE DATE(schedule_for) = (
                         SELECT DATE(schedule_for)
@@ -475,6 +543,15 @@ def index():
                     LIMIT 24
                 """)
                 last_schedule = cur.fetchall()
+            # p_v0.31: reden in de GUI-taal tonen, niet in de taal van
+            # het moment van plannen.
+            # p_v0.31: show the reason in the GUI language, not in the
+            # language at planning time.
+            _tr = _make_reason_translator(db)
+            for _row in last_schedule:
+                _row["reason"] = _localize_reason(
+                    _tr, _row.get("reason_key"),
+                    _row.get("reason_params"), _row.get("reason"))
         except Exception:
             pass
 
@@ -1714,13 +1791,21 @@ def translations():
                 return redirect(_url("translations") + f"?lang={lang}&error={error}")
 
         elif action == "generate" and lang not in ("nl", "en"):
+            generate_error = None
             try:
                 from translations.translator import OperationalTranslator
                 tr = OperationalTranslator(db, lang)
                 generated = tr.translate_new_language(lang)
+                if generated == -1:
+                    generate_error = "ai_translate_failed"
+                    generated = None
             except Exception as e:
                 import logging as _log
                 _log.getLogger(__name__).warning(f"[translations] AI-vertaling mislukt: {e}")
+                generate_error = "ai_translate_failed"
+
+            if generate_error:
+                return redirect(_url("translations") + f"?lang={lang}&error={generate_error}")
 
         return redirect(_url("translations") + f"?lang={lang}&saved=1" if saved
                         else _url("translations") + f"?lang={lang}")
@@ -2155,13 +2240,14 @@ def api_history_data():
                        CAST(expected_price AS DECIMAL(10,5))      AS price,
                        CAST(expected_saving AS DECIMAL(10,5))     AS saving,
                        CAST(expected_cost AS DECIMAL(10,5))       AS cost,
-                       reason, is_solar_charge,
+                       reason, reason_key, reason_params, is_solar_charge,
                        CAST(grid_charge_kw AS DECIMAL(10,3))      AS grid_charge_kw,
                        CAST(grid_consume_kw AS DECIMAL(10,3))     AS grid_consume_kw
                 FROM optimizer_schedule
                 WHERE DATE(schedule_for) = %(d)s
                 ORDER BY schedule_for
             """, {"d": date_str})
+            _tr = _make_reason_translator(db)
             data["schedule"] = [
                 {
                     "hour":    r["hour"],
@@ -2173,7 +2259,8 @@ def api_history_data():
                     "price":    float(r["price"] or 0),
                     "saving":   float(r["saving"] or 0),
                     "cost":     float(r["cost"] or 0),
-                    "reason":   r["reason"] or "",
+                    "reason":   _localize_reason(
+                        _tr, r.get("reason_key"), r.get("reason_params"), r["reason"]),
                     "is_solar_charge": bool(r["is_solar_charge"]),
                     "grid_charge_kw":  float(r["grid_charge_kw"] or 0),
                     "grid_consume_kw": float(r["grid_consume_kw"] or 0),

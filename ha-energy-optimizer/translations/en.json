@@ -2,8 +2,11 @@
 // name:          en.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/translations/en.json
-// part version:  p_v0.7
-// altered:       2026-09-14
+// part version:  p_v0.8
+// altered:       2026-09-24
+//
+// p_v0.8: trn.ai_translate_failed added — visible error message for a
+// failed AI translation (translations.html p_v0.8).
 //
 // p_v0.7: 15 keys added for the backup/restore section on the database
 // page (database.html p_v0.6, app.py p_v0.29).
@@ -385,6 +388,7 @@
   "trn.subtitle": "View and edit the operational texts per language",
   "trn.saved": "Translation saved",
   "trn.ai_generated": "{count} translations automatically created via AI for '{language}'",
+  "trn.ai_translate_failed": "AI translation failed. Check the add-on's internet connection and try again.",
   "trn.language_label": "Language:",
   "trn.ai_fill": "AI fill in",
   "trn.ai_fill_disabled_title": "nl and en are the base languages",
