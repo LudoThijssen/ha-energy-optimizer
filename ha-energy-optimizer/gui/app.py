@@ -2,8 +2,24 @@
 # name:          app.py
 # part of:       ha-energy-optimizer
 # location:      /ha-energy-optimizer/ha-energy-optimizer/gui/app.py
-# part version:  p_v0.31
+# part version:  p_v0.32
 # altered:       2026-09-24
+#
+# p_v0.32: _load_internal_sensors() krijgt een language-parameter en
+# voegt een taal-opgeloste description toe aan elke sensor (valt terug
+# op Engels, dan Nederlands). entities()-route geeft de GUI-taal door op
+# beide call sites; _resolve_desc() gebruikt nu diezelfde opgeloste
+# description i.p.v. altijd description_nl. Root cause van "entiteit-
+# beschrijving blijft altijd Nederlands" — zie internal_sensors.json
+# p_v0.5 (nu met description_de/fr/es) en entities.html p_v0.7.
+#
+# p_v0.32: _load_internal_sensors() gets a language parameter and adds a
+# language-resolved description to each sensor (falls back to English,
+# then Dutch). The entities() route passes the GUI language at both call
+# sites; _resolve_desc() now uses that same resolved description instead
+# of always description_nl. Root cause of "entity description always
+# stays Dutch" — see internal_sensors.json p_v0.5 (now with
+# description_de/fr/es) and entities.html p_v0.7.
 #
 # p_v0.31: Reden-teksten (Overzicht en Geschiedenis) worden nu bij het
 # TONEN vertaald in de GUI-taal via reason_key/reason_params
@@ -361,7 +377,7 @@ def _localize_reason(tr, key, params, stored) -> str:
         return stored
 
 
-def _load_internal_sensors() -> tuple[list, bool]:
+def _load_internal_sensors(language: str = "en") -> tuple[list, bool]:
     """
     Laad en parse config/internal_sensors.json.
 
@@ -376,6 +392,17 @@ def _load_internal_sensors() -> tuple[list, bool]:
     verscheen daardoor altijd, ongeacht hoeveel er echt gekoppeld was.
     Beide plekken gebruiken nu deze ene, correcte implementatie.
 
+    p_v0.32: nieuwe parameter `language`. Elke sensor krijgt er een
+    taal-opgeloste `description`-sleutel bij (naast de bestaande losse
+    description_nl/description_en/..., die blijven staan voor wie ze
+    rechtstreeks nodig heeft). Valt terug op Engels, dan Nederlands, als
+    de gevraagde taal niet bestaat. Root cause van "entiteitbeschrijving
+    blijft altijd Nederlands": internal_sensors.json bood voorheen alleen
+    description_nl/description_en, en entities.html + _resolve_desc()
+    gebruikten altijd hardcoded description_nl. Zie
+    internal_sensors.json p_v0.5 (nu met description_de/fr/es) en
+    entities.html p_v0.7.
+
     Load and parse config/internal_sensors.json.
 
     p_v0.25: new shared helper. Previously entities() read this file in
@@ -389,6 +416,16 @@ def _load_internal_sensors() -> tuple[list, bool]:
     how much was actually mapped. Both places now use this one, correct
     implementation.
 
+    p_v0.32: new `language` parameter. Each sensor gets a language-
+    resolved `description` key added (alongside the existing separate
+    description_nl/description_en/..., which remain for anyone who needs
+    them directly). Falls back to English, then Dutch, if the requested
+    language doesn't exist. Root cause of "entity description always
+    stays Dutch": internal_sensors.json previously only offered
+    description_nl/description_en, and entities.html + _resolve_desc()
+    always used hardcoded description_nl. See internal_sensors.json
+    p_v0.5 (now with description_de/fr/es) and entities.html p_v0.7.
+
     Returns (sensors, ok) — ok is False if the file was missing or
     invalid, so the caller can show an honest message instead of
     silently treating "couldn't load" the same as "nothing to map".
@@ -397,7 +434,15 @@ def _load_internal_sensors() -> tuple[list, bool]:
     path = Path(__file__).parent.parent / "config" / "internal_sensors.json"
     try:
         raw = _re.sub(r'(?m)^[ \t]*//.*\n?', '', path.read_text(encoding="utf-8"))
-        return _json.loads(raw), True
+        sensors = _json.loads(raw)
+        for s in sensors:
+            s["description"] = (
+                s.get(f"description_{language}")
+                or s.get("description_en")
+                or s.get("description_nl")
+                or ""
+            )
+        return sensors, True
     except Exception:
         import logging as _log
         _log.getLogger(__name__).exception(
@@ -1201,6 +1246,11 @@ def entities():
     # Sensor definitions loaded from config/internal_sensors.json
     # Sensordefinities geladen uit config/internal_sensors.json
     db = _get_db()
+    # p_v0.32: GUI-taal nodig om de juiste omschrijving te tonen/op te
+    # slaan — zie _load_internal_sensors() en _resolve_desc().
+    # p_v0.32: GUI language needed to show/store the right description —
+    # see _load_internal_sensors() and _resolve_desc().
+    _lang = _load_options().get("language", "nl")
     entity_rows = []
     if db:
         with db.cursor() as cur:
@@ -1222,19 +1272,14 @@ def entities():
             # inline parsing — zie changelog daar.
             # p_v0.25: now uses _load_internal_sensors() instead of its
             # own inline parsing — see changelog there.
-            _known_sensors, _ = _load_internal_sensors()
-            _sensor_desc = {
-                s["internal_name"]: {
-                    "nl": s.get("description_nl", ""),
-                    "en": s.get("description_en", ""),
-                }
-                for s in _known_sensors
-            }
+            _known_sensors, _ = _load_internal_sensors(language=_lang)
 
             def _resolve_desc(internal_name, fallback):
-                """Gebruik altijd description_nl voor bekende sensoren."""
-                if internal_name in _sensor_desc:
-                    return _sensor_desc[internal_name].get("nl") or fallback
+                """Gebruik de omschrijving in de actieve GUI-taal voor bekende
+                sensoren, i.p.v. altijd description_nl (p_v0.32)."""
+                for s in _known_sensors:
+                    if s["internal_name"] == internal_name:
+                        return s.get("description") or fallback
                 return fallback
 
             if action == "update":
@@ -1287,7 +1332,7 @@ def entities():
     # p_v0.25: now uses _load_internal_sensors() — the bare json.load()
     # that was here could never parse the file (no '//' stripping) and
     # so always silently crashed to all_sensors=[]. See helper changelog.
-    all_sensors, sensors_ok = _load_internal_sensors()
+    all_sensors, sensors_ok = _load_internal_sensors(language=_lang)
 
     # Load installed components from system_config
     # Laad geïnstalleerde componenten uit system_config

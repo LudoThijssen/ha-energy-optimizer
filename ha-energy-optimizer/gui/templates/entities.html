@@ -2,6 +2,20 @@
 <!-- name:         entities.html -->
 <!-- part of:      ha-energy-optimizer-->
 <!-- location:     /ha-energy-optimizer/ha-energy-optimizer/gui/templates/entities.html -->
+<!-- part version: p_v0.7 -->
+<!-- altered:      2026-09-24 -->
+<!--
+p_v0.7: Gebruikt nu s.description / sensor_info.description (taal-
+opgelost, zie app.py p_v0.32 en internal_sensors.json p_v0.5) i.p.v.
+hardcoded description_nl op alle vier plekken (dropdown-data, dropdown-
+tekst, gekoppelde-entiteiten-tabel, verborgen description-veld). Root
+cause van "entiteitbeschrijving blijft altijd Nederlands".
+p_v0.7: Now uses s.description / sensor_info.description (language-
+resolved, see app.py p_v0.32 and internal_sensors.json p_v0.5) instead
+of hardcoded description_nl in all four spots (dropdown data, dropdown
+text, mapped-entities table, hidden description field). Root cause of
+"entity description always stays Dutch".
+-->
 <!-- part version: p_v0.6 -->
 <!-- altered:      2026-09-09 -->
 <!--
@@ -56,9 +70,9 @@ loaded — see app.py p_v0.25).
           {% for s in unmapped_names %}
           <option value="{{ s.internal_name }}"
                   data-unit="{{ s.unit }}"
-                  data-desc="{{ s.description_nl }}"
+                  data-desc="{{ s.description }}"
                   data-category="{{ s.category }}">
-            [{{ s.category }}] {{ s.internal_name }} — {{ s.description_nl }}
+            [{{ s.category }}] {{ s.internal_name }} — {{ s.description }}
           </option>
           {% endfor %}
         </select>
@@ -127,7 +141,7 @@ loaded — see app.py p_v0.25).
           {% endif %}
         </td>
         <td style="font-size:12px; color:#6b7280;">
-          {% if sensor_info %}{{ sensor_info.description_nl }}
+          {% if sensor_info %}{{ sensor_info.description }}
           {% else %}{{ e.description or '—' }}{% endif %}
         </td>
         <td>
@@ -136,7 +150,7 @@ loaded — see app.py p_v0.25).
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="internal_name_custom" value="{{ e.internal_name }}">
             <input type="hidden" name="unit" value="{{ e.unit or (sensor_info.unit if sensor_info else '') }}">
-            <input type="hidden" name="description" value="{{ e.description or (sensor_info.description_nl if sensor_info else '') }}">
+            <input type="hidden" name="description" value="{{ e.description or (sensor_info.description if sensor_info else '') }}">
             <input type="text" name="entity_id" id="eid-{{ e.id }}"
                    value="{{ e.entity_id }}"
                    style="min-width:190px; font-size:13px;"

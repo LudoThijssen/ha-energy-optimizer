@@ -2,8 +2,22 @@
 // name:          internal_sensors.json
 // part of:       ha-energy-optimizer
 // location:      /ha-energy-optimizer/ha-energy-optimizer/config/internal_sensors.json
-// part version:  p_v0.4
-// altered:       2026-08-13
+// part version:  p_v0.5
+// altered:       2026-09-24
+//
+// p_v0.5: description_de/description_fr/description_es toegevoegd aan
+// alle 22 sensoren — voorheen alleen description_nl/description_en,
+// waardoor de entiteitenpagina de omschrijving altijd in het Nederlands
+// toonde ongeacht de GUI-taal (de velden bestonden niet, dus konden ook
+// niet gebruikt worden). Zie entities.html p_v0.7 en app.py p_v0.32
+// voor de bijbehorende wijziging die deze velden daadwerkelijk gebruikt.
+//
+// p_v0.5: description_de/description_fr/description_es added to all 22
+// sensors — previously only description_nl/description_en existed, so
+// the entities page always showed the description in Dutch regardless
+// of the GUI language (the fields didn't exist, so couldn't be used
+// either). See entities.html p_v0.7 and app.py p_v0.32 for the
+// accompanying change that actually uses these fields.
 //
 // p_v0.4: locatie-header gecorrigeerd — stond op collectors/
 // internal_sensors.json, moet config/internal_sensors.json zijn. Zie
@@ -33,7 +47,10 @@
     "required": true,
     "requires_component": "has_battery",
     "description_nl": "Laadtoestand batterij (%)",
-    "description_en": "Battery state of charge (%)"
+    "description_en": "Battery state of charge (%)",
+    "description_de": "Ladezustand Batterie (%)",
+    "description_fr": "État de charge de la batterie (%)",
+    "description_es": "Estado de carga de la batería (%)"
   },
   {
     "internal_name": "battery_power",
@@ -42,7 +59,10 @@
     "required": true,
     "requires_component": "has_battery",
     "description_nl": "Batterijvermogen (kW, + = laden, - = ontladen)",
-    "description_en": "Battery power (kW, + = charge, - = discharge)"
+    "description_en": "Battery power (kW, + = charge, - = discharge)",
+    "description_de": "Batterieleistung (kW, + = Laden, - = Entladen)",
+    "description_fr": "Puissance de la batterie (kW, + = charge, - = décharge)",
+    "description_es": "Potencia de la batería (kW, + = carga, - = descarga)"
   },
   {
     "internal_name": "battery_charge_kw",
@@ -51,7 +71,10 @@
     "required": false,
     "requires_component": "has_battery",
     "description_nl": "Batterij laadvermogen (kW) — gebruikt als battery_power niet gesigneerd is",
-    "description_en": "Battery charge power (kW) — used when battery_power is not signed"
+    "description_en": "Battery charge power (kW) — used when battery_power is not signed",
+    "description_de": "Batterie-Ladeleistung (kW) — verwendet, wenn battery_power nicht vorzeichenbehaftet ist",
+    "description_fr": "Puissance de charge de la batterie (kW) — utilisée si battery_power n'est pas signé",
+    "description_es": "Potencia de carga de la batería (kW) — se usa si battery_power no tiene signo"
   },
   {
     "internal_name": "battery_discharge_kw",
@@ -60,7 +83,10 @@
     "required": false,
     "requires_component": "has_battery",
     "description_nl": "Batterij ontlaadvermogen (kW) — gebruikt als battery_power niet gesigneerd is",
-    "description_en": "Battery discharge power (kW) — used when battery_power is not signed"
+    "description_en": "Battery discharge power (kW) — used when battery_power is not signed",
+    "description_de": "Batterie-Entladeleistung (kW) — verwendet, wenn battery_power nicht vorzeichenbehaftet ist",
+    "description_fr": "Puissance de décharge de la batterie (kW) — utilisée si battery_power n'est pas signé",
+    "description_es": "Potencia de descarga de la batería (kW) — se usa si battery_power no tiene signo"
   },
   {
     "internal_name": "battery_temperature",
@@ -69,7 +95,10 @@
     "required": false,
     "requires_component": "has_battery",
     "description_nl": "Temperatuur batterij (°C)",
-    "description_en": "Battery temperature (°C)"
+    "description_en": "Battery temperature (°C)",
+    "description_de": "Batterietemperatur (°C)",
+    "description_fr": "Température de la batterie (°C)",
+    "description_es": "Temperatura de la batería (°C)"
   },
   {
     "internal_name": "battery_voltage",
@@ -78,7 +107,10 @@
     "required": false,
     "requires_component": "has_battery",
     "description_nl": "Spanning batterij (V)",
-    "description_en": "Battery voltage (V)"
+    "description_en": "Battery voltage (V)",
+    "description_de": "Batteriespannung (V)",
+    "description_fr": "Tension de la batterie (V)",
+    "description_es": "Voltaje de la batería (V)"
   },
   {
     "internal_name": "solar_power",
@@ -87,7 +119,10 @@
     "required": true,
     "requires_component": "has_solar_panels",
     "description_nl": "Huidig zonnepaneel vermogen (kW)",
-    "description_en": "Current solar panel power (kW)"
+    "description_en": "Current solar panel power (kW)",
+    "description_de": "Aktuelle Solarleistung (kW)",
+    "description_fr": "Puissance actuelle des panneaux solaires (kW)",
+    "description_es": "Potencia actual de los paneles solares (kW)"
   },
   {
     "internal_name": "solar_energy_total",
@@ -96,7 +131,10 @@
     "required": false,
     "requires_component": "has_solar_panels",
     "description_nl": "Totale zonopbrengst teller (kWh, oplopend)",
-    "description_en": "Total solar energy counter (kWh, increasing)"
+    "description_en": "Total solar energy counter (kWh, increasing)",
+    "description_de": "Zähler Gesamtsolarertrag (kWh, aufsteigend)",
+    "description_fr": "Compteur de production solaire totale (kWh, croissant)",
+    "description_es": "Contador de energía solar total (kWh, creciente)"
   },
   {
     "internal_name": "grid_import_power",
@@ -105,7 +143,10 @@
     "required": true,
     "requires_component": "has_grid_connection",
     "description_nl": "Netafname vermogen (kW)",
-    "description_en": "Grid import power (kW)"
+    "description_en": "Grid import power (kW)",
+    "description_de": "Netzbezugsleistung (kW)",
+    "description_fr": "Puissance d'importation du réseau (kW)",
+    "description_es": "Potencia de importación de la red (kW)"
   },
   {
     "internal_name": "grid_export_power",
@@ -114,7 +155,10 @@
     "required": true,
     "requires_component": "has_grid_connection",
     "description_nl": "Teruglevering vermogen (kW)",
-    "description_en": "Grid export power (kW)"
+    "description_en": "Grid export power (kW)",
+    "description_de": "Netzeinspeiseleistung (kW)",
+    "description_fr": "Puissance d'exportation vers le réseau (kW)",
+    "description_es": "Potencia de exportación a la red (kW)"
   },
   {
     "internal_name": "total_consumption_power",
@@ -123,7 +167,10 @@
     "required": false,
     "requires_component": null,
     "description_nl": "Totaal huisverbruik (kW) — wordt berekend als niet beschikbaar",
-    "description_en": "Total home consumption (kW) — calculated if not available"
+    "description_en": "Total home consumption (kW) — calculated if not available",
+    "description_de": "Gesamter Hausverbrauch (kW) — wird berechnet, falls nicht verfügbar",
+    "description_fr": "Consommation totale du foyer (kW) — calculée si non disponible",
+    "description_es": "Consumo total del hogar (kW) — se calcula si no está disponible"
   },
   {
     "internal_name": "gas_consumption",
@@ -132,7 +179,10 @@
     "required": true,
     "requires_component": "has_gas",
     "description_nl": "Gasverbruik (m3/u)",
-    "description_en": "Gas consumption (m3/h)"
+    "description_en": "Gas consumption (m3/h)",
+    "description_de": "Gasverbrauch (m³/h)",
+    "description_fr": "Consommation de gaz (m³/h)",
+    "description_es": "Consumo de gas (m³/h)"
   },
   {
     "internal_name": "indoor_temperature",
@@ -141,7 +191,10 @@
     "required": false,
     "requires_component": null,
     "description_nl": "Binnentemperatuur (°C)",
-    "description_en": "Indoor temperature (°C)"
+    "description_en": "Indoor temperature (°C)",
+    "description_de": "Innentemperatur (°C)",
+    "description_fr": "Température intérieure (°C)",
+    "description_es": "Temperatura interior (°C)"
   },
   {
     "internal_name": "outdoor_temperature",
@@ -150,7 +203,10 @@
     "required": false,
     "requires_component": null,
     "description_nl": "Buitentemperatuur (°C)",
-    "description_en": "Outdoor temperature (°C)"
+    "description_en": "Outdoor temperature (°C)",
+    "description_de": "Außentemperatur (°C)",
+    "description_fr": "Température extérieure (°C)",
+    "description_es": "Temperatura exterior (°C)"
   },
   {
     "internal_name": "ev_charger_power",
@@ -159,7 +215,10 @@
     "required": false,
     "requires_component": null,
     "description_nl": "Laadpaal vermogen (kW)",
-    "description_en": "EV charger power (kW)"
+    "description_en": "EV charger power (kW)",
+    "description_de": "Ladestation-Leistung (kW)",
+    "description_fr": "Puissance de la borne de recharge (kW)",
+    "description_es": "Potencia del cargador de VE (kW)"
   },
   {
     "internal_name": "ev_battery_soc",
@@ -168,7 +227,10 @@
     "required": false,
     "requires_component": null,
     "description_nl": "Laadtoestand auto batterij (%)",
-    "description_en": "EV battery state of charge (%)"
+    "description_en": "EV battery state of charge (%)",
+    "description_de": "Ladezustand Fahrzeugbatterie (%)",
+    "description_fr": "État de charge de la batterie du véhicule (%)",
+    "description_es": "Estado de carga de la batería del vehículo (%)"
   },
   {
     "internal_name": "heat_pump_power",
@@ -177,7 +239,10 @@
     "required": false,
     "requires_component": "has_district_heating",
     "description_nl": "Warmtepomp vermogen (kW)",
-    "description_en": "Heat pump power (kW)"
+    "description_en": "Heat pump power (kW)",
+    "description_de": "Wärmepumpenleistung (kW)",
+    "description_fr": "Puissance de la pompe à chaleur (kW)",
+    "description_es": "Potencia de la bomba de calor (kW)"
   },
   {
     "internal_name": "boiler_power",
@@ -186,7 +251,10 @@
     "required": false,
     "requires_component": null,
     "description_nl": "Boiler vermogen (kW)",
-    "description_en": "Boiler power (kW)"
+    "description_en": "Boiler power (kW)",
+    "description_de": "Boilerleistung (kW)",
+    "description_fr": "Puissance du ballon d'eau chaude (kW)",
+    "description_es": "Potencia del calentador de agua (kW)"
   },
   {
     "internal_name": "district_heating_power",
@@ -195,7 +263,10 @@
     "required": false,
     "requires_component": "has_district_heating",
     "description_nl": "Stadsverwarming vermogen (kW)",
-    "description_en": "District heating power (kW)"
+    "description_en": "District heating power (kW)",
+    "description_de": "Fernwärmeleistung (kW)",
+    "description_fr": "Puissance du chauffage urbain (kW)",
+    "description_es": "Potencia de la calefacción urbana (kW)"
   },
   {
     "internal_name": "solar_forecast_today",
@@ -204,7 +275,10 @@
     "required": false,
     "requires_component": "has_solar_panels",
     "description_nl": "Zonne-verwachting vandaag (kWh) — eigen HA sensor",
-    "description_en": "Solar forecast today (kWh) — custom HA sensor"
+    "description_en": "Solar forecast today (kWh) — custom HA sensor",
+    "description_de": "Solarprognose heute (kWh) — eigener HA-Sensor",
+    "description_fr": "Prévision solaire aujourd'hui (kWh) — capteur HA personnalisé",
+    "description_es": "Previsión solar hoy (kWh) — sensor HA personalizado"
   },
   {
     "internal_name": "solar_forecast_tomorrow",
@@ -213,7 +287,10 @@
     "required": false,
     "requires_component": "has_solar_panels",
     "description_nl": "Zonne-verwachting morgen (kWh) — eigen HA sensor",
-    "description_en": "Solar forecast tomorrow (kWh) — custom HA sensor"
+    "description_en": "Solar forecast tomorrow (kWh) — custom HA sensor",
+    "description_de": "Solarprognose morgen (kWh) — eigener HA-Sensor",
+    "description_fr": "Prévision solaire demain (kWh) — capteur HA personnalisé",
+    "description_es": "Previsión solar mañana (kWh) — sensor HA personalizado"
   },
   {
     "internal_name": "energy_price_current",
@@ -222,6 +299,9 @@
     "required": false,
     "requires_component": null,
     "description_nl": "Huidige energieprijs (€/kWh) — eigen HA sensor",
-    "description_en": "Current energy price (€/kWh) — custom HA sensor"
+    "description_en": "Current energy price (€/kWh) — custom HA sensor",
+    "description_de": "Aktueller Energiepreis (€/kWh) — eigener HA-Sensor",
+    "description_fr": "Prix actuel de l'énergie (€/kWh) — capteur HA personnalisé",
+    "description_es": "Precio actual de la energía (€/kWh) — sensor HA personalizado"
   }
 ]
